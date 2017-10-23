@@ -10,6 +10,7 @@
     <script src="lib/anchor_tips.js"></script>
     <script src="lib/toast.js"></script>
     <script src="vendor/qrcode.min.js"></script>
+    <script src="vendor/g2.js"></script>
 </head>
 <body>
 <div class="loading-ctn">
@@ -83,6 +84,7 @@
                 <div id="refresh-btn" class="menu-btn">refresh page</div>
                 <div id="save-data-btn" class="menu-btn">save to local</div>
                 <div id="load-data-btn" class="menu-btn">load from local</div>
+                <input id="fileInput" type="file" style="display:none;" />
             </div>
         </div>
     </div>
@@ -167,9 +169,7 @@
     </div>
 </div>
 <div class="widget-anchor-mask tips-mask"></div>
-<input id="fileInput" type="file" style="display:none;" />
 
-<script src="lib/g2.js"></script>
 <script src="lib/debugger.js"></script>
 <script src="lib/preprocessTracingData.js"></script>
 <script src="lib/timeline.js"></script>
