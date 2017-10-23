@@ -1,0 +1,7 @@
+node_modules
+/lib/
+demo
+coverage/
+.idea/
+
+.DS_Store

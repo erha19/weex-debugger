@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>weex-debugger-</title>
+    <link rel="stylesheet" href="assets/debugger.css">
+    <link rel="stylesheet" href="assets/toast.css">
+    <link rel="stylesheet" href="assets/anchor-tips.css">
+    <link rel="stylesheet" href="assets/timeline.css">
+    <script src="lib/anchor_tips.js"></script>
+    <script src="lib/toast.js"></script>
+    <script src="vendor/qrcode.min.js"></script>
+</head>
+<body>
+<div class="loading-ctn">
+    <div class="loading">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</div>
+<div class="header">
+    <img class="logo" src="assets/logo.svg" alt="">
+
+    <div class="info-ctn">
+        <div class="column">
+            <div class="line"><span>App Info</span><b id="app_info"></b></div>
+            <div class="line"><span>SDK Version</span><b id="sdk_version"></b></div>
+        </div>
+        <div id="header-menu">
+            <div id="debugger-menu">
+                <div class="column">
+                    <div class="line short"><span>JS Debug</span><b>
+                        <div class="switch switch-remoteDebug">
+                            <input type="checkbox" id="remote_debug" name="remoteDebug_switch" class="switch-checkbox">
+                            <label class="switch-label" for="remote_debug">
+                                <div class="switch-inner">
+                                    <div class="switch-active">ON</div>
+                                    <div class="switch-inactive">OFF</div>
+                                </div>
+                                <div class="switch-switch"></div>
+                            </label>
+                        </div>
+                    </b></div>
+                    <div class="line short"><span>Network</span><b>
+                        <div class="switch switch-remoteDebug">
+                            <input type="checkbox" id="network" name="remoteDebug_switch" class="switch-checkbox">
+                            <label class="switch-label" for="network">
+                                <div class="switch-inner">
+                                    <div class="switch-active">ON</div>
+                                    <div class="switch-inactive">OFF</div>
+                                </div>
+                                <div class="switch-switch"></div>
+                            </label>
+                        </div>
+                    </b></div>
+                </div>
+                <div class="column">
+                    <div class="line middle">
+                        <span>LogLevel</span><b><select id="log_level" class="selector log-level">
+                        <option value="debug">debug</option>
+                        <option value="log">log</option>
+                        <option value="info">info</option>
+                        <option value="warn">warn</option>
+                        <option value="error">error</option>
+                    </select></b>
+                    </div>
+                    <div class="line middle">
+                        <span>ElementMode</span><b><select id="element_mode" class="selector log-level">
+                        <option value="vdom">vdom</option>
+                        <option value="native">native</option>
+                    </select></b>
+                    </div>
+                </div>
+                <div class="column">
+                    <div id="qrcode_btn"></div>
+                </div>
+                <div class="help">?</div>
+            </div>
+            <div id="prophet-menu">
+                <div id="refresh-btn" class="menu-btn">refresh page</div>
+                <div id="save-data-btn" class="menu-btn">save to local</div>
+                <div id="load-data-btn" class="menu-btn">load from local</div>
+            </div>
+        </div>
+    </div>
+    <div class="page-switch-btn">Prophet >></div>
+</div>
+<iframe id="inspector" src="" frameborder="0"></iframe>
+<iframe id="runtime" src="" frameborder="0"></iframe>
+<div id="prophet-page">
+    <div class="timeline-component">
+        <div id="timeline-panel">
+        <canvas id="timeline"></canvas>
+        </div>
+        <div id="timeline-detail"></div>
+        <div id="timeline-scrollbar"></div>
+        <div id="timeline-tip">
+            <p>Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.</p>
+            <p>Notice: make sure WeexSDK version >= 0.16</p>
+        </div>
+    </div>
+    <div class="data-analyse-panel">
+        <div class="data-analyse-tabnav">
+            <div class="data-analyse-tab-item data-analyse-tab-item-active">Summary</div>
+            <div class="data-analyse-tab-item">Help</div>
+        </div>
+        <div class="data-analyse-content">
+            <div class="data-analyse-summary">
+                <div id="summary-pie-chart" class="summary-col"></div>
+                <div id="summary-global-info" class="summary-col"></div>
+                <div id="summary-warning-info" class="summary-col"></div>
+            </div>
+            <div class="data-analyse-help">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>thread name</th>
+                            <th>start point</th>
+                            <th>end point</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="thread-block js-block"></span>JSThread</td>
+                            <td>receive signal from JSFramework</td>
+                            <td>add dom task into DOMThread</td>
+                        </tr>
+                    </tbody>
+                    <tbody>
+                        <tr>
+                            <td><span class="thread-block dom-block"></span>DOMThread</td>
+                            <td>start handling dom task</td>
+                            <td>add ui task into UIThread</td>
+                        </tr>
+                    </tbody>
+                    <tbody>
+                        <tr>
+                            <td><span class="thread-block ui-block"></span>UIThread</td>
+                            <td>start handling ui task</td>
+                            <td>render finished</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Notice: the performance information in summary is collected in Weex SDK, which is same with monitoring platform but has some deviation with the above figure.</p>  
+            </div>
+        </div>
+    </div>
+</div>
+<div class="connect-qrcode mask">
+    <div class="qrcode-ctn">
+        <div id="qrcode">
+
+        </div>
+        <p>device disconnect! please rescan</p>
+    </div>
+
+</div>
+<div class="bundle-qrcode mask">
+    <div class="qrcode-ctn">
+        <div id="qrcode_bundle">
+
+        </div>
+        <p>Click or Scan for rendering</p>
+    </div>
+</div>
+<div class="widget-anchor-mask tips-mask"></div>
+<input id="fileInput" type="file" style="display:none;" />
+
+<script src="lib/g2.js"></script>
+<script src="lib/debugger.js"></script>
+<script src="lib/preprocessTracingData.js"></script>
+<script src="lib/timeline.js"></script>
+<script src="lib/timelineMain.js"></script>
+</body>
+</html>
