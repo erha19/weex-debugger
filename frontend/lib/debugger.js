@@ -123,6 +123,7 @@ websocket.onmessage = function (event) {
             }
         }
         else {
+            console.log(message,'Log...')
             $('.connect-qrcode').style.display = 'block'
         }
     }
@@ -192,7 +193,6 @@ function init() {
                 evt.preventDefault()
                 evt.stopPropagation()
                 return false
-
             }
         },true)
     }
@@ -264,6 +264,5 @@ if (notFirst!=2) {
     localStorage.setItem('notFirst', '2')
 }
 window.onerror=function(e){
-    console.log(e)
     $('.connect-qrcode').style.display = 'block'
 }

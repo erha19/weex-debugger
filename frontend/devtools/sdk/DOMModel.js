@@ -1488,7 +1488,7 @@ WebInspector.DOMModel.prototype = {
     {
         var parent = this._idToDOMNode[parentId];
         var node = this._idToDOMNode[nodeId];
-        parent._removeChild(node);
+        parent && parent._removeChild(node);
         this._unbind(node);
         this.dispatchEventToListeners(WebInspector.DOMModel.Events.NodeRemoved, {node: node, parent: parent});
         this._scheduleMutationEvent(node);

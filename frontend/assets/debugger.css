@@ -28,6 +28,11 @@ body {
     border-left: 2px solid #aaa;
     padding: 4px 0 5px 15px;
 }
+.info-ctn > .column{
+    display: inline-block;
+    height: 52px;
+    vertical-align: middle;
+}
 
 #inspector {
     width: 100%;
@@ -385,7 +390,7 @@ legend {
     border: 1px solid rgba(255, 255, 255, 0.75);
     padding: 0 15px;
     border-radius: 6px;
-    height: 30px;
+    height: 31px;
     color: rgba(255, 255, 255, 0.75);
     text-align: center;
     line-height: 30px;
@@ -409,8 +414,10 @@ legend {
     visibility: hidden;
 }
 
-#header-menu {
+#operate-menu {
     display: inline-block;
+    height: 52px;
+    vertical-align: middle;
 }
 
 #prophet-menu {
@@ -420,11 +427,12 @@ legend {
 #prophet-menu .menu-btn {
     display: inline-block;
     color: rgba(255, 255, 255, 0.75);
-    padding: 6px 12px;
+    padding: 5px 12px;
     border: 1px solid rgba(255, 255, 255, 0.75);
     border-radius: 6px;
     font-size: 16px;
     cursor: pointer;
+    margin-top: 11px;
     margin-left: 32px;
 }
 

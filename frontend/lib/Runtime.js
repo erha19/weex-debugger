@@ -273,6 +273,6 @@ function syncRequest(data){
         return JSON.parse(request.responseText);
     }
     else{
-        throw Error('sync request failed:['+request.status+']'+request.responseText);
+        console.error('sync request failed:['+request.status+']'+request.responseText);
     }
 }
