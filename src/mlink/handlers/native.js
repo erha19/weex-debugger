@@ -66,7 +66,7 @@ debuggerRouter.registerHandler(function (message) {
       }
     };
   }
-  else if (payload.method === 'DOM.childNodeRemoved') {
+  else if (payload.method === 'DOM.childNodeInserted') {
     const device = DeviceManager.getDevice(message.channelId);
     // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
     // 当没有打开JS Debug时 weex加载bundle devtool是不知道的 只能模糊的通过childNodeRemoved判断
