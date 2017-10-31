@@ -7,7 +7,9 @@ const config = require('../../lib/config');
 const debuggerRouter = Router.get('debugger');
 
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal) {
-  const device = DeviceManager.removeDevice(signal.channelId, function () {
+  const device = DeviceManager.getDevice(signal.channelId);
+  DeviceManager.removeDevice(signal.channelId, function () {
+    console.log('websocket disconnect!');
     debuggerRouter.pushMessageByChannelId('page.debugger', signal.channelId, {
       method: 'WxDebug.deviceDisconnect',
       params: device

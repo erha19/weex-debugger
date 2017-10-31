@@ -13,32 +13,33 @@ class DeviceManager extends Emitter {
     const existed = this.deviceMap[channelId];
     if (existed) {
       clearTimeout(existed.timer);
-      if (existed.deviceId !== device.deviceId) {
-        console.error('This channel already exists a different device!');
-      }
+      this.deviceMap[channelId].unshift(device);
       return false;
     }
     else {
       device.channelId = channelId;
-      this.deviceMap[channelId] = device;
+      this.deviceMap[channelId] = [device];
       return device;
     }
   }
 
   removeDevice (channelId, callback) {
     const device = this.deviceMap[channelId];
-    if (device) {
+    if (device.length > 0) {
       clearTimeout(device.timer);
       device.timer = setTimeout(() => {
-        delete this.deviceMap[channelId];
-        callback();
+        this.deviceMap[channelId].pop();
+        if (this.deviceMap[channelId].length === 0) {
+          callback();
+        }
       }, 5000);
     }
     return device;
   }
 
   getDevice (channelId) {
-    return this.deviceMap[channelId];
+    const device = this.deviceMap[channelId];
+    return device[device.length - 1];
   }
 
   getDeviceList () {

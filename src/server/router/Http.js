@@ -125,7 +125,7 @@ httpRouter.post('/syncApi', function * () {
   if (device) {
     const terminal = new SyncTerminal();
     terminal.channelId = payload.channelId;
-    syncHub.join(terminal);
+    syncHub.join(terminal, true);
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
     const data = yield terminal.send(payload);
@@ -135,7 +135,7 @@ httpRouter.post('/syncApi', function * () {
   }
   else {
     this.response.status = 500;
-    this.response.body = 'device not found!';
+    this.response.body = JSON.stringify({ error: 'device not found!' });
   }
 });
 module.exports = httpRouter;

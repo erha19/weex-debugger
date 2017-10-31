@@ -103,7 +103,8 @@ self.callNativeModule=function(){
     }
     var result=  syncRequest(message);
     if(result.error){
-        throw new Error(result.error);
+        console.error(result.error);
+        // throw new Error(result.error);
     }
     else return result.ret;
 }
@@ -118,7 +119,8 @@ self.callNativeComponent=function(){
     }
     var result= syncRequest(message);
     if(result.error){
-        throw new Error(result.error);
+        console.error(result.error);
+        // throw new Error(result.error);
     }
 
     else return result.ret;
@@ -274,5 +276,6 @@ function syncRequest(data){
     }
     else{
         console.error('sync request failed:['+request.status+']'+request.responseText);
+        return {error:request.responseText};
     }
 }

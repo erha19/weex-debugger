@@ -17,14 +17,14 @@ wsRouter.all('/page/entry', function * (next) {
 wsRouter.all('/debugProxy/inspector/:channelId', function * (next) {
   const terminal = new WebsocketTerminal(this.websocket);
   terminal.channelId = this.params.channelId;
-  inspectorHub.join(terminal);
+  inspectorHub.join(terminal, true);
   yield next;
 });
 
 wsRouter.all('/debugProxy/debugger/:channelId', function * (next) {
   const terminal = new WebsocketTerminal(this.websocket);
   terminal.channelId = this.params.channelId;
-  proxyDebuggerHub.join(terminal);
+  proxyDebuggerHub.join(terminal, true);
 
   yield next;
 });
@@ -32,7 +32,7 @@ wsRouter.all('/debugProxy/debugger/:channelId', function * (next) {
 wsRouter.all('/debugProxy/runtime/:channelId', function * (next) {
   const terminal = new WebsocketTerminal(this.websocket);
   terminal.channelId = this.params.channelId;
-  runtimeWorkerHub.join(terminal);
+  runtimeWorkerHub.join(terminal, true);
   yield next;
 });
 

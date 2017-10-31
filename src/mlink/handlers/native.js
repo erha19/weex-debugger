@@ -35,7 +35,7 @@ debuggerRouter.registerHandler(function (message) {
   else if (payload.method === 'syncReturn') {
     message.payload = {
       error: payload.error,
-      ret: payload.params.ret
+      ret: payload.params && payload.params.ret
     };
     message.to('sync');
     return;
@@ -84,7 +84,7 @@ debuggerRouter.registerHandler(function (message) {
   else if (payload.result && payload.result.method === 'WxDebug.syncReturn') {
     message.payload = {
       error: payload.error,
-      ret: payload.result.params.ret
+      ret: payload.result.params && payload.result.params.ret
     };
     message.to('sync');
     return;

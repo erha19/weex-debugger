@@ -19,6 +19,12 @@ debuggerRouter.registerHandler(function (message, next) {
         logLevel: payload.params.data
       }
     };
+    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+      method: 'WxDebug.reloadInspector'
+    });
+    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+      method: 'WxDebug.reloadRuntime'
+    });
   }
   else if (payload.method === 'WxDebug.setElementMode') {
     device.elementMode = payload.params.data;
@@ -44,15 +50,21 @@ debuggerRouter.registerHandler(function (message, next) {
         enable: payload.params.enable
       }
     };
+    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+      method: 'WxDebug.reloadInspector'
+    });
+    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+      method: 'WxDebug.reloadRuntime'
+    });
   }
   else if (payload.method === 'WxDebug.enable') {
     device && (device.remoteDebug = true);
-    /* debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-        method: 'WxDebug.reloadInspector'
-    })
     debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-        method: 'WxDebug.reloadRuntime'
-    })*/
+      method: 'WxDebug.reloadInspector'
+    });
+    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+      method: 'WxDebug.reloadRuntime'
+    });
   }
   else if (payload.method === 'WxDebug.disable') {
     device && (device.remoteDebug = false);
