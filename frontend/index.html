@@ -78,8 +78,6 @@
         }
         websocket.onmessage = function (event) {
             var message = JSON.parse(event.data)
-            debugger
-            console.log(event.data)
             if (message.method == 'WxDebug.pushChannelId') {
                 channelId = message.params.channelId
                 connectUrl = message.params.connectUrl
