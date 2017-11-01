@@ -7,13 +7,14 @@ const debuggerRouter = Router.get('debugger');
 const DeviceManager = require('../lib/device_manager');
 const RuntimeManager = require('../lib/runtime_manager');
 const Hub = require('mlink').Hub;
+const runtimeProxyHub = Hub.get('runtime.proxy');
+
 debuggerRouter.registerHandler(function (message) {
   message.to('proxy.native');
 }).at('sync');
 debuggerRouter.registerHandler(function (message) {
   message.to('proxy.native');
 }).at('runtime.worker');
-const runtimeProxyHub = Hub.get('runtime.proxy');
 debuggerRouter.on(Router.Event.TERMINAL_JOINED, 'runtime.worker', function (signal) {
   RuntimeManager.connect(signal.channelId).then(function (terminal) {
     runtimeProxyHub.join(terminal);
@@ -38,5 +39,7 @@ debuggerRouter.on(Router.Event.TERMINAL_JOINED, 'runtime.worker', function (sign
   });
 });
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'runtime.worker', function (signal) {
-  RuntimeManager.remove(signal.channelId);
+  if (RuntimeManager.has(signal.channelId)) {
+    RuntimeManager.remove(signal.channelId);
+  }
 });

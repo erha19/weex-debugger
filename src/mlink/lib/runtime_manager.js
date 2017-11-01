@@ -16,7 +16,7 @@ class RuntimeManager {
   }
   connect (channelId) {
     return new Promise((resolve, reject) => {
-      request.getRemote(`http://localhost:${config.remoteDebugPort || 9222}/json`).then((data) => {
+      request.getRemote(`http://127.0.0.1:${config.remoteDebugPort || 9222}/json`).then((data) => {
         const list = JSON.parse(data);
         let found = false;
         for (const target of list) {
@@ -34,10 +34,13 @@ class RuntimeManager {
           if (found.webSocketDebuggerUrl) {
             const ws = new WebSocket(found.webSocketDebuggerUrl);
             const terminal = new WebsocketTerminal(ws, channelId);
-            this.runtimeTerminalMap[channelId] = terminal;
-            ws.on('error', function (err) {
-              console.error(err);
-            });
+            const _runtimeTerminalMaps = this.runtimeTerminalMap[channelId];
+            if (_runtimeTerminalMaps && _runtimeTerminalMaps.length > 0) {
+              _runtimeTerminalMaps.unshift(terminal);
+            }
+            else {
+              this.runtimeTerminalMap[channelId] = [terminal];
+            }
             resolve(terminal);
           }
           else {
@@ -84,17 +87,18 @@ class RuntimeManager {
     });
   }
   remove (channelId) {
-    const terminal = this.runtimeTerminalMap[channelId];
-    if (terminal) {
-      terminal.websocket.close();
-      delete this.runtimeTerminalMap[channelId];
+    const terminals = this.runtimeTerminalMap[channelId];
+    if (terminals && terminals.length > 0) {
+      const popTerminal = terminals.pop();
+      popTerminal.websocket.close();
     }
     else {
       console.error('try to remove a non-exist runtime');
     }
   }
   has (channelId) {
-    return this.runtimeTerminalMap[channelId];
+    const terminals = this.runtimeTerminalMap[channelId];
+    return terminals && terminals.length > 0;
   }
 }
 module.exports = new RuntimeManager();

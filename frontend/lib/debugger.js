@@ -26,6 +26,9 @@ websocket.onopen = function () {
         history.back()
     }, 5000)
 }
+websocket.onclose = function () {
+    history.back()
+}
 
 websocket.onmessage = function (event) {
     let message = JSON.parse(event.data)

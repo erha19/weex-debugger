@@ -32,7 +32,7 @@ wsRouter.all('/debugProxy/debugger/:channelId', function * (next) {
 wsRouter.all('/debugProxy/runtime/:channelId', function * (next) {
   const terminal = new WebsocketTerminal(this.websocket);
   terminal.channelId = this.params.channelId;
-  runtimeWorkerHub.join(terminal, true);
+  runtimeWorkerHub.join(terminal);
   yield next;
 });
 
