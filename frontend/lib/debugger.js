@@ -21,33 +21,20 @@ var isProphetPageShowing = false;
 websocket = new WebSocket('ws://' + location.host + '/debugProxy/debugger/' + channelId);
 let timeout
 websocket.onopen = function () {
-    console.log('open')
     timeout = setTimeout(function () {
-        // $('.connect-qrcode').style.display = 'block'
         history.back()
     }, 5000)
 }
 websocket.onclose = function () {
+    alert('close')
     history.back()
 }
 
 websocket.onmessage = function (event) {
     let message = JSON.parse(event.data)
-    console.log('recive')
     if (message.method === 'WxDebug.pushDebuggerInfo') {
         clearTimeout(timeout)
         if (message.params) {
-            $('#qrcode').innerHTML=''
-            new QRCode($('#qrcode'), {
-                text: message.params.connectUrl,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#E0E0E0",
-                correctLevel: QRCode.CorrectLevel.L
-            })
-            // history.back();;
-            // $('.connect-qrcode').style.display = 'none'
             let device=message.params.device
             let name = device.name
             if (name.indexOf('com.') === 0) {
@@ -129,8 +116,8 @@ websocket.onmessage = function (event) {
             }
         }
         else {
+            alert('other')
             history.back();
-            // $('.connect-qrcode').style.display = 'block'
         }
     }
     else if (message.method === 'WxDebug.prompt') {
@@ -145,7 +132,6 @@ websocket.onmessage = function (event) {
         $('#runtime').contentWindow.location.reload()
     }
     else if (message.method === 'WxDebug.deviceDisconnect') {
-        // $('.connect-qrcode').style.display = 'block'
         history.back();
     }
     else if(message.method==='WxDebug.bundleRendered'){
@@ -173,9 +159,6 @@ websocket.onmessage = function (event) {
             websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
         }
     }
-    else {
-        history.back();
-    }
 }
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
@@ -188,11 +171,8 @@ document.onkeydown = function (evt) {
 }
 function init() {
     var $runtime = $('#runtime')
-    //window.open('runtime.html?channelId='+channelId)
-    // window.open(`/inspector/inspector.html?experiments=true&ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`)
     $('#runtime').src = 'runtime.html?channelId=' + channelId
     $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`
-    //websocket.send(JSON.stringify({method:'WxDebug.enable'}))
     var firstLoad=true
     $('#inspector').onload = function () {
         if(!firstLoad&&$('#remote_debug').checked){
@@ -277,8 +257,6 @@ if (notFirst!=2) {
     $help.onclick()
     localStorage.setItem('notFirst', '2')
 }
-window.onerror=function(e){
-    hi
-    // history.back();story.back();
-    // $('.connect-qrcode').style.display = 'block'
-}
+// window.onerror=function(e){
+//     history.back()
+// }

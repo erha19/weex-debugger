@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Weex Devtool - JS Debugger</title>
-    <script src="lib/EventEmitter.js"></script>
-    <script src="lib/WebsocketClient.js"></script>
+    <script src="lib/runtime/EventEmitter.js"></script>
+    <script src="lib/runtime/WebsocketClient.js"></script>
 
 </head>
 <body>
@@ -17,7 +17,6 @@
     var channelId = new URLSearchParams(location.search).get('channelId');
     window.websocket = new WebsocketClient('ws://' + window.location.host + '/debugProxy/runtime/' + channelId);
     websocket.on('*', function (message) {
-        console.log(message)
         if (worker) {
             worker.postMessage(message);
         }
@@ -37,7 +36,6 @@
         }
         message.channelId = channelId;
         initJSRuntime(message);
-
     });
     function destroyJSRuntime() {
         if (worker) {
@@ -47,7 +45,7 @@
         }
     }
     function initJSRuntime(message) {
-        worker = new Worker('/lib/Runtime.js');
+        worker = new Worker('/lib/runtime/Runtime.js');
         worker.onmessage = function (message) {
             message = message.data;
             var domain = message.method.split('.')[0];
