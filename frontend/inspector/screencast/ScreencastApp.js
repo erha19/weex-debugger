@@ -8,7 +8,7 @@
  */
 Screencast.ScreencastApp = class {
   constructor() {
-    this._enabledSetting = Common.settings.createSetting('screencastEnabled', true);
+    this._enabledSetting = Common.settings.createSetting('screencastEnabled', false);
     this._toggleButton = new UI.ToolbarToggle(Common.UIString('Toggle screencast'), 'largeicon-phone');
     this._toggleButton.setToggled(this._enabledSetting.get());
     this._toggleButton.addEventListener('click', this._toggleButtonClicked, this);
@@ -30,8 +30,7 @@ Screencast.ScreencastApp = class {
    */
   presentUI(document) {
     var rootView = new UI.RootView();
-
-    this._rootSplitWidget = new UI.SplitWidget(false, true, 'InspectorView.screencastSplitViewState', 300, 300);
+    this._rootSplitWidget = new UI.SplitWidget(false, true, 'InspectorView.screencastSplitViewState', 800, 300);
     this._rootSplitWidget.setVertical(true);
     this._rootSplitWidget.setSecondIsSidebar(true);
     this._rootSplitWidget.show(rootView.element);

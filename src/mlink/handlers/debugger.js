@@ -59,12 +59,12 @@ debuggerRouter.registerHandler(function (message, next) {
   }
   else if (payload.method === 'WxDebug.enable') {
     device && (device.remoteDebug = true);
-    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-      method: 'WxDebug.reloadInspector'
-    });
-    debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-      method: 'WxDebug.reloadRuntime'
-    });
+    // debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+    //   method: 'WxDebug.reloadInspector'
+    // });
+    // debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+    //   method: 'WxDebug.reloadRuntime'
+    // });
   }
   else if (payload.method === 'WxDebug.disable') {
     device && (device.remoteDebug = false);

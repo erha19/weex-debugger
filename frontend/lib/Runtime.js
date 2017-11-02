@@ -151,7 +151,7 @@ function postData(payload){
     try {
         postMessage(payload);
     }catch(e){
-        console.warn('callNative with some non-json data:',payload);
+        // console.warn('callNative with some non-json data:',payload);
         payload=JSON.parse(JSON.stringify(payload));
         postMessage(payload);
     }
@@ -222,7 +222,6 @@ eventEmitter.on('Console.messageAdded', function (message) {
 });
 var instanceMap = {};
 eventEmitter.on('WxDebug.importScript',function(data){
-    console.log(data);
     if(data.params.sourceUrl) {
         importScripts(data.params.sourceUrl);
     }else{
@@ -247,7 +246,7 @@ eventEmitter.on('WxDebug.callJS', function (data) {
             delete instanceMap[data.params.args[0]];
         }
         else {
-            console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
+            // console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
         }
     }
     else if(self[data.params.method]){
@@ -275,7 +274,7 @@ function syncRequest(data){
         return JSON.parse(request.responseText);
     }
     else{
-        console.error('sync request failed:['+request.status+']'+request.responseText);
+        // console.error('sync request failed:['+request.status+']'+request.responseText);
         return {error:request.responseText};
     }
 }

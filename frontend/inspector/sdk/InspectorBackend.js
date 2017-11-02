@@ -641,7 +641,7 @@ InspectorBackendClass._AgentPrototype = class {
         messageObject.error.code !== InspectorBackendClass.DevToolsStubErrorCode &&
         !InspectorBackendClass.Options.suppressRequestErrors) {
       var id = InspectorBackendClass.Options.dumpInspectorProtocolMessages ? ' with id = ' + messageObject.id : '';
-      console.error('Request ' + methodName + id + ' failed. ' + JSON.stringify(messageObject.error));
+      console.info('[chrome-devtool] Request ' + methodName + id + ' failed. ' + JSON.stringify(messageObject.error));
     }
 
     var argumentsArray = [];

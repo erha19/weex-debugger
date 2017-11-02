@@ -21,6 +21,7 @@ var isProphetPageShowing = false;
 websocket = new WebSocket('ws://' + location.host + '/debugProxy/debugger/' + channelId);
 let timeout
 websocket.onopen = function () {
+    console.log('open')
     timeout = setTimeout(function () {
         // $('.connect-qrcode').style.display = 'block'
         history.back()
@@ -32,6 +33,7 @@ websocket.onclose = function () {
 
 websocket.onmessage = function (event) {
     let message = JSON.parse(event.data)
+    console.log('recive')
     if (message.method === 'WxDebug.pushDebuggerInfo') {
         clearTimeout(timeout)
         if (message.params) {
@@ -127,8 +129,8 @@ websocket.onmessage = function (event) {
             }
         }
         else {
-            // history.back();
-            $('.connect-qrcode').style.display = 'block'
+            history.back();
+            // $('.connect-qrcode').style.display = 'block'
         }
     }
     else if (message.method === 'WxDebug.prompt') {
@@ -171,7 +173,9 @@ websocket.onmessage = function (event) {
             websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
         }
     }
-
+    else {
+        history.back();
+    }
 }
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {

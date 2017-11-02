@@ -30,7 +30,6 @@
     });
     websocket.on('WxDebug.initJSRuntime', function (message) {
         clearTimeout(timer);
-        console.log(11111)
         destroyJSRuntime();
         var logLevel = localStorage.getItem('logLevel');
         if (logLevel) {

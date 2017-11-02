@@ -9,7 +9,8 @@
  */
 WebInspector.ScreencastApp = function()
 {
-    this._enabledSetting = WebInspector.settings.createSetting("screencastEnabled", true);
+    this._enabledSetting = WebInspector.settings.createSetting("screencastEnabled", false);
+    console.log(this._enabledSetting.get(),this._enabledSetting)
     this._toggleButton = new WebInspector.ToolbarToggle(WebInspector.UIString("Toggle screencast"), "phone-toolbar-item");
     this._toggleButton.setToggled(this._enabledSetting.get());
     this._toggleButton.addEventListener("click", this._toggleButtonClicked, this);
