@@ -26,7 +26,6 @@ var I18N = function () {
 
     function resolve(language) {
         document.querySelectorAll('.i18n').forEach(function (node) {
-            console.log(gl_localeText[language] || gl_localeText['en-US'])
             scan(node, gl_localeText[language] || gl_localeText['en-US'])
         })
     }

@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="assets/toast.css">
     <link rel="stylesheet" href="assets/anchor-tips.css">
     <link rel="stylesheet" href="assets/timeline.css">
-    <script src="lib/anchor_tips.js"></script>
-    <script src="lib/toast.js"></script>
+    <script src="lib/utils/anchor_tips.js"></script>
+    <script src="lib/utils/toast.js"></script>
+    <script src="lib/i18n/locale.js"></script>
+    <script src="lib/i18n/i18n.js"></script>
     <script src="vendor/qrcode.min.js"></script>
     <script src="vendor/g2.js"></script>
 </head>
@@ -99,9 +101,9 @@
         </div>
         <div id="timeline-detail"></div>
         <div id="timeline-scrollbar"></div>
-        <div id="timeline-tip">
-            <p>Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.</p>
-            <p>Notice: make sure WeexSDK version >= 0.16</p>
+        <div id="timeline-tip" class="i18n">
+            <p>${TIMELINE_TIPS_DESC}</p>
+            <p>${TIMELINE_TIPS_NOTICE}</p>
         </div>
     </div>
     <div class="data-analyse-panel">
@@ -115,55 +117,55 @@
                 <div id="summary-global-info" class="summary-col"></div>
                 <div id="summary-warning-info" class="summary-col"></div>
             </div>
-            <div class="data-analyse-help">
+            <div class="data-analyse-help i18n">
                 <table>
                     <thead>
                         <tr>
-                            <th>thread name</th>
-                            <th>start point</th>
-                            <th>end point</th>
+                            <th>${THREAD_NAME}</th>
+                            <th>${START_POINT}</th>
+                            <th>${END_POINT}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><span class="thread-block js-block"></span>JSThread</td>
-                            <td>receive signal from JSFramework</td>
-                            <td>add dom task into DOMThread</td>
+                            <td><span class="thread-block js-block"></span>${THREAD_NAME_JS}</td>
+                            <td>${START_POINT_JS}</td>
+                            <td>${END_POINT_JS}</td>
                         </tr>
                     </tbody>
                     <tbody>
                         <tr>
-                            <td><span class="thread-block dom-block"></span>DOMThread</td>
-                            <td>start handling dom task</td>
-                            <td>add ui task into UIThread</td>
+                            <td><span class="thread-block dom-block"></span>${THREAD_NAME_DOM}</td>
+                            <td>${START_POINT_DOM}</td>
+                            <td>${END_POINT_DOM}</td>
                         </tr>
                     </tbody>
                     <tbody>
                         <tr>
-                            <td><span class="thread-block ui-block"></span>UIThread</td>
-                            <td>start handling ui task</td>
-                            <td>render finished</td>
+                            <td><span class="thread-block ui-block"></span>${THREAD_NAME_UI}</td>
+                            <td>${START_POINT_UI}</td>
+                            <td>${END_POINT_UI}</td>
                         </tr>
                     </tbody>
                 </table>
-                <p>Notice: the performance information in summary is collected in Weex SDK, which is same with monitoring platform but has some deviation with the above figure.</p>  
+                <p>${THREAD_NOTICE}</p>  
             </div>
         </div>
     </div>
 </div>
 <div class="bundle-qrcode mask">
-    <div class="qrcode-ctn">
+    <div class="qrcode-ctn i18n">
         <div id="qrcode_bundle">
 
         </div>
-        <p>Click or Scan for rendering</p>
+        <p>${QRCODE_BUNDLE_TIP}</p>
     </div>
 </div>
 <div class="widget-anchor-mask tips-mask"></div>
 
-<script src="lib/debugger.js"></script>
-<script src="lib/preprocessTracingData.js"></script>
-<script src="lib/timeline.js"></script>
-<script src="lib/timelineMain.js"></script>
+<script src="lib/debug/debugger.js"></script>
+<script src="lib/prophet/preprocessTracingData.js"></script>
+<script src="lib/prophet/timeline.js"></script>
+<script src="lib/prophet/timelineMain.js"></script>
 </body>
 </html>

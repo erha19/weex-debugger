@@ -192,10 +192,6 @@ function init() {
     }
 }
 
-new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[0],AnchorTips.LEFT,'start js debugger (js will run in chrome instead of native)',$('.tips-mask'))
-new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[1],AnchorTips.LEFT_BOTTOM,'start network monitor',$('.tips-mask'))
-new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[0],AnchorTips.RIGHT,'set LogLevel',$('.tips-mask'))
-new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[1],AnchorTips.RIGHT_BOTTOM,'switch elements tree view<br>(dom tree or native render tree)',$('.tips-mask'))
 var $help=$('.help')
 var $tipsMask=$('.tips-mask')
 
@@ -257,6 +253,17 @@ if (notFirst!=2) {
     $help.onclick()
     localStorage.setItem('notFirst', '2')
 }
+
+
+function generatei18nTips(tip) {
+    return gl_localeText[navigator.language || 'en-US'][tip];
+}
+
+new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[0],AnchorTips.LEFT,generatei18nTips('JSDEBUG_TIP'),$('.tips-mask'))
+new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[1],AnchorTips.LEFT_BOTTOM,generatei18nTips('NETWORK_TIP'),$('.tips-mask'))
+new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[0],AnchorTips.RIGHT,generatei18nTips('LOGLEVEL_TIP'),$('.tips-mask'))
+new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[1],AnchorTips.RIGHT_BOTTOM,generatei18nTips('ELEMENT_MODE_TIP'),$('.tips-mask'))
+
 // window.onerror=function(e){
 //     history.back()
 // }

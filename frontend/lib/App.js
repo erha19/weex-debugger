@@ -100,10 +100,18 @@ document.querySelector('.help').onclick = function () {
         document.querySelector('.help').innerHTML = 'x'
         document.querySelector('.mask').style.animation = 'expand 0.6s ease 1 forwards'
         document.querySelector('.description b:nth-child(1)').style.animation = 'blink 0.3s ease 1.1s 2'
-        document.querySelector('.description b:nth-child(2)').style.animation = 'blink-and-translate 1s ease 1.1s 1 forwards'
-        document.querySelector('.scan-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
-        document.querySelector('.click-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
-    }
+        // Size is diffrence between the same fontsize chinese and Engilsh
+        if (navigator.language === 'zh-CN') {
+            document.querySelector('.description b:nth-child(2)').style.animation = 'blink-and-translate-zh 1s ease 1.1s 1 forwards'
+            document.querySelector('.scan-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
+            document.querySelector('.click-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
+        }
+        else {
+            document.querySelector('.description b:nth-child(2)').style.animation = 'blink-and-translate-en 1s ease 1.1s 1 forwards'
+            document.querySelector('.scan-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
+            document.querySelector('.click-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
+        }
+       }
     else {
         document.querySelector('.help').innerHTML = '?'
         document.querySelector('.mask').style.animation = 'collapse 0.6s ease 1'
