@@ -32,6 +32,9 @@ var gl_localeText={
         "NETWORK_TIP":"开启网络监控",
         "LOGLEVEL_TIP":"设置日志等级",
         "ELEMENT_MODE_TIP":"切换元素视图模式（Dom树模式或Native树模式）",
+        "PROPHET_REFRESH":"刷新页面",
+        "PROPHET_SAVE":"保存到本地",
+        "PROPHET_LOAD":"从本地加载"
     },
     "en-US":{
         "SCAN":"Scan",
@@ -64,5 +67,8 @@ var gl_localeText={
         "NETWORK_TIP":"Start network monitor",
         "LOGLEVEL_TIP":"Set level of log",
         "ELEMENT_MODE_TIP":"Switch elements tree view<br>(dom tree or native render tree)",
+        "PROPHET_REFRESH":"Refresh page",
+        "PROPHET_SAVE":"Save to local",
+        "PROPHET_LOAD":"Load from local"
     }
 }

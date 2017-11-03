@@ -6,39 +6,94 @@ var channelId = new URLSearchParams(location.search).get('channelId');
 
 document.title = document.title + channelId
 
-new QRCode($('#qrcode_btn'), {
-    text: '请点击',
-    width: 52,
-    height: 52,
-    colorDark: "#000000",
-    colorLight: "#E0E0E0",
-    correctLevel: QRCode.CorrectLevel.L
-});
 
 var screencastParams = null;
 var isProphetPageShowing = false;
 
+var $help=$('.help')
+var $tipsMask=$('.tips-mask')
+var $switchBtn=$('.page-switch-btn')
+var $refreshBtn = $('#refresh-btn');
+var $prophetPage = $('#prophet-page');
+var $inspectorPage = $('#inspector');
+var $debuggerMenu = $('#debugger-menu');
+var $prophetMenu = $('#prophet-menu');
+var $remoteDebug = $('#remote_debug');
+var hash = window.location.hash || '#debugger';
+
+var timeout
+
 websocket = new WebSocket('ws://' + location.host + '/debugProxy/debugger/' + channelId);
-let timeout
+
 websocket.onopen = function () {
+
+    var toProphetPage = function () {
+        $switchBtn.innerHTML = 'Debugger >>';
+        $switchBtn.setAttribute('href', '#debugger')
+        $prophetPage.style.visibility = 'visible';
+        isProphetPageShowing = true;
+        $debuggerMenu.style.display = 'none';
+        $prophetMenu.style.display = 'block';
+        $inspectorPage.style.display = 'none';
+        isProphetPageShowing = true;
+        
+        websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
+        websocket.send(JSON.stringify({method: 'WxDebug.disable'}))
+        websocket.send(JSON.stringify({method: 'WxDebug.enableTracing', params: {status: true}}));
+        if ($remoteDebug.checked) {
+            $remoteDebug.checked = false;
+            websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
+        }
+    }
+
+    var toDebuggerPage = function() {
+        $switchBtn.innerHTML = 'Prophet >>';
+        $switchBtn.setAttribute('href', '#prophet')
+        $prophetPage.style.visibility = 'hidden';
+        isProphetPageShowing = false;
+        $prophetMenu.style.display = 'none';
+        $debuggerMenu.style.display = 'block';
+        $inspectorPage.style.display = 'block';
+        isProphetPageShowing = false;        
+        websocket.send(JSON.stringify({method: 'WxDebug.enableTracing', params: {status: false}}));
+        if (screencastParams) {
+            websocket.send(JSON.stringify({method: 'Page.startScreencast', params: screencastParams}));
+        }
+    }
+
+    if (hash === '#debugger') {
+        toDebuggerPage();
+    }
+    else if (hash === '#prophet') {
+        toProphetPage();
+    }
+
+    window.addEventListener('hashchange', function(e) {
+        hash = new URL(e.newURL).hash;
+        if (hash === '#debugger') {
+            toDebuggerPage();
+        }
+        else if (hash === '#prophet') {
+            toProphetPage();
+        }
+    }, false);
     timeout = setTimeout(function () {
         history.back()
     }, 5000)
 }
 websocket.onclose = function () {
-    alert('close')
     history.back()
 }
 
 websocket.onmessage = function (event) {
-    let message = JSON.parse(event.data)
+    var message = JSON.parse(event.data)
     if (message.method === 'WxDebug.pushDebuggerInfo') {
         clearTimeout(timeout)
         if (message.params) {
-            let device=message.params.device
-            let name = device.name
+            var device=message.params.device
+            var name = device.name
             if (name.indexOf('com.') === 0) {
-                let split = name.split('.')
+                var split = name.split('.')
                 name = split.slice(Math.min(split.length - 1, 2)).join('.')
             }
             var appInfo = name + '@' + device.model
@@ -74,15 +129,15 @@ websocket.onmessage = function (event) {
                     websocket.send(JSON.stringify({method: 'WxDebug.setLogLevel', params: {data: this.value}}))
                 }
             }
-            let bundleQrcodeCtn=$('#qrcode_bundle')
+            var bundleQrcodeCtn=$('#qrcode_bundle')
             bundleQrcodeCtn.innerHTML=''
-            let bundles=message.params.bundles
+            var bundles=message.params.bundles
             window._bundles=bundles
             if(bundles&&bundles.length>0) {
 
                 bundles.forEach(function (url, i) {
 
-                    let q = document.createElement('div')
+                    var q = document.createElement('div')
                     q.innerHTML = '<p>' + new URL(url).pathname.split('/').slice(-1)[0] + '</p>'
                     q.className = 'bundle-qr'
                     bundleQrcodeCtn.appendChild(q)
@@ -102,13 +157,20 @@ websocket.onmessage = function (event) {
                 })
                 var qrcodeBtn=$('#qrcode_btn')
                 var bundleQrcode=$('.bundle-qrcode')
+                new QRCode(qrcodeBtn, {
+                    text: '请点击',
+                    width: 52,
+                    height: 52,
+                    colorDark: "#000000",
+                    colorLight: "#E0E0E0",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
                 qrcodeBtn.style.visibility='visible'
                 qrcodeBtn.onclick=function(){
                     bundleQrcode.style.display='block'
                 }
                 bundleQrcode.onclick=function(){
                     this.style.display='none'
-
                 }
             }
             if (isProphetPageShowing) {
@@ -116,12 +178,11 @@ websocket.onmessage = function (event) {
             }
         }
         else {
-            alert('other')
             history.back();
         }
     }
     else if (message.method === 'WxDebug.prompt') {
-        let delayed = 5000 + message.params.messageText.length / 6 * 1000
+        var delayed = 5000 + message.params.messageText.length / 6 * 1000
         toast(message.params.messageText.replace(/\n/g, '<br>'), delayed)
     }
     else if (message.method === 'WxDebug.reloadInspector') {
@@ -135,7 +196,7 @@ websocket.onmessage = function (event) {
         history.back();
     }
     else if(message.method==='WxDebug.bundleRendered'){
-        let found=false
+        var found=false
         $('#runtime').contentWindow.console.log(message)
         if(!message.params)found=true
         else {
@@ -162,10 +223,15 @@ websocket.onmessage = function (event) {
 }
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
-        $('#inspector').contentWindow.location.reload()
-        $('#runtime').contentWindow.websocket.ws.close()
-        $('#runtime').contentWindow.location.reload()
         evt.preventDefault();
+        if (hash === '#debugger') {
+            $('#inspector').contentWindow.location.reload()
+            $('#runtime').contentWindow.websocket.ws.close()
+            $('#runtime').contentWindow.location.reload()
+        }
+        else {
+            websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
+        }
         return false
     }
 }
@@ -191,16 +257,6 @@ function init() {
         },true)
     }
 }
-
-var $help=$('.help')
-var $tipsMask=$('.tips-mask')
-
-var $switchBtn=$('.page-switch-btn')
-var $refreshBtn = $('#refresh-btn');
-var $prophetPage = $('#prophet-page');
-var $inspectorPage = $('#inspector');
-var $debuggerMenu = $('#debugger-menu');
-var $prophetMenu = $('#prophet-menu');
 $help.onclick=function(){
     if($help.innerHTML==='?') {
         $help.innerHTML='x'
@@ -218,31 +274,6 @@ $help.onclick=function(){
     }
 }
 
-$switchBtn.onclick = function () {
-    if (isProphetPageShowing) {
-        $switchBtn.innerHTML = 'Prophet >>';
-        $prophetPage.style.visibility = 'hidden';
-        isProphetPageShowing = false;
-        $prophetMenu.style.display = 'none';
-        $debuggerMenu.style.display = 'block';
-        $inspectorPage.style.display = 'block';
-
-        websocket.send(JSON.stringify({method: 'WxDebug.enableTracing', params: {status: false}}));
-        if (screencastParams) {
-            websocket.send(JSON.stringify({method: 'Page.startScreencast', params: screencastParams}));
-        }
-    } else {
-        $switchBtn.innerHTML = 'Debugger >>';
-        $prophetPage.style.visibility = 'visible';
-        isProphetPageShowing = true;
-        $debuggerMenu.style.display = 'none';
-        $prophetMenu.style.display = 'block';
-        $inspectorPage.style.display = 'none';
-
-        websocket.send(JSON.stringify({method: 'WxDebug.enableTracing', params: {status: true}}));
-        websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
-    }
-}
 
 $refreshBtn.onclick = function () {
     websocket.send(JSON.stringify({method: 'WxDebug.reload'}));
@@ -263,7 +294,3 @@ new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[0],Anc
 new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[1],AnchorTips.LEFT_BOTTOM,generatei18nTips('NETWORK_TIP'),$('.tips-mask'))
 new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[0],AnchorTips.RIGHT,generatei18nTips('LOGLEVEL_TIP'),$('.tips-mask'))
 new AnchorTips(document.querySelectorAll('.line.middle>span:nth-child(1)')[1],AnchorTips.RIGHT_BOTTOM,generatei18nTips('ELEMENT_MODE_TIP'),$('.tips-mask'))
-
-// window.onerror=function(e){
-//     history.back()
-// }
