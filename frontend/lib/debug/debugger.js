@@ -183,7 +183,7 @@ websocket.onmessage = function (event) {
     }
     else if (message.method === 'WxDebug.prompt') {
         var delayed = 5000 + message.params.messageText.length / 6 * 1000
-        toast(message.params.messageText.replace(/\n/g, '<br>'), delayed)
+        toast(translateI18n(message.params.messageText).replace(/\n/g, '<br>'), delayed)
     }
     else if (message.method === 'WxDebug.reloadInspector') {
         $('#inspector').contentWindow.location.reload()

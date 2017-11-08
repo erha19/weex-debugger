@@ -9,7 +9,7 @@ var gl_localeText={
         "CLICK_TIPS":"点击二维码启动模拟器进行调试",
         "OR":"或",
         "TIPS":"这个二维码开始调试",
-        "VERSION":"weex devtool 1.0.0-rc.13",
+        "VERSION":"weex devtool 1.0.0-rc.14",
         "DISCONNECT_TIPS":"设备断开连接,请重新扫码",
         "BUNDLE_TIPS":"扫描或者点击二维码加载bundle(点击仅限模拟器)",
         "TIMELINE_TIPS_DESC":"请刷新手机中的当前页面或跳转到新的weex页面，然后此面板将显示详细的性能报告",
@@ -34,7 +34,10 @@ var gl_localeText={
         "ELEMENT_MODE_TIP":"切换元素视图模式（Dom树模式或Native树模式）",
         "PROPHET_REFRESH":"刷新页面",
         "PROPHET_SAVE":"保存到本地",
-        "PROPHET_LOAD":"从本地加载"
+        "PROPHET_LOAD":"从本地加载",
+        "TOAST_JS_RUNTIME_INIT_FAIL":"Js Debug执行环境初始化失败，参见控制台输出的帮助信息进行修复!",
+        "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"请不要打开chrome自带的的inspector",
+        "TOAST_CAN_NOT_FIND_RUNTIME":"找不到运行时~!"
     },
     "en-US":{
         "SCAN":"Scan",
@@ -43,7 +46,7 @@ var gl_localeText={
         "CLICK_TIPS":"qrcode to start a simulator for debugging",
         "OR":"or",
         "TIPS":"this qrcode to start debugger",
-        "VERSION":"weex devtool 1.0.0-rc.13",
+        "VERSION":"weex devtool 1.0.0-rc.14",
         "DISCONNECT_TIPS":"device disconnect! please rescan",
         "BUNDLE_TIPS":"Click or Scan for rendering(click only for simulator)",
         "TIMELINE_TIPS_DESC":"Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.",
@@ -69,6 +72,9 @@ var gl_localeText={
         "ELEMENT_MODE_TIP":"Switch elements tree view<br>(dom tree or native render tree)",
         "PROPHET_REFRESH":"Refresh page",
         "PROPHET_SAVE":"Save to local",
-        "PROPHET_LOAD":"Load from local"
+        "PROPHET_LOAD":"Load from local",
+        "TOAST_JS_RUNTIME_INIT_FAIL":"Js Debug execution environment initialization failed, see the console output help to repair!",
+        "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"Please do not open the inspector that comes with chrome",
+        "TOAST_CAN_NOT_FIND_RUNTIME":"Please restart，can not find the runtime"
     }
 }

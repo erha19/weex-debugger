@@ -1,7 +1,9 @@
 /**
  * Created by exolution on 17/3/2.
  */
-const WebsocketTerminal = require('mlink').Terminal.WebsocketTerminal;
+const mlink = require('mlink');
+const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
+const Logger = mlink.Logger;
 const url = require('url');
 const request = require('../../util/request');
 const querystring = require('querystring');
@@ -30,6 +32,7 @@ class RuntimeManager {
             found = target;
           }
         }
+        
         if (found) {
           if (found.webSocketDebuggerUrl) {
             const ws = new WebSocket(found.webSocketDebuggerUrl);
@@ -44,12 +47,13 @@ class RuntimeManager {
             resolve(terminal);
           }
           else {
-            reject('请不要打开chrome自带的的inspector');
+            reject('TOAST_DO_NOT_OPEN_CHROME_DEVTOOL');
           }
         }
         else {
-          reject('找不到运行时~!');
+          reject('TOAST_CAN_NOT_FIND_RUNTIME');
         }
+        
       }).catch((e) => {
         /**
          * Why has the logic here？
@@ -82,7 +86,7 @@ class RuntimeManager {
         }
         console.log(`\n${chalk.red('Note: The command will close all chrome pages, please save your unfinished work')}`);
 
-        reject('Js Debug执行环境初始化失败，参见控制台输出的帮助信息进行修复!');
+        reject('TOAST_JS_RUNTIME_INIT_FAIL');
       });
     });
   }

@@ -25,11 +25,11 @@ class DeviceManager extends Emitter {
 
   removeDevice (channelId, callback) {
     const device = this.deviceMap[channelId];
-    if (device.length > 0) {
+    if (device && device.length > 0) {
       clearTimeout(device.timer);
       device.timer = setTimeout(() => {
         this.deviceMap[channelId].pop();
-        if (this.deviceMap[channelId].length === 0) {
+        if (this.deviceMap[channelId] && this.deviceMap[channelId].length === 0) {
           callback();
         }
       }, 5000);
@@ -39,7 +39,7 @@ class DeviceManager extends Emitter {
 
   getDevice (channelId) {
     const device = this.deviceMap[channelId];
-    return device[device.length - 1];
+    return device && device[device.length - 1];
   }
 
   getDeviceList () {

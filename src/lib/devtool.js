@@ -12,8 +12,9 @@ const launcher = require('../util/launcher');
 const Router = require('mlink').Router;
 const boxen = require('boxen');
 
-exports.startServerAndLaunch = function (ip, port, manual) {
+exports.startServerAndLaunch = function (ip, port, manual, cb) {
   this.startServer(ip, port).then(() => {
+    cb && cb();
     if (!manual) this.launch(ip, port);
   });
 };
@@ -82,12 +83,12 @@ function resolveConnectUrl (config) {
   const host = config.ip + ':' + config.port;
   config.connectUrl = config.connectUrl || `http:\/\/${host}/devtool_fake.html?_wx_devtool=ws:\/\/${host}/debugProxy/native/{channelId}`;
 }
-exports.start = function (target, config) {
+exports.start = function (target, config, cb) {
   resolveConnectUrl(config);
   if (isUrl(target)) {
     const bundleUrls = this.resolveBundlesAndEntry(target, [], config.ip, config.port);
     config.bundleUrls = bundleUrls;
-    this.startServerAndLaunch(config.ip, config.port, config.manual);
+    this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
   }
   else if (target) {
     const filePath = path.resolve(target);
@@ -108,7 +109,7 @@ exports.start = function (target, config) {
           const bundles = output.map((o) => path.relative(path.join(__dirname, '../../frontend/weex'), o.to));
           const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
           config.bundleUrls = bundleUrls;
-          this.startServerAndLaunch(config.ip, config.port, config.manual);
+          this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
         }
         else {
           Router.get('debugger').pushMessage('proxy.native', {
@@ -119,6 +120,6 @@ exports.start = function (target, config) {
     });
   }
   else {
-    this.startServerAndLaunch(config.ip, config.port, config.manual);
+    this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
   }
 };

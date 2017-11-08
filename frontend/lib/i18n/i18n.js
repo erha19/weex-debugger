@@ -35,3 +35,7 @@ var I18N = function () {
     })
     return {resolve}
 }()
+
+var translateI18n = function(keyword){
+    return (gl_localeText[language] || gl_localeText['en-US'])[keyword];
+}
