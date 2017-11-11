@@ -8,7 +8,10 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      "program": "${workspaceFolder}/bin/weex-devtool.js"
+      "program": "${workspaceFolder}/bin/weex-devtool.js",
+      "args": [
+        "test/index.vue"
+      ]
     }
   ]
 }

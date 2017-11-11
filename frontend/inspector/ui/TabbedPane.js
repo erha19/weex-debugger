@@ -1014,12 +1014,7 @@ UI.TabbedPaneTab = class {
    */
   _createTabElement(measuring) {
     var tabElement;
-    if (this._id === 'profiles' || this._id === 'timeline' || this._id === 'resources' || this._id === 'security' || this._id === 'audits') {
-      tabElement = createElementWithClass('div', 'tabbed-pane-header-tab hidden');
-    }
-    else {
-      tabElement = createElementWithClass('div', 'tabbed-pane-header-tab');
-    }
+    tabElement = createElementWithClass('div', 'tabbed-pane-header-tab');
     tabElement.id = 'tab-' + this._id;
     tabElement.tabIndex = -1;
     tabElement.setAttribute('role', 'tab');

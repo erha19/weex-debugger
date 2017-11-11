@@ -343,6 +343,7 @@ legend {
     width:52px;
     height:52px;
     display: inline-block;
+    overflow: hidden;
 }
 .mask.bundle-qrcode{
     z-index: 998;

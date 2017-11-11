@@ -8,7 +8,9 @@ function toast(text, delayed, theme) {
     document.body.appendChild(noticeCtn)
     if (delayed > 0) {
         setTimeout(function () {
-            noticeCtn.className += ' disapear'
+            if (noticeCtn) {
+                noticeCtn.className += ' disapear'
+            }
             setTimeout(function () {
                 noticeCtn&&document.body.removeChild(noticeCtn)
                 noticeCtn=null
@@ -16,7 +18,9 @@ function toast(text, delayed, theme) {
         }, delayed)
     }
     noticeCtn.onclick = function () {
-        noticeCtn.className += ' disapear'
+        if (noticeCtn) {
+            noticeCtn.className += ' disapear'
+        }
         setTimeout(function () {
             noticeCtn&&document.body.removeChild(noticeCtn)
             noticeCtn=null

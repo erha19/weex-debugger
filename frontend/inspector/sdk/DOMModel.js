@@ -1416,10 +1416,13 @@ SDK.DOMModel = class extends SDK.SDKModel {
   _childNodeInserted(parentId, prevId, payload) {
     var parent = this._idToDOMNode[parentId];
     var prev = this._idToDOMNode[prevId];
-    var node = parent._insertChild(prev, payload);
-    this._idToDOMNode[node.id] = node;
-    this.dispatchEventToListeners(SDK.DOMModel.Events.NodeInserted, node);
-    this._scheduleMutationEvent(node);
+    var node;
+    if (parent) {
+      node = parent._insertChild(prev, payload);
+      this._idToDOMNode[node.id] = node;
+      this.dispatchEventToListeners(SDK.DOMModel.Events.NodeInserted, node);
+      this._scheduleMutationEvent(node);
+    }
   }
 
   /**
@@ -1429,7 +1432,7 @@ SDK.DOMModel = class extends SDK.SDKModel {
   _childNodeRemoved(parentId, nodeId) {
     var parent = this._idToDOMNode[parentId];
     var node = this._idToDOMNode[nodeId];
-    parent._removeChild(node);
+    parent && parent._removeChild(node);
     this._unbind(node);
     this.dispatchEventToListeners(SDK.DOMModel.Events.NodeRemoved, {node: node, parent: parent});
     this._scheduleMutationEvent(node);
@@ -1519,16 +1522,18 @@ SDK.DOMModel = class extends SDK.SDKModel {
    * @param {!SDK.DOMNode} node
    */
   _unbind(node) {
-    delete this._idToDOMNode[node.id];
-    for (var i = 0; node._children && i < node._children.length; ++i)
-      this._unbind(node._children[i]);
-    for (var i = 0; i < node._shadowRoots.length; ++i)
-      this._unbind(node._shadowRoots[i]);
-    var pseudoElements = node.pseudoElements();
-    for (var value of pseudoElements.values())
-      this._unbind(value);
-    if (node._templateContent)
-      this._unbind(node._templateContent);
+    if (node) {
+      delete this._idToDOMNode[node.id];
+      for (var i = 0; node._children && i < node._children.length; ++i)
+        this._unbind(node._children[i]);
+      for (var i = 0; i < node._shadowRoots.length; ++i)
+        this._unbind(node._shadowRoots[i]);
+      var pseudoElements = node.pseudoElements();
+      for (var value of pseudoElements.values())
+        this._unbind(value);
+      if (node._templateContent)
+        this._unbind(node._templateContent);
+    }
   }
 
   /**

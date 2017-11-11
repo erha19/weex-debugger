@@ -138,7 +138,7 @@ Components.DOMBreakpointsSidebarPane = class extends Components.BreakpointsSideb
   _nodeRemoved(event) {
     var node = event.data.node;
     this._removeBreakpointsForNode(event.data.node);
-    var children = node.children();
+    var children = node && node.children();
     if (!children)
       return;
     for (var i = 0; i < children.length; ++i)

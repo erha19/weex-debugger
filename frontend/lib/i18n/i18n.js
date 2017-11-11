@@ -37,5 +37,5 @@ var I18N = function () {
 }()
 
 var translateI18n = function(keyword){
-    return (gl_localeText[language] || gl_localeText['en-US'])[keyword];
+    return (gl_localeText[navigator.language] || gl_localeText['en-US'])[keyword];
 }

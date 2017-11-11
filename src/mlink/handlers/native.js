@@ -66,21 +66,21 @@ debuggerRouter.registerHandler(function (message) {
       }
     };
   }
-  // else if (payload.method === 'DOM.childNodeInserted') {
-  //   const device = DeviceManager.getDevice(message.channelId);
-  //   // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
-  //   // 当没有打开JS Debug时 weex加载bundle devtool是不知道的 只能模糊的通过childNodeRemoved判断
-  //   // 这个标记用来限制短时间内发出很多次通知
-  //   const now = new Date().getTime();
-  //   if (!device || (now - (device.lastRenderedNotifyTime || 0) > 1500)) { // 对device不存在的异常做保护
-  //     if (device) device.lastRenderedNotifyTime = now;
-  //     if (device && device.platform !== 'iOS') {
-  //       debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
-  //         method: 'WxDebug.bundleRendered'
-  //       });
-  //     }
-  //   }
-  // }
+  else if (payload.method === 'DOM.childNodeRemoved') {
+    const device = DeviceManager.getDevice(message.channelId);
+    // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
+    // 当没有打开JS Debug时 weex加载bundle devtool是不知道的 只能模糊的通过childNodeRemoved判断
+    // 这个标记用来限制短时间内发出很多次通知
+    const now = new Date().getTime();
+    if (!device || (now - (device.lastRenderedNotifyTime || 0) > 1500)) { // 对device不存在的异常做保护
+      if (device) device.lastRenderedNotifyTime = now;
+      if (device && device.platform !== 'iOS') {
+        debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+          method: 'WxDebug.bundleRendered'
+        });
+      }
+    }
+  }
   else if (payload.result && payload.result.method === 'WxDebug.syncReturn') {
     message.payload = {
       error: payload.error,

@@ -258,7 +258,7 @@ var Runtime = class {
        * @param {!Array.<!Object>} moduleDescriptors
        * @return {!Promise.<undefined>}
        */
-      function instantiateRuntime(moduleDescriptors) {
+      function instantiateRuntime(moduleDescriptors) { 
         for (var i = 0; i < moduleDescriptors.length; ++i) {
           moduleDescriptors[i].name = configuration[i]['name'];
           moduleDescriptors[i].condition = configuration[i]['condition'];
