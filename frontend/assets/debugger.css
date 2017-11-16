@@ -33,7 +33,14 @@ body {
     height: 52px;
     vertical-align: middle;
 }
-
+@media screen and (max-width: 1200px) {
+    .info-ctn{
+        display: none;
+    }
+    .widget-anchor-show{
+        display: none!important;
+    }
+}
 #inspector {
     width: 100%;
     position: fixed;

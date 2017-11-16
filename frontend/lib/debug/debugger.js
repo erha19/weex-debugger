@@ -106,7 +106,6 @@ websocket.onmessage = function (event) {
             $('#network').checked = typeof(device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
             $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
             $('#log_level').value = sessionStorage.getItem('logLevel') ||'debug'
-            $('.info-ctn').style.display = 'inline-block'
             init()
             $('#remote_debug').onchange = function () {
                 if (websocket.readyState === WebSocket.OPEN) {
@@ -274,7 +273,7 @@ if (notFirst!=2) {
 
 
 function generatei18nTips(tip) {
-    return gl_localeText[navigator.language || 'en-US'][tip];
+    return gl_localeText[navigator.language.split('-')[0] || 'en'][tip];
 }
 
 new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[0],AnchorTips.LEFT,generatei18nTips('JSDEBUG_TIP'),$('.tips-mask'))
