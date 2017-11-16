@@ -83,6 +83,7 @@ websocket.onopen = function () {
 }
 websocket.onclose = function () {
     history.back()
+    websocket.send(JSON.stringify({method: 'WxDebug.setElementMode', params: {data: this.value}}))
 }
 
 websocket.onmessage = function (event) {
@@ -92,7 +93,7 @@ websocket.onmessage = function (event) {
         if (message.params) {
             var device=message.params.device
             var name = device.name
-            if (name.indexOf('com.') === 0) {
+            if (name && name.indexOf('com.') === 0) {
                 var split = name.split('.')
                 name = split.slice(Math.min(split.length - 1, 2)).join('.')
             }
@@ -101,19 +102,21 @@ websocket.onmessage = function (event) {
             $('#app_info').innerHTML = appInfo
             $('#app_info').title = device.name + '@' + device.model
             $('#sdk_version').innerHTML = sdkVersion
-            $('#remote_debug').checked = !!device.remoteDebug
-            $('#network').checked = !!device.network
+            $('#remote_debug').checked = typeof(device.remote_debug) === "undefined" ? sessionStorage.getItem('remote_debug') === "true" : device.remote_debug;
+            $('#network').checked = typeof(device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
             $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
-            $('#log_level').value = device.logLevel || sessionStorage.getItem('logLevel') ||'debug'
+            $('#log_level').value = sessionStorage.getItem('logLevel') ||'debug'
             $('.info-ctn').style.display = 'inline-block'
             init()
             $('#remote_debug').onchange = function () {
                 if (websocket.readyState === WebSocket.OPEN) {
+                    sessionStorage.setItem('remote_debug', this.checked);
                     websocket.send(JSON.stringify({method: 'WxDebug.' + (this.checked ? 'enable' : 'disable')}))
                 }
             }
             $('#network').onchange = function () {
                 if (websocket.readyState === WebSocket.OPEN) {
+                    sessionStorage.setItem('network', this.checked);
                     websocket.send(JSON.stringify({method: 'WxDebug.network', params: {enable: this.checked}}))
                 }
             }
@@ -134,9 +137,7 @@ websocket.onmessage = function (event) {
             var bundles=message.params.bundles
             window._bundles=bundles
             if(bundles&&bundles.length>0) {
-
                 bundles.forEach(function (url, i) {
-
                     var q = document.createElement('div')
                     q.innerHTML = '<p>' + new URL(url).pathname.split('/').slice(-1)[0] + '</p>'
                     q.className = 'bundle-qr'
@@ -177,9 +178,6 @@ websocket.onmessage = function (event) {
                 websocket.send(JSON.stringify({method: 'WxDebug.enableTracing', params: {status: true}}));
             }
         }
-        else {
-            history.back();
-        }
     }
     else if (message.method === 'WxDebug.prompt') {
         var delayed = 5000 + message.params.messageText.length / 6 * 1000
@@ -188,16 +186,11 @@ websocket.onmessage = function (event) {
     else if (message.method === 'WxDebug.reloadInspector') {
         $('#inspector').contentWindow.location.reload()
     }
-    else if (message.method === 'WxDebug.reloadRuntime') {
-        $('#runtime').contentWindow.websocket.ws.close()
-        $('#runtime').contentWindow.location.reload()
-    }
     else if (message.method === 'WxDebug.deviceDisconnect') {
         history.back();
     }
     else if(message.method==='WxDebug.bundleRendered'){
         var found=false
-        $('#runtime').contentWindow.console.log(message)
         if(!message.params)found=true
         else {
             window._bundles&&window._bundles.forEach(function (url) {
@@ -226,8 +219,6 @@ document.onkeydown = function (evt) {
         evt.preventDefault();
         if (hash === '#debugger') {
             $('#inspector').contentWindow.location.reload()
-            $('#runtime').contentWindow.websocket.ws.close()
-            $('#runtime').contentWindow.location.reload()
         }
         else {
             websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
@@ -236,8 +227,6 @@ document.onkeydown = function (evt) {
     }
 }
 function init() {
-    var $runtime = $('#runtime')
-    $('#runtime').src = 'runtime.html?channelId=' + channelId
     $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`
     var firstLoad=true
     $('#inspector').onload = function () {
@@ -248,8 +237,6 @@ function init() {
         $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
             if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
                 $('#inspector').contentWindow.location.reload()
-                $('#runtime').contentWindow.websocket.ws.close()
-                $('#runtime').contentWindow.location.reload()
                 evt.preventDefault()
                 evt.stopPropagation()
                 return false

@@ -9,6 +9,7 @@ const chalk = require('chalk');
 const config = require('./config');
 const debugServer = require('../server');
 const launcher = require('../util/launcher');
+const headless = require('../server/headless');
 const Router = require('mlink').Router;
 const boxen = require('boxen');
 
@@ -41,6 +42,9 @@ exports.startServer = function (ip, port) {
 exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   console.log('Launching Dev Tools...');
+  if (config.enableHeadless) {
+    headless.launchHeadless(`${config.ip}:${config.port}`, config.remoteDebugPort);
+  }
   launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
 };
 exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {

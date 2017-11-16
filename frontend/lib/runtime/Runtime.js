@@ -151,7 +151,7 @@ function postData(payload){
     try {
         postMessage(payload);
     }catch(e){
-        // console.warn('callNative with some non-json data:',payload);
+        console.warn('callNative with some non-json data:',payload);
         payload=JSON.parse(JSON.stringify(payload));
         postMessage(payload);
     }

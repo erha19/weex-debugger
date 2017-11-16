@@ -50,7 +50,9 @@ WebsocketClient.prototype = {
                 this.ws.send(JSON.stringify(data))
             }.bind(this));
         }
+    },
+    close: function () {
+        this.ws && this.ws.close();
     }
-
 };
 WebsocketClient.prototype.__proto__ = new EventEmitter();

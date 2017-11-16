@@ -12,9 +12,15 @@ class DeviceManager extends Emitter {
   registerDevice (device, channelId) {
     const existed = this.deviceMap[channelId];
     if (existed) {
-      clearTimeout(existed.timer);
+      for (let i = existed.length - 1; i >= 0; i--) {
+        if (existed[i].deviceId === device.deviceId) {
+          clearTimeout(existed.timer);
+          // this.deviceMap[channelId].splice(i,1,device)
+          return device;
+        }
+      }
       this.deviceMap[channelId].unshift(device);
-      return false;
+      return device;
     }
     else {
       device.channelId = channelId;
@@ -30,7 +36,12 @@ class DeviceManager extends Emitter {
       device.timer = setTimeout(() => {
         this.deviceMap[channelId].pop();
         if (this.deviceMap[channelId] && this.deviceMap[channelId].length === 0) {
-          callback();
+          try {
+            callback();
+          }
+          catch (e) {
+            console.log(e);
+          }
         }
       }, 5000);
     }

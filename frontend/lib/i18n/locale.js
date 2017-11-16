@@ -2,14 +2,14 @@
  * Created by exolution on 17/5/2.
  */
 var gl_localeText={
-    "zh-CN":{
+    "zh":{
         "SCAN":"扫描",
         "CLICK":"点击",
         "SCAN_TIPS":"使用WeexPlayground或者您自己的WeexApp扫描",
         "CLICK_TIPS":"点击二维码启动模拟器进行调试",
         "OR":"或",
         "TIPS":"这个二维码开始调试",
-        "VERSION":"weex devtool 1.0.0-rc.14",
+        "VERSION":"weex devtool 1.0.0-rc.16",
         "DISCONNECT_TIPS":"设备断开连接,请重新扫码",
         "BUNDLE_TIPS":"扫描或者点击二维码加载bundle(点击仅限模拟器)",
         "TIMELINE_TIPS_DESC":"请刷新手机中的当前页面或跳转到新的weex页面，然后此面板将显示详细的性能报告",
@@ -39,14 +39,14 @@ var gl_localeText={
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"请不要打开chrome自带的的inspector",
         "TOAST_CAN_NOT_FIND_RUNTIME":"找不到运行时~!"
     },
-    "en-US":{
+    "en":{
         "SCAN":"Scan",
         "CLICK":"Click",
         "SCAN_TIPS":"qrcode with WeexPlayground or your own weex app",
         "CLICK_TIPS":"qrcode to start a simulator for debugging",
         "OR":"or",
         "TIPS":"this qrcode to start debugger",
-        "VERSION":"weex devtool 1.0.0-rc.14",
+        "VERSION":"weex devtool 1.0.0-rc.16",
         "DISCONNECT_TIPS":"device disconnect! please rescan",
         "BUNDLE_TIPS":"Click or Scan for rendering(click only for simulator)",
         "TIMELINE_TIPS_DESC":"Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.",

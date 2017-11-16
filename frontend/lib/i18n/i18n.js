@@ -26,16 +26,17 @@ var I18N = function () {
 
     function resolve(language) {
         document.querySelectorAll('.i18n').forEach(function (node) {
-            scan(node, gl_localeText[language] || gl_localeText['en-US'])
+            scan(node, gl_localeText[language] || gl_localeText['en'])
         })
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        resolve(navigator.language)
+        resolve(navigator.language.split('-')[0])
     })
     return {resolve}
 }()
 
 var translateI18n = function(keyword){
-    return (gl_localeText[navigator.language] || gl_localeText['en-US'])[keyword];
+    var locale = navigator.language.split('-')[0]
+    return (gl_localeText[locale] || gl_localeText['en'])[keyword];
 }

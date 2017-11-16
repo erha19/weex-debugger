@@ -7,8 +7,10 @@ let api = map['api'] = {};
 
 const IP = require('ip');
 
-api.startServerAndLaunchDevtool = (entry, root, port, cb) => {
-  Config.ip = IP.address();
-  Config.port =  port || 8088;
+api.startServerAndLaunchDevtool = (entry, config, cb) => {
+  Config.ip = config.ip || IP.address();
+  Config.port =  config.port || 8088;
+  Config.remoteDebugPort = config.remoteDebugPort || 9222;
+  Config.enableHeadless = config.enableHeadless || true;
   Devtool.start(entry, Config, cb)
 }

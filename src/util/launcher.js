@@ -21,18 +21,6 @@ exports.launchChrome = function (url, remoteDebugPort, wait, callback) {
   if (!pending) {
     pending = true;
     url = url.replace(/[&*]/g, '\\&');
-    // if (process.platform === 'darwin') {
-    //   try {
-    //     // Try our best to reuse existing tab
-    //     // on OS X Google Chrome with AppleScript
-    //     ExecSync('ps cax | grep "Google Chrome"');
-    //     ExecSync('osascript ' + Path.resolve(__dirname, '../../common/chrome.applescript') + ' ' + url);
-    //     return;
-    //   }
-    //   catch (err) {
-    //     // Ignore errors.
-    //   }
-    // }
     const args = [getChromeAppName()];
     if (remoteDebugPort > 0) {
       args.push('-remote-debugging-port=' + remoteDebugPort);

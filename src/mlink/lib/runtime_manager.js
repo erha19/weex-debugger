@@ -3,10 +3,8 @@
  */
 const mlink = require('mlink');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
-const Logger = mlink.Logger;
 const url = require('url');
 const request = require('../../util/request');
-const querystring = require('querystring');
 const WebSocket = require('ws');
 const config = require('../../lib/config');
 const chalk = require('chalk');
@@ -23,16 +21,15 @@ class RuntimeManager {
         let found = false;
         for (const target of list) {
           const urlObj = url.parse(target.url);
-          const qs = querystring.parse(urlObj.query);
-          if (urlObj.pathname === '/runtime.html' && qs.channelId === channelId) {
+          if (urlObj.pathname === '/runtime.html') {
             found = target;
             break;
           }
-          else if (urlObj.pathname === '/debug.html' && qs.channelId === channelId) {
+          else if (urlObj.pathname === '/debug.html') {
             found = target;
           }
         }
-        
+
         if (found) {
           if (found.webSocketDebuggerUrl) {
             const ws = new WebSocket(found.webSocketDebuggerUrl);
@@ -53,7 +50,6 @@ class RuntimeManager {
         else {
           reject('TOAST_CAN_NOT_FIND_RUNTIME');
         }
-        
       }).catch((e) => {
         /**
          * Why has the logic here？
