@@ -13,7 +13,7 @@ EntrySocket.on('WxDebug.startDebugger', function (message) {
             RuntimeSocket.close()
             connect(message.params)
         }
-    },1000)
+    },3000)
 })
 
 function connect(channelId) {

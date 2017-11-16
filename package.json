@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.0-rc.17",
+  "version": "1.0.0-rc.18",
   "author": "exolution <exolution@163.com>",
   "license": "GPL-3.0",
   "main": "index.js",
@@ -22,8 +22,10 @@
     "babel-core": "^6.10.4",
     "babel-eslint": "^8.0.1",
     "babel-loader": "^6.2.4",
+    "babel-plugin-syntax-async-functions": "^6.13.0",
     "babel-plugin-transform-runtime": "^6.7.5",
     "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.24.1",
     "eslint": "^2.13.1"
   },
   "dependencies": {
@@ -43,7 +45,7 @@
     "koa-serve-static": "0.0.1",
     "koa-websocket": "^2.0.0",
     "mkdirp": "^0.5.1",
-    "mlink": "^0.1.5",
+    "mlink": "^0.1.6",
     "node-watch": "^0.3.5",
     "opn": "^4.0.2",
     "parse-hosts": "^1.0.1",

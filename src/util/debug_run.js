@@ -25,7 +25,7 @@ module.exports = function (filename, config) {
       if (inspectorUrl) {
         const url = inspectorUrl;
         setTimeout(function () {
-          launcher.launchChrome(url, config.remoteDebugPort || 9222);
+          launcher.launchChrome(url);
         }, 500);
 
         inspectorUrl = false;

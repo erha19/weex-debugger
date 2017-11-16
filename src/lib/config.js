@@ -3,7 +3,7 @@
  */
 module.exports = {
   bundleDir: 'weex',
-  remoteDebugPort: '9222',
+  remoteDebugPort: '9223',
   enableHeadless: true,
   getConnectUrl (channelId) {
     return this.connectUrl && this.connectUrl.replace('{channelId}', channelId);
