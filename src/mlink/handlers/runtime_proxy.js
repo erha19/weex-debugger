@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/8.
- */
 const Router = require('mlink').Router;
 const debuggerRouter = Router.get('debugger');
 debuggerRouter.registerHandler(function (message) {

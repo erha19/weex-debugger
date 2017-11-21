@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/28.
- */
 const crypto = require('crypto');
 const JavaScriptObfuscator = require('javascript-obfuscator');
 exports.md5 = function (str) {

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/4/11.
- */
 const simrun = require('simrun');
 const config = require('../../lib/config');
 exports.connect = function (channelId) {

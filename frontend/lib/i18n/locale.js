@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/5/2.
- */
 var gl_localeText={
     "zh":{
         "SCAN":"扫描",

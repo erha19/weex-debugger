@@ -1,5 +1,6 @@
 /**
- * Created by exolution on 17/3/15.
+ * @author erha19
+ * @desc some default config of whole project.
  */
 module.exports = {
   bundleDir: 'weex',

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/2.
- */
 const protocols = {
   'http:': require('http'),
   'https:': require('https')

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/27.
- */
 const Router = require('mlink').Router;
 const DeviceManager = require('../lib/device_manager');
 const config = require('../../lib/config');

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/2.
- */
 const mlink = require('mlink');
 const debuggerRouter = mlink.Router.get('debugger');
 const Logger = mlink.Logger;

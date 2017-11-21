@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/4/11.
- */
 const Router = require('mlink').Router;
 const simulatorManager = require('../lib/simulator_manager');
 const config = require('../../lib/config');

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/14.
- */
 const hosts = require('../util/hosts');
 const path = require('path');
 const builder = require('weex-builder');

@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/1.
- */
 const Router = require('mlink').Router;
 const debuggerRouter = Router.get('debugger');
 const DeviceManager = require('../lib/device_manager');

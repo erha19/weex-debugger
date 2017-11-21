@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/27.
- */
 const mlink = require('mlink');
 const Router = mlink.Router;
 const Hub = mlink.Hub;
