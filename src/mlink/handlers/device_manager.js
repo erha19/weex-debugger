@@ -5,11 +5,13 @@ const Router = require('mlink').Router;
 const DeviceManager = require('../lib/device_manager');
 const config = require('../../lib/config');
 const debuggerRouter = Router.get('debugger');
-let FirstFlag = true;
+let FirstStartDebug = true;
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal) {
   const device = DeviceManager.getDevice(signal.channelId);
-  if (FirstFlag) {
-    FirstFlag = false;
+  // This is a special treatment for android devices
+  // The android platform will registe twice and the socket leave signl may come after registed, the newly registered device may be removed immediately。
+  if (device.platform === "android" && FirstStartDebug) {
+    FirstStartDebug = false;
   }
   else {
     DeviceManager.removeDevice(signal.channelId, function () {
@@ -48,6 +50,5 @@ debuggerRouter.registerHandler(function (message) {
     });
     message.to('page.debugger');
   }
-
   return false;
 }).at('proxy.native').when('payload.method=="WxDebug.registerDevice"');

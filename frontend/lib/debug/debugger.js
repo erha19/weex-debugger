@@ -88,6 +88,7 @@ websocket.onclose = function () {
 
 websocket.onmessage = function (event) {
     var message = JSON.parse(event.data)
+    console.log(message.method)
     if (message.method === 'WxDebug.pushDebuggerInfo') {
         clearTimeout(timeout)
         if (message.params) {
@@ -102,14 +103,14 @@ websocket.onmessage = function (event) {
             $('#app_info').innerHTML = appInfo
             $('#app_info').title = device.name + '@' + device.model
             $('#sdk_version').innerHTML = sdkVersion
-            $('#remote_debug').checked = typeof(device.remote_debug) === "undefined" ? sessionStorage.getItem('remote_debug') === "true" : device.remote_debug;
+            $('#remote_debug').checked = typeof(device.remoteDebug) === "undefined" ? sessionStorage.getItem('remoteDebug') === "true" : device.remoteDebug;
             $('#network').checked = typeof(device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
             $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
             $('#log_level').value = sessionStorage.getItem('logLevel') ||'debug'
             init()
             $('#remote_debug').onchange = function () {
                 if (websocket.readyState === WebSocket.OPEN) {
-                    sessionStorage.setItem('remote_debug', this.checked);
+                    sessionStorage.setItem('remoteDebug', this.checked);
                     websocket.send(JSON.stringify({method: 'WxDebug.' + (this.checked ? 'enable' : 'disable')}))
                 }
             }

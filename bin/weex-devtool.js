@@ -2,16 +2,16 @@
 
 'use strict';
 var program = require('commander');
-var debugRun = require('../lib/util/debug_run');
-var config = require('../lib/lib/config');
+var debugRun = require('../src/util/debug_run');
+var config = require('../src/lib/config');
 var ip = require('ip');
 var exit = require('exit');
-var hosts = require('../lib/util/hosts');
+var hosts = require('../src/util/hosts');
 var packageInfo = require('../package.json');
 var path = require('path');
 var detect = require('detect-port');
 var del = require('del');
-var devtool = require('../lib/lib/devtool');
+var devtool = require('../src/lib/devtool');
 var mlink = require('mlink');
 
 program.option('-v, --version', 'display version')
@@ -23,6 +23,7 @@ program.option('-v, --version', 'display version')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
 .option('--min', '')
 .option('--debug', '');
+.option('--remotedebugport', '9223');
 
 // Supporting add the file / directory parameter after the command.
 program['arguments']('[target]').action(function (target) {
@@ -48,6 +49,10 @@ if (program.ip && !hosts.isValidLocalHost(program.ip)) {
 }
 if (program.verbose) {
   config.logLevel = 'debug';
+}
+
+if (program.remotedebugport) {
+  config.remoteDebugPort = program.remotedebugport;
 }
 
 // Formate config 

@@ -19,7 +19,6 @@
         { "name": "network", "condition": "!v8only" },
         { "name": "sources" },
         { "name": "timeline_model", "condition": "!v8only" },
-        { "name": "resources", "condition": "!v8only" },
         { "name": "audits2", "condition": "!v8only" },
         { "name": "devices", "condition": "!v8only" },
         { "name": "profiler" },
