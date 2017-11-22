@@ -82,14 +82,13 @@ document.querySelector('.new').onclick = function () {
 var loadingSimulator=false
 document.querySelector('#qrcode').onclick = function () {
     if (channelId&&!loadingSimulator) {
-        loadingSimulator=true
-        document.querySelector('.qrcode-wrap').className += '  loading-state'
         if(navigator.platform=='MacIntel') {
+            loadingSimulator=true
+            document.querySelector('.qrcode-wrap').className += '  loading-state'
             send({method: 'WxDebug.simrun', params: channelId})
-            //toast('starting simulator... ',10000)
         }
         else{
-            toast('Just support ios simulator now!',5000)
+            toast(translateI18n('ONLY_SUPPORT_IOS'),5000)
         }
 
     }

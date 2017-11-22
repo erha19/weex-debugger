@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/3/22.
- */
 const childProcess = require('child_process');
 const url = require('url');
 const launcher = require('./launcher');

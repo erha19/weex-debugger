@@ -9,6 +9,8 @@ const launcher = require('../util/launcher');
 const headless = require('../server/headless');
 const Router = require('mlink').Router;
 const boxen = require('boxen');
+const detect = require('detect-port');
+
 
 exports.startServerAndLaunch = function (ip, port, manual, cb) {
   this.startServer(ip, port).then(() => {
@@ -40,7 +42,17 @@ exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   console.log('Launching Dev Tools...');
   if (config.enableHeadless) {
-    headless.launchHeadless(`${config.ip}:${config.port}`, config.remoteDebugPort);
+    // Check whether the port is occupied
+    detect(config.remoteDebugPort).then(function (open) {
+      if (+config.remoteDebugPort !== open) {
+        console.log(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`)
+      }
+      else {
+        console.log(`Starting inspector on port ${open}`)
+      }
+      config.remoteDebugPort = open;
+      headless.launchHeadless(`${config.ip}:${config.port}`, open);
+    });
   }
   launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
 };

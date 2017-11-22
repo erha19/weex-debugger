@@ -139,6 +139,7 @@ websocket.onmessage = function (event) {
             if(bundles&&bundles.length>0) {
                 bundles.forEach(function (url, i) {
                     var q = document.createElement('div')
+                    url += `?_wx_tpl=${url}&wh_weex=true`
                     q.innerHTML = '<p>' + new URL(url).pathname.split('/').slice(-1)[0] + '</p>'
                     q.className = 'bundle-qr'
                     bundleQrcodeCtn.appendChild(q)
@@ -266,10 +267,10 @@ $refreshBtn.onclick = function () {
     websocket.send(JSON.stringify({method: 'WxDebug.reload'}));
 }
 
-var notFirst = localStorage.getItem('notFirst')
-if (notFirst!=2) {
+var shouldShowStepTips = localStorage.getItem('shouldShowStepTips')
+if (shouldShowStepTips!=2) {
     $help.onclick()
-    localStorage.setItem('notFirst', '2')
+    localStorage.setItem('shouldShowStepTips', '2')
 }
 
 
