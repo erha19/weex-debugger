@@ -6,7 +6,7 @@ let FirstStartDebug = true;
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal) {
   const device = DeviceManager.getDevice(signal.channelId);
   if (!device) {
-    return ;
+    return;
   }
   // This is a special treatment for android devices
   // The android platform will registe twice and the socket leave signl may come after registed, the newly registered device may be removed immediately。

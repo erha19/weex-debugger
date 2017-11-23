@@ -22,7 +22,7 @@ program.option('-v, --version', 'display version')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
 .option('--min', '')
-.option('--debug', '');
+.option('--debug', '')
 .option('--remotedebugport', '9223');
 
 // Supporting add the file / directory parameter after the command.

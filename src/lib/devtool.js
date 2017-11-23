@@ -11,7 +11,6 @@ const Router = require('mlink').Router;
 const boxen = require('boxen');
 const detect = require('detect-port');
 
-
 exports.startServerAndLaunch = function (ip, port, manual, cb) {
   this.startServer(ip, port).then(() => {
     cb && cb();
@@ -45,10 +44,10 @@ exports.launch = function (ip, port) {
     // Check whether the port is occupied
     detect(config.remoteDebugPort).then(function (open) {
       if (+config.remoteDebugPort !== open) {
-        console.log(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`)
+        console.log(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
       }
       else {
-        console.log(`Starting inspector on port ${open}`)
+        console.log(`Starting inspector on port ${open}`);
       }
       config.remoteDebugPort = open;
       headless.launchHeadless(`${config.ip}:${config.port}`, open);
