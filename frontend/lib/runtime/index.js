@@ -4,27 +4,31 @@ var RuntimeSocket
 var BrowserChannelId
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
 EntrySocket.on('WxDebug.startDebugger', function (message) {
-    timer && clearTimeout(timer)
-    timer = setTimeout(function(){
-        if (!RuntimeSocket) {
-            connect(message.params)
-        }
-        else if(RuntimeSocket && BrowserChannelId!==message.params){
-            RuntimeSocket.close()
-            connect(message.params)
-        }
-    },3000)
+  timer && clearTimeout(timer)
+  timer = setTimeout(function () {
+    if (!RuntimeSocket) {
+      location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
+    }
+    else if(RuntimeSocket && BrowserChannelId!==message.params){
+      location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
+    }
+  }, 3000)
 })
+BrowserChannelId = new URLSearchParams(location.search).get('channelId');
+
+if (BrowserChannelId) {
+  connect(BrowserChannelId)
+}
 
 function connect(channelId) {
-  BrowserChannelId = channelId || new URLSearchParams(location.search).get('channelId');
-  RuntimeSocket = new WebsocketClient('ws://' + window.location.host + '/debugProxy/runtime/' + BrowserChannelId);
+  RuntimeSocket = new WebsocketClient('ws://' + window.location.host + '/debugProxy/runtime/' + channelId);
   RuntimeSocket.on('*', function (message) {
     if (worker) {
       worker.postMessage(message);
     }
   });
-  RuntimeSocket.on('socketOpened', function() {
+  RuntimeSocket.on('WxDebug.deviceDisconnect', function () {
+    location.reload();
   })
   RuntimeSocket.on('WxDebug.refresh', function () {
     location.reload();

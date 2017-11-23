@@ -90,7 +90,7 @@ var clearConsole=self.console.clear.bind(self.console);
 self.__WEEX_DEVTOOL__=true;
 var eventEmitter = new EventEmitter();
 onmessage = function (message) {
-    eventEmitter.emit(message.data.method, message.data)
+    eventEmitter.emit(message.data && message.data.method, message.data)
 };
 self.callNativeModule=function(){
     var message={

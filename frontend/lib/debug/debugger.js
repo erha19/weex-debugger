@@ -88,7 +88,8 @@ websocket.onclose = function () {
 
 websocket.onmessage = function (event) {
     var message = JSON.parse(event.data)
-    console.log(message.method)
+    var remoteTimer;
+    var networkTimer;
     if (message.method === 'WxDebug.pushDebuggerInfo') {
         clearTimeout(timeout)
         if (message.params) {
@@ -109,15 +110,24 @@ websocket.onmessage = function (event) {
             $('#log_level').value = sessionStorage.getItem('logLevel') ||'debug'
             init()
             $('#remote_debug').onchange = function () {
+                var checked = this.checked;
                 if (websocket.readyState === WebSocket.OPEN) {
-                    sessionStorage.setItem('remoteDebug', this.checked);
-                    websocket.send(JSON.stringify({method: 'WxDebug.' + (this.checked ? 'enable' : 'disable')}))
+                    sessionStorage.setItem('remoteDebug', checked);
+                    remoteTimer && clearTimeout(remoteTimer)
+
+                    remoteTimer = setTimeout(function(){
+                        websocket.send(JSON.stringify({method: 'WxDebug.' + (checked ? 'enable' : 'disable')}))
+                    }, 500)
                 }
             }
             $('#network').onchange = function () {
+                var checked = this.checked;
                 if (websocket.readyState === WebSocket.OPEN) {
-                    sessionStorage.setItem('network', this.checked);
-                    websocket.send(JSON.stringify({method: 'WxDebug.network', params: {enable: this.checked}}))
+                    sessionStorage.setItem('network', checked);
+                    networkTimer && clearTimeout(networkTimer)
+                    networkTimer = setTimeout(function(){
+                        websocket.send(JSON.stringify({method: 'WxDebug.network', params: {enable: checked}}))
+                    }, 500)
                 }
             }
             $('#element_mode').onchange = function () {
