@@ -1,7 +1,6 @@
 const hosts = require('../util/hosts');
 const path = require('path');
 const builder = require('weex-builder');
-const url = require('url');
 const chalk = require('chalk');
 const config = require('./config');
 const debugServer = require('../server');
@@ -60,13 +59,7 @@ exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
   const bundleUrls = bundles.map(b => resolveBundleUrl(b, ip, port));
   if (isUrl(entry)) {
     entryUrl = resolveRealUrl(entry);
-    entryUrl = entryUrl(/127\.0\.0\.1/g, ip);
-    const urlObj = url.parse(entryUrl, true);
-    if (!/wh_weex=true/.test(entryUrl) && !urlObj.query['_wx_tpl']) {
-      urlObj.query['_wx_tpl'] = entryUrl;
-      urlObj.search = '';
-      entryUrl = url.format(urlObj);
-    }
+    entryUrl = entryUrl.replace(/127\.0\.0\.1/g, ip);
     bundleUrls.push(entryUrl);
   }
   return bundleUrls;
@@ -104,7 +97,7 @@ exports.start = function (target, config, cb) {
   }
   else if (target) {
     const filePath = path.resolve(target);
-    let firstBuild = true;
+    let shouldReloadDebugger = false;
     builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
       watch: true,
       devtool: 'inline-source-map'
@@ -116,8 +109,8 @@ exports.start = function (target, config, cb) {
         console.log('Build completed!\nChild');
         console.log(output.toString());
         console.log(`Time: ${chalk.bold(json.time)}ms`);
-        if (firstBuild) {
-          firstBuild = false;
+        if (!shouldReloadDebugger) {
+          shouldReloadDebugger = true;
           const bundles = output.map((o) => path.relative(path.join(__dirname, '../../frontend/weex'), o.to));
           const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
           config.bundleUrls = bundleUrls;

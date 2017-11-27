@@ -333,14 +333,19 @@ legend {
     position: relative;
     padding-bottom: 32px;
     display: inline-block;
-    margin: 10px 20px;
+    margin: 0 5px;
 }
 .bundle-qr p{
     position: absolute;
     color: #000;
     bottom: 0;
     margin: 0;
+    white-space: nowrap;
+    height: 30px;
     width: 100%;
+    display: block;
+    text-overflow: ellipsis;
+    line-height: 30px;
     overflow: hidden;
     word-wrap: break-word;
     max-height: 30px;
