@@ -11,6 +11,6 @@ api.startServerAndLaunchDevtool = (entry, config, cb) => {
   Config.ip = config.ip || IP.address();
   Config.port =  config.port || 8088;
   Config.remoteDebugPort = config.remoteDebugPort || 9222;
-  Config.enableHeadless = config.enableHeadless || true;
+  Config.enableHeadless = config.enableHeadless === false ? false : true;
   Devtool.start(entry, Config, cb)
 }

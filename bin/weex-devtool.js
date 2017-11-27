@@ -15,15 +15,16 @@ var devtool = require('../lib/lib/devtool');
 var mlink = require('mlink');
 
 program.option('-v, --version', 'display version')
-.option('--ip [ip]', 'set the host ip of debugger server')
 .option('-h, --help', 'display help')
 .option('-V, --verbose', 'display logs of debugger server')
-.option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
 .option('--min', '')
 .option('--debug', '')
+.option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
+.option('--ip [ip]', 'set the host ip of debugger server')
 .option('--remotedebugport', '9223');
+
 
 // Supporting add the file / directory parameter after the command.
 program['arguments']('[target]').action(function (target) {
@@ -47,6 +48,7 @@ if (program.ip && !hosts.isValidLocalHost(program.ip)) {
   console.log('[' + program.ip + '] is not your local address!');
   exit(0);
 }
+
 if (program.verbose) {
   config.logLevel = 'debug';
 }

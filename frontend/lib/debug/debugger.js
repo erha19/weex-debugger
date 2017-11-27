@@ -219,7 +219,6 @@ websocket.onmessage = function (event) {
         setSummaryInfo(message.params.summaryInfo);
     } else if (message.method === 'Page.startScreencast') {
         screencastParams = message.params;
-
         if (isProphetPageShowing) {
             websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
         }
@@ -228,11 +227,9 @@ websocket.onmessage = function (event) {
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
         evt.preventDefault();
+        websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
         if (hash === '#debugger') {
             $('#inspector').contentWindow.location.reload()
-        }
-        else {
-            websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
         }
         return false
     }
