@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/6/29.
- */
 function EventEmitter() {
     this._handlers = {};
 }

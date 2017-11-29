@@ -3,5 +3,8 @@ node_modules
 demo
 coverage/
 .idea/
-
 .DS_Store
+.vscode
+lib
+dest
+frontend/weex

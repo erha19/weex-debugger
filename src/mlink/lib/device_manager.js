@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/6/26.
- */
 const Emitter = require('events').EventEmitter;
 
 class DeviceManager extends Emitter {
@@ -36,12 +33,7 @@ class DeviceManager extends Emitter {
       device.timer = setTimeout(() => {
         this.deviceMap[channelId].pop();
         if (this.deviceMap[channelId] && this.deviceMap[channelId].length === 0) {
-          try {
-            callback();
-          }
-          catch (e) {
-            console.log(e);
-          }
+          callback();
         }
       }, 5000);
     }

@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 
 'use strict';
-var program = require('commander');
-var debugRun = require('../lib/util/debug_run');
-var config = require('../lib/lib/config');
-var ip = require('ip');
-var exit = require('exit');
-var hosts = require('../lib/util/hosts');
-var packageInfo = require('../package.json');
-var path = require('path');
-var detect = require('detect-port');
-var del = require('del');
-var devtool = require('../lib/lib/devtool');
-var mlink = require('mlink');
+
+const program = require('commander');
+const ip = require('ip');
+const exit = require('exit');
+const path = require('path');
+const detect = require('detect-port');
+const del = require('del');
+const mlink = require('mlink');
+const op = require('os');
+const packageInfo = require('../package.json');
+const debugRun = require('../lib/util/debug_run');
+const config = require('../lib/lib/config');
+const devtool = require('../lib/lib/devtool');
+const hook = require('../lib/util/hook');
+const env = require('../lib/util/env');
+const hosts = require('../lib/util/hosts');
 
 program.option('-v, --version', 'display version')
 .option('-h, --help', 'display help')
@@ -57,6 +61,17 @@ if (program.remotedebugport) {
   config.remoteDebugPort = program.remotedebugport;
 }
 
+// Get the local environment
+env.getVersionOf('weex', (v) => {
+  config.weexVersion = v.version;
+})
+env.getVersionOf('npm', (v) => {
+  config.npmVersion = v.version;
+})
+env.getVersionOf('node', (v) => {
+  config.nodeVersion = v.version;
+})
+
 // Formate config 
 config.ip = program.ip || ip.address();
 config.verbose = program.verbose;
@@ -64,8 +79,27 @@ config.manual = program.manual;
 config.min = program.min;
 config.logLevel = program.loglevel;
 
+process.on('uncaughtException', (err) => {
+  try {
+    let killTimer;
+    const params = Object.assign({
+      stack: err && err.stack,
+      os: os.platform(),
+      node: config.nodeVersion,
+      npm: config.npmVersion
+    }, config.weexVersion);
+    hook.record('/weex_tool.weex_debugger.app_crash', params);
+    killTimer = setTimeout(function () {
+      process.exit(1);
+    }, 30000);
+    killTimer.unref();
+  } catch (e) {
+      console.log('Error Message: ', e.stack);
+  }
+});
+
 // Check whether the port is occupied
-detect(program.port).then(function (open) {
+detect(program.port).then( (open) => {
   config.inUse = open !== +program.port;
   if (config.inUse) {
     config.inUse = {

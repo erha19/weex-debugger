@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/6/14.
- */
 self.$$frameworkFlag={};
 var channelId;
 var injectedGlobals = [

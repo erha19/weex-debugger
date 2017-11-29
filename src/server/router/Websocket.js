@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/6/13.
- */
 const Router = require('koa-router');
 const mlink = require('mlink');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;

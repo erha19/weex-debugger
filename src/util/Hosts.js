@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/7/22.
- */
 const HostsParser = require('parse-hosts');
 const os = require('os');
 exports.findRealHost = function (domain) {

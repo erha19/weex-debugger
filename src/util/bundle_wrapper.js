@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/7/7.
- */
 const injectedGlobals = [
     // ES
   'Promise',

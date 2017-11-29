@@ -1,7 +1,15 @@
 node_modules
-demo
 coverage/
 .idea/
 inspector_5.2
 inspector_5.4
 frontend/devtools
+
+.git
+.vscode
+
+src
+
+dest
+
+

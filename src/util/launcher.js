@@ -1,9 +1,4 @@
-/**
- * Created by godsong on 16/6/13.
- */
 const opn = require('opn');
-// const Path = require('path');
-// const ExecSync = require('child_process').execSync;
 
 function getChromeAppName () {
   switch (process.platform) {

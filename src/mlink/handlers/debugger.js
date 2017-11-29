@@ -1,6 +1,8 @@
 const Router = require('mlink').Router;
 const debuggerRouter = Router.get('debugger');
 const DeviceManager = require('../lib/device_manager');
+const hook = require('../../util/hook');
+
 debuggerRouter.registerHandler(function (message, next) {
   const payload = message.payload;
   const device = DeviceManager.getDevice(message.channelId);
@@ -9,7 +11,8 @@ debuggerRouter.registerHandler(function (message, next) {
     return;
   }
   if (payload.method === 'WxDebug.setLogLevel') {
-    device.logLevel = payload.logLevel;
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'setLogLevel', status: payload.params.data });
+    device.logLevel = payload.params.data;
     message.payload = {
       method: 'WxDebug.setLogLevel',
       params: {
@@ -24,6 +27,8 @@ debuggerRouter.registerHandler(function (message, next) {
     });
   }
   else if (payload.method === 'WxDebug.setElementMode') {
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'setElementMode', status: payload.params.data });
+
     device.elementMode = payload.params.data;
     message.payload = {
       method: 'WxDebug.setElementMode',
@@ -40,6 +45,7 @@ debuggerRouter.registerHandler(function (message, next) {
     });
   }
   else if (payload.method === 'WxDebug.network') {
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'network', status: payload.params.enable });
     device && (device.network = payload.params.enable);
     message.payload = {
       method: 'WxDebug.network',
@@ -55,6 +61,7 @@ debuggerRouter.registerHandler(function (message, next) {
     });
   }
   else if (payload.method === 'WxDebug.enable') {
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'remoteDebug', status: true });
     device && (device.remoteDebug = true);
     // debuggerRouter.pushMessage('page.debugger', message.terminalId, {
     //   method: 'WxDebug.reloadInspector'
@@ -64,10 +71,14 @@ debuggerRouter.registerHandler(function (message, next) {
     // });
   }
   else if (payload.method === 'WxDebug.disable') {
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'remoteDebug', status: false });
     device && (device.remoteDebug = false);
     debuggerRouter.pushMessage('page.debugger', message.terminalId, {
       method: 'WxDebug.reloadInspector'
     });
+  }
+  else if (payload.method === 'WxDebug.enableTracing') {
+    hook.record('/weex_tool.weex_debugger.scenes', { feature: 'Tracing', status: payload.params.status });
   }
   message.to('proxy.native');
 }).at('page.debugger');

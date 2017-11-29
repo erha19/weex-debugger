@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.0-rc.26",
+  "version": "1.0.0-rc.27",
   "author": "exolution <exolution@163.com>",
   "license": "GPL-3.0",
   "main": "index.js",
@@ -50,6 +50,7 @@
     "opn": "^4.0.2",
     "parse-hosts": "^1.0.1",
     "puppeteer": "^0.13.0",
+    "request": "^2.83.0",
     "simrun": "^0.1.0",
     "webpack": "^1.13.1",
     "weex-builder": "^0.2.13-beta.6",

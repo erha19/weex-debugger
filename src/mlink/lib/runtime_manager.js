@@ -1,11 +1,9 @@
 const mlink = require('mlink');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const url = require('url');
-const request = require('../../util/request');
 const WebSocket = require('ws');
+const request = require('../../util/request');
 const config = require('../../lib/config');
-const chalk = require('chalk');
-const os = require('os');
 
 class RuntimeManager {
   constructor () {
@@ -48,37 +46,6 @@ class RuntimeManager {
           reject('TOAST_CAN_NOT_FIND_RUNTIME');
         }
       }).catch((e) => {
-        /**
-         * Why has the logic here？
-         * open https://marketplace.visualstudio.com/items?itemName=msjsdiag.debugger-for-chrome
-         * see the Troubleshooting of debugger-for-chrome
-         * You should kill all chrome process using the below way:
-         * Windows:
-         * Try to run `TASKKILL /IM chrome.exe /F`
-         * Mac:
-         * Try to run `pkill Google Chrome`
-         * Linux:
-         * Try to run `pkill chrome`
-         * Ubuntu:
-         * Try to run `pkill chromium`
-         */
-        console.log(`${chalk.yellow('Warning: Js Debug execution environment initialization failed, you can repair with following command:')}\n`);
-        switch (os.platform()) {
-          case 'darwin':
-            console.log(`  ${chalk.yellow('Try to run `pkill Google Chrome`')}`);
-            break;
-          case 'win32':
-            console.log(`  ${chalk.yellow('Try to run `TASKKILL /IM chrome.exe /F`')}`);
-            break;
-          case 'linux':
-            console.log(`  ${chalk.yellow('Try to run `pkill chrome`')}`);
-            break;
-          default:
-            console.log(`  ${chalk.yellow('Try to run `pkill chrome`')}`);
-            break;
-        }
-        console.log(`\n${chalk.red('Note: The command will close all chrome pages, please save your unfinished work')}`);
-
         reject('TOAST_JS_RUNTIME_INIT_FAIL');
       });
     });

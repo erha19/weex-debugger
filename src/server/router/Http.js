@@ -41,7 +41,6 @@ const rSourceMapDetector = /\.map$/;
 httpRouter.get('/source/*', function * (next) {
   const path = this.params[0];
   if (rSourceMapDetector.test(path)) {
-    // fixme 硬写协议头 隐患
     const content = yield getRemote('http://' + path);
     if (!content) {
       this.response.status = 404;
@@ -81,40 +80,6 @@ httpRouter.get('/source/*', function * (next) {
   }
 });
 
-// function exists (file) {
-//   return new Promise((resolve, reject) => {
-//     fs.exists(file, function (flag) {
-//       resolve(flag);
-//     });
-//   });
-// }
-// const bundleDir = path.join(__dirname, '../../frontend/', config.bundleDir);
-/* httpRouter.get('/' + config.bundleDir + '/!*', function*(next) {
-    const ext = path.extname(this.params[0]);
-    if (ext == '.js' || ext == '.we') {
-        const dir = path.dirname(this.params[0]);
-        const basename = path.basename(this.params[0], ext);
-        const bundle = path.join(bundleDir, dir, basename + '.js');
-        const we = path.join(config.root || bundleDir, dir, basename + '.we');
-        if (yield exists(bundle)) {
-            this.response.status = 200;
-            this.type = 'text/javascript';
-            this.response.body = fs.createReadStream(bundle);
-        }
-        /!*else if (yield exists(we)) {
-            const targetPath = yield Builder[config.buildMode](we, dir);
-            this.response.status = 200;
-            this.type = 'text/javascript';
-            this.response.body = fs.createReadStream(targetPath);
-        }*!/
-        else {
-            this.response.status = 404;
-        }
-    }
-    else {
-        this.response.status = 404;
-    }
-});*/
 let syncApiIndex = 0;
 const SyncTerminal = mlink.Terminal.SyncTerminal;
 const syncHub = mlink.Hub.get('sync');

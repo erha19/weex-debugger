@@ -1,7 +1,3 @@
-/**
- * Created by godsong on 16/6/14.
- */
-
 function WebsocketClient(url) {
     this.connect(url);
 }

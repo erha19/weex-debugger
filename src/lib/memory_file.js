@@ -1,6 +1,3 @@
-/**
- * Created by godsong on 16/6/30.
- */
 const Crypto = require('crypto');
 const Url = require('url');
 const Qs = require('querystring');
