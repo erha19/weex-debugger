@@ -18,16 +18,17 @@ const hook = require('../lib/util/hook');
 const env = require('../lib/util/env');
 const hosts = require('../lib/util/hosts');
 
-program.option('-v, --version', 'display version')
+program
+.option('-v, --version', 'display version')
 .option('-h, --help', 'display help')
+.option('-H --host [host]', 'set the host ip of debugger server');
 .option('-V, --verbose', 'display logs of debugger server')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
-.option('--min', '')
-.option('--debug', '')
+.option('--min', 'minimize the jsbundle')
+.option('--debug', 'set log level to debug mode')
 .option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
-.option('--ip [ip]', 'set the host ip of debugger server')
-.option('--remotedebugport', '9223');
+.option('--remotedebugport [remotedebugport]', 'set the remote debug port', config.remoteDebugPort);
 
 
 // Supporting add the file / directory parameter after the command.
@@ -48,8 +49,8 @@ if (program.version === undefined) {
   exit(0);
 }
 
-if (program.ip && !hosts.isValidLocalHost(program.ip)) {
-  console.log('[' + program.ip + '] is not your local address!');
+if (program.host && !hosts.isValidLocalHost(program.host)) {
+  console.log('[' + program.host + '] is not your local address!');
   exit(0);
 }
 
@@ -73,7 +74,7 @@ env.getVersionOf('node', (v) => {
 })
 
 // Formate config 
-config.ip = program.ip || ip.address();
+config.ip = program.host || ip.address();
 config.verbose = program.verbose;
 config.manual = program.manual;
 config.min = program.min;
