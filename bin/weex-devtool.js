@@ -21,7 +21,7 @@ const hosts = require('../lib/util/hosts');
 program
 .option('-v, --version', 'display version')
 .option('-h, --help', 'display help')
-.option('-H --host [host]', 'set the host ip of debugger server');
+.option('-H --host [host]', 'set the host ip of debugger server')
 .option('-V, --verbose', 'display logs of debugger server')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
