@@ -198,7 +198,9 @@ websocket.onmessage = function (event) {
         $('#inspector').contentWindow.location.reload()
     }
     else if (message.method === 'WxDebug.deviceDisconnect') {
-        history.back();
+        timeout = setTimeout(function () {
+            history.back()
+        }, 8000)
     }
     else if(message.method==='WxDebug.bundleRendered'){
         var found=false
@@ -227,10 +229,6 @@ websocket.onmessage = function (event) {
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
         evt.preventDefault();
-        websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
-        if (hash === '#debugger') {
-            $('#inspector').contentWindow.location.reload()
-        }
         return false
     }
 }
@@ -244,9 +242,10 @@ function init() {
         firstLoad=false
         $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
             if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
-                $('#inspector').contentWindow.location.reload()
                 evt.preventDefault()
                 evt.stopPropagation()
+                websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
+                
                 return false
             }
         },true)

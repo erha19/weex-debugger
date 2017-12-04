@@ -3,6 +3,11 @@ var timer;
 var RuntimeSocket
 var BrowserChannelId
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
+
+EntrySocket.on('WxDebug.pushChannelId', function (message) {
+  location.href = `http://${location.host}/runtime.html`
+})
+
 EntrySocket.on('WxDebug.startDebugger', function (message) {
   timer && clearTimeout(timer)
   timer = setTimeout(function () {
@@ -14,6 +19,7 @@ EntrySocket.on('WxDebug.startDebugger', function (message) {
     }
   }, 3000)
 })
+
 BrowserChannelId = new URLSearchParams(location.search).get('channelId');
 
 if (BrowserChannelId) {
@@ -28,11 +34,11 @@ function connect(channelId) {
     }
   });
   RuntimeSocket.on('WxDebug.deviceDisconnect', function () {
-    location.reload();
+    location.href = `http://${location.host}/runtime.html`
   })
-  RuntimeSocket.on('WxDebug.refresh', function () {
-    location.reload();
-  });
+  // RuntimeSocket.on('WxDebug.refresh', function () {
+  //   location.reload();
+  // });
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     destroyJSRuntime();
     var logLevel = localStorage.getItem('logLevel');

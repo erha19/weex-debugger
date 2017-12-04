@@ -25,8 +25,7 @@
     </div>
 </div>
 <div class="header">
-    <img class="logo" src="assets/logo.svg" alt="">
-
+    <a href="/" title="Back to QR code."><img class="logo" src="assets/logo.svg" alt=""></a>
     <div class="info-ctn">
         <div class="column">
             <div class="line"><span>App Info</span><b id="app_info"></b></div>
@@ -35,7 +34,7 @@
         <div id="operate-menu">
             <div id="debugger-menu">
                 <div class="column">
-                    <div class="line short"><span>JS Debug</span><b>
+                    <div class="line short"><span title="Start JS Debug (Debug JS code in chrome)">JS Debug</span><b>
                         <div class="switch switch-remoteDebug">
                             <input type="checkbox" id="remote_debug" name="remoteDebug_switch" class="switch-checkbox">
                             <label class="switch-label" for="remote_debug">
@@ -47,7 +46,7 @@
                             </label>
                         </div>
                     </b></div>
-                    <div class="line short"><span>Network</span><b>
+                    <div class="line short"><span title="Start network monitor">Network</span><b>
                         <div class="switch switch-remoteDebug">
                             <input type="checkbox" id="network" name="remoteDebug_switch" class="switch-checkbox">
                             <label class="switch-label" for="network">
@@ -62,7 +61,7 @@
                 </div>
                 <div class="column">
                     <div class="line middle">
-                        <span>LogLevel</span><b><select id="log_level" class="selector log-level">
+                        <span title="Set level of log">LogLevel</span><b><select id="log_level" class="selector log-level">
                         <option value="debug">debug</option>
                         <option value="log">log</option>
                         <option value="info">info</option>
@@ -71,7 +70,7 @@
                     </select></b>
                     </div>
                     <div class="line middle">
-                        <span>ElementMode</span><b><select id="element_mode" class="selector log-level">
+                        <span title="Switch elements tree view">ElementMode</span><b><select id="element_mode" class="selector log-level">
                         <option value="vdom">vdom</option>
                         <option value="native">native</option>
                     </select></b>
