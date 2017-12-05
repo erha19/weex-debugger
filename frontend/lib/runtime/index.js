@@ -4,10 +4,6 @@ var RuntimeSocket
 var BrowserChannelId
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
 
-EntrySocket.on('WxDebug.pushChannelId', function (message) {
-  location.href = `http://${location.host}/runtime.html`
-})
-
 EntrySocket.on('WxDebug.startDebugger', function (message) {
   timer && clearTimeout(timer)
   timer = setTimeout(function () {

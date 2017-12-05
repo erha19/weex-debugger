@@ -66,7 +66,7 @@ function connect() {
 function createQRCode(channelId, connectUrl) {
     document.getElementById('qrcode').innerHTML = ''
     new QRCode(document.getElementById('qrcode'), {
-        text: connectUrl || `http:\/\/${location.host}/devtool_fake.html?_wx_devtool=ws:\/\/${location.host}/debugProxy/native/` + channelId,
+        text: connectUrl || `http:\/\/${location.host}/index.html?_wx_devtool=ws:\/\/${location.host}/debugProxy/native/` + channelId,
         width: 200,
         height: 200,
         colorDark: "#000000",
