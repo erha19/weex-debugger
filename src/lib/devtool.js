@@ -77,6 +77,7 @@ exports.launch = function (ip, port) {
     // Check whether the port is occupied
     detect(config.remoteDebugPort).then(function (open) {
       if (+config.remoteDebugPort !== open) {
+        headless.closeHeadless();
         console.log(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
       }
       else {

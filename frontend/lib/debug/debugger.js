@@ -234,21 +234,20 @@ document.onkeydown = function (evt) {
 }
 function init() {
     $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`
-    var firstLoad=true
+    var shouldReloadApp=true
     $('#inspector').onload = function () {
-        if(!firstLoad&&$('#remote_debug').checked){
+        if(!shouldReloadApp&&$('#remote_debug').checked){
             websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
         }
-        firstLoad=false
-        $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
-            if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
-                evt.preventDefault()
-                evt.stopPropagation()
-                websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
-                
-                return false
-            }
-        },true)
+        shouldReloadApp=false
+        // $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
+        //     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
+        //         // evt.preventDefault()
+        //         // evt.stopPropagation()
+        //         // websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
+        //         // return false
+        //     }
+        // },true)
     }
 }
 $help.onclick=function(){

@@ -5,15 +5,12 @@ var BrowserChannelId
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
 
 EntrySocket.on('WxDebug.startDebugger', function (message) {
-  timer && clearTimeout(timer)
-  timer = setTimeout(function () {
-    if (!RuntimeSocket) {
-      location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
-    }
-    else if(RuntimeSocket && BrowserChannelId!==message.params){
-      location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
-    }
-  }, 3000)
+  if (!RuntimeSocket) {
+    location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
+  }
+  else if(RuntimeSocket && BrowserChannelId!==message.params){
+    location.href = `http://${location.host}/runtime.html?channelId=${message.params}`
+  }
 })
 
 BrowserChannelId = new URLSearchParams(location.search).get('channelId');
@@ -32,11 +29,12 @@ function connect(channelId) {
   RuntimeSocket.on('WxDebug.deviceDisconnect', function () {
     location.href = `http://${location.host}/runtime.html`
   })
-  // RuntimeSocket.on('WxDebug.refresh', function () {
-  //   location.reload();
-  // });
+  RuntimeSocket.on('WxDebug.refresh', function () {
+    location.reload();
+  });
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     destroyJSRuntime();
+    setTimeout(function(){},0)
     var logLevel = localStorage.getItem('logLevel');
     if (logLevel) {
       message.params.env.WXEnvironment.logLevel = logLevel;
@@ -58,19 +56,21 @@ function initJSRuntime(message) {
   worker = new Worker('/lib/runtime/Runtime.js');
   worker.onmessage = function (message) {
     message = message.data;
+    RuntimeSocket.send(message);
     var domain = message.method.split('.')[0];
     var method = message.method.split('.')[1];
     if (domain == 'WxRuntime') {
       if (method === 'clearLog') {
         //console.clear();
       }
-      else if (method === 'dom') {}
+      else if (method === 'dom') {
+        document.getElementById('dom').innerHTML = resolve(message.params);
+      }
     }
     else {
-      RuntimeSocket.send(message);
     }
   };
-  worker.postMessage(message)
+  worker.postMessage(message);
 }
 //initJSRuntime();
 function resolve(root) {

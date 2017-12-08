@@ -9,8 +9,8 @@ debuggerRouter.registerHandler(function (message) {
   if (device) {
     if (redirectMessage.test(message.payload.method)) {
       if (message.payload.method === 'Debugger.setBreakpointByUrl') {
-        message.discard();
-        return;
+        // message.discard();
+        // return;
       }
       message.to('runtime.proxy');
     }
