@@ -16,7 +16,7 @@ class RuntimeManager {
         let found = false;
         for (const target of list) {
           const urlObj = url.parse(target.url);
-          if (urlObj.pathname === '/runtime.html') {
+          if (urlObj.pathname === '/runtime.html' && urlObj.port === config.port) {
             found = target;
             break;
           }
