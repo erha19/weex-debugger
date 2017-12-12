@@ -13,7 +13,7 @@ exports.launchHeadless = async (host, remotePort) => {
 };
 exports.closeHeadless = async () => {
   if (page) {
-    await page.goto('/');
+    await page.goto('about:blank');
   }
   if (browser) {
     await browser.close();

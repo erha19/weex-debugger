@@ -12,6 +12,9 @@ debuggerRouter.registerHandler(function (message) {
         // message.discard();
         // return;
       }
+      if (message.payload && message.payload.method === 'Page.reload') {
+        message.payload.ignoreCache = true;
+      }
       message.to('runtime.proxy');
     }
     else if (ignoredMessage.test(message.payload.method)) {
