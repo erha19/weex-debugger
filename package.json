@@ -42,7 +42,7 @@
     "koa-bodyparser": "^2.3.0",
     "koa-router": "~5.2.3",
     "koa-serve": "~0.1.6",
-    "koa-serve-static": "0.0.1",
+    "koa-serve-static": "1.0.0",
     "koa-websocket": "^2.0.0",
     "mkdirp": "^0.5.1",
     "mlink": "^0.1.6",
