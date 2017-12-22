@@ -65,13 +65,13 @@ if (program.remotedebugport) {
 
 // Get the local environment
 env.getVersionOf('weex', (v) => {
-  config.weexVersion = v.version;
+  config.weexVersion = v && v.version;
 })
 env.getVersionOf('npm', (v) => {
-  config.npmVersion = v.version;
+  config.npmVersion = v &&  v.version;
 })
 env.getVersionOf('node', (v) => {
-  config.nodeVersion = v.version;
+  config.nodeVersion = v && v.version;
 })
 
 // Formate config 
