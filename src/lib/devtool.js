@@ -5,11 +5,9 @@ const chalk = require('chalk');
 const config = require('./config');
 const debugServer = require('../server');
 const launcher = require('../util/launcher');
-const headless = require('../server/headless');
 const hook = require('../util/hook');
 const Router = require('mlink').Router;
 const boxen = require('boxen');
-const detect = require('detect-port');
 
 // 1 - start with debugserver only
 // 3 - start with debugserver with headless server
@@ -72,21 +70,7 @@ exports.startServer = function (ip, port) {
 exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   console.log('Launching Dev Tools...');
-  if (config.enableHeadless) {
-    startPath += 2;
-    // Check whether the port is occupied
-    detect(config.remoteDebugPort).then(function (open) {
-      if (+config.remoteDebugPort !== open) {
-        headless.closeHeadless();
-        console.log(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
-      }
-      else {
-        console.log(`Starting inspector on port ${open}`);
-      }
-      config.remoteDebugPort = open;
-      headless.launchHeadless(`${config.ip}:${config.port}`, open);
-    });
-  }
+
   launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
   hook.record('/weex_tool.weex_debugger.start_debugger', { start_path: startPath });
 };
