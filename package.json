@@ -2,7 +2,7 @@
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
   "version": "1.0.0-rc.33",
-  "author": "exolution <exolution@163.com>",
+  "author": "erha19 <faterrole@gmail.com>",
   "license": "GPL-3.0",
   "main": "index.js",
   "keywords": [
@@ -36,6 +36,7 @@
     "del": "^2.2.1",
     "detect-port": "^1.2.1",
     "exit": "^0.1.2",
+    "fs-extra": "^5.0.0",
     "ip": "^1.1.3",
     "javascript-obfuscator": "^0.8.6",
     "koa": "^2.4.1",
