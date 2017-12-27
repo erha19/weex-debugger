@@ -9,7 +9,7 @@ const path = require('path');
 const detect = require('detect-port');
 const del = require('del');
 const mlink = require('mlink');
-const op = require('os');
+const os = require('os');
 const packageInfo = require('../package.json');
 const debugRun = require('../lib/util/debug_run');
 const config = require('../lib/lib/config');
@@ -98,6 +98,18 @@ process.on('uncaughtException', (err) => {
   } catch (e) {
       console.log('Error Message: ', e.stack);
   }
+});
+
+process.on('unhandledRejection', (reason, p) => {
+  const params = Object.assign({
+    stack: reason,
+    os: os.platform(),
+    node: config.nodeVersion,
+    npm: config.npmVersion
+  }, config.weexVersion);
+  hook.record('/weex_tool.weex_debugger.app_crash', params);
+  console.log('Unhandled Rejection at:', p, 'reason:', reason);
+  // application specific logging, throwing an error, or other logic here
 });
 
 process.on('SIGINT', err => {
