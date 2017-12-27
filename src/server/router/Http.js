@@ -10,7 +10,7 @@ const protocols = {
   'http:': require('http'),
   'https:': require('https')
 };
-const httpRouter = Router();
+const httpRouter = new Router();
 
 function getRemote (url) {
   return new Promise(function (resolve, reject) {

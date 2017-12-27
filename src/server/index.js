@@ -1,11 +1,11 @@
 const Path = require('path');
 const Koa = require('koa');
-const ServeStatic = require('koa-serve-static');
+const serve = require('koa-serve-static');
 const Websockify = require('koa-websocket');
 const bodyParser = require('koa-bodyparser');
 const WsRouter = require('./router/Websocket');
 const HttpRouter = require('./router/Http');
-const app = Websockify(Koa());
+const app = Websockify(new Koa());
 const rootPath = Path.join(__dirname, '../../frontend/');
 require('../mlink/link');
 /*
@@ -30,9 +30,8 @@ exports.start = function (port, cb) {
      Http Router
      ===================================
      */
-
   app.use(HttpRouter.routes());
-  app.use(ServeStatic(rootPath));
+  app.use(serve(rootPath));
 
   app.listen(port, cb);
 };
