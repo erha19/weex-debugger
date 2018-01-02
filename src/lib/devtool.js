@@ -5,33 +5,12 @@ const config = require('./config');
 const debugServer = require('../server');
 const launcher = require('../util/launcher');
 const hook = require('../util/hook');
-const Router = require('mlink').Router;
 const boxen = require('boxen');
-const fs = require('fs-extra');
-
 // 1 - start with debugserver only
 // 3 - start with debugserver with headless server
 // 5 - start with debugserver with building
 // 7 - start with debugserver with headless server and building
-let startPath = 1;
-
-const isWin = process.platform === 'win32';
-// Find the perfect weex-builder
-const weexBuilderPaths = [
-  path.join(process.cwd(), 'node_modules/weex-builder'),
-  path.join(process.env[isWin ? 'USERPROFILE' : 'HOME'], '.xtoolkit/node_modules/weex-builder'),
-  isWin ? '%AppData%\\npm\\node_modules\\weex-builder' : '/usr/local/lib/node_modules/weex-builder'
-];
-let builderPath = 'weex-builder';
-
-while (!fs.existsSync(weexBuilderPaths[0])) {
-  weexBuilderPaths.shift();
-}
-if (weexBuilderPaths[0]) {
-  builderPath = weexBuilderPaths[0];
-}
-
-const builder = require(builderPath);
+const startPath = 1;
 
 function resolveBundleUrl (bundlePath, ip, port) {
   return 'http://' + ip + ':' + port + path.join('/' + config.bundleDir, bundlePath.replace(/\.(we|vue)$/, '.js')).replace(/\\/g, '/');
@@ -110,37 +89,6 @@ exports.start = function (target, config, cb) {
     const bundleUrls = this.resolveBundlesAndEntry(target, [], config.ip, config.port);
     config.bundleUrls = bundleUrls;
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
-  }
-  else if (target) {
-    const filePath = path.resolve(target);
-    let shouldReloadDebugger = false;
-    startPath += 4;
-    console.log(`Using the builder on ${chalk.bold(builderPath)}`);
-    builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
-      watch: true,
-      devtool: 'inline-source-map'
-    }, (err, output, json) => {
-      if (err) {
-        console.error(err);
-      }
-      else {
-        console.log('Build completed!\nChild');
-        console.log(output.toString());
-        console.log(`Time: ${chalk.bold(json.time)}ms`);
-        if (!shouldReloadDebugger) {
-          shouldReloadDebugger = true;
-          const bundles = output.map((o) => path.relative(path.join(__dirname, '../../frontend/weex'), o.to));
-          const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
-          config.bundleUrls = bundleUrls;
-          this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
-        }
-        else {
-          Router.get('debugger').pushMessage('proxy.native', {
-            method: 'WxDebug.reload'
-          });
-        }
-      }
-    });
   }
   else {
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
