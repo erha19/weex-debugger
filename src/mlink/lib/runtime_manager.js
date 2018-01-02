@@ -1,4 +1,4 @@
-const mlink = require('mlink');
+const mlink = require('./midware/index');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const url = require('url');
 const WebSocket = require('ws');

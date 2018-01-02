@@ -1,4 +1,4 @@
-const mlink = require('mlink');
+const mlink = require('./midware/index');
 const Router = mlink.Router;
 const Hub = mlink.Hub;
 const debuggerRouter = new Router('debugger');

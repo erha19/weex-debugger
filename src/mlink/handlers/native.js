@@ -1,4 +1,5 @@
-const Router = require('mlink').Router;
+const mlink = require('./midware/index');
+const Router = mlink.Router;
 const DeviceManager = require('../lib/device_manager');
 const bundleWrapper = require('../../util/bundle_wrapper');
 const MemoryFile = require('../../lib/memory_file');

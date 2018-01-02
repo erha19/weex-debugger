@@ -1,4 +1,5 @@
-const Router = require('mlink').Router;
+const mlink = require('./midware/index');
+const Router = mlink.Router;
 const DeviceManager = require('../lib/device_manager');
 const config = require('../../lib/config');
 const debuggerRouter = Router.get('debugger');
