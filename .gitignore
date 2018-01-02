@@ -4,7 +4,7 @@ demo
 coverage/
 .idea/
 .DS_Store
-.vscode
+.vscode/
 lib
 dest
 frontend/weex
