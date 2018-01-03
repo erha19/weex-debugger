@@ -1,4 +1,4 @@
-const mlink = require('./midware/index');
+const mlink = require('../midware/index');
 const Router = mlink.Router;
 const simulatorManager = require('../lib/simulator_manager');
 const config = require('../../lib/config');
