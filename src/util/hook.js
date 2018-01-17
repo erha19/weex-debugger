@@ -5,7 +5,7 @@ let shouldBeTelemetry = false;
 
 exports.record = (logkey, gokey) => {
   if (!shouldBeTelemetry) {
-    return ;
+    return;
   }
   let url = `http://gm.mmstat.com${logkey}?`;
   for (const i in gokey) {
@@ -23,4 +23,4 @@ exports.record = (logkey, gokey) => {
 
 exports.allowTarck = () => {
   shouldBeTelemetry = true;
-}
+};
