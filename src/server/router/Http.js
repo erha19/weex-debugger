@@ -1,8 +1,7 @@
 const Router = require('koa-router');
 const MemoryFile = require('../../lib/memory_file');
-const mlink = require('mlink');
-const Logger = mlink.Logger;
-const DeviceManager = require('../../mlink/lib/device_manager');
+const mlink = require('../../mlink/midware');
+const DeviceManager = require('../../mlink/managers/device_manager');
 const URL = require('url');
 const config = require('../../lib/config');
 const bundleWrapper = require('../../util/bundle_wrapper');
@@ -10,6 +9,10 @@ const protocols = {
   'http:': require('http'),
   'https:': require('https')
 };
+const {
+  logger
+} = require('../../util/logger');
+
 const httpRouter = new Router();
 
 function getRemote (url) {
@@ -41,6 +44,7 @@ const rSourceMapDetector = /\.map$/;
 httpRouter.get('/source/*', function * (next) {
   const path = this.params[0];
   if (rSourceMapDetector.test(path)) {
+    logger.verbose(`Fetch sourcemap ${path}`);
     const content = yield getRemote('http://' + path);
     if (!content) {
       this.response.status = 404;
@@ -60,8 +64,10 @@ httpRouter.get('/source/*', function * (next) {
       this.response.status = 200;
       this.type = 'text/javascript';
       if (file.url && config.proxy) {
+        logger.verbose(`Fetch jsbundle ${file.url}`);
         const content = yield getRemote(file.url).catch(function (e) {
-          Logger.error(e);
+          // If file not found or got other http error.
+          logger.verbose(e);
         });
         if (!content) {
           this.response.body = file.getContent();
@@ -100,7 +106,7 @@ httpRouter.post('/syncApi', function * () {
   }
   else {
     this.response.status = 500;
-    this.response.body = JSON.stringify({ error: 'device not found!' });
+    // this.response.body = JSON.stringify({ error: 'device not found!' });
   }
 });
 module.exports = httpRouter;

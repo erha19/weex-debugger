@@ -1,17 +1,16 @@
-const mlink = require('mlink');
+const mlink = require('../midware');
 const debuggerRouter = mlink.Router.get('debugger');
-const Logger = mlink.Logger;
-const DeviceManager = require('../lib/device_manager');
+const DeviceManager = require('../managers/device_manager');
 const redirectMessage = /^(Page.(enable|disable|reload)|Debugger|Target|Worker|Runtime\.runIfWaitingForDebugger)/;
 const ignoredMessage = /^(ServiceWorker)/;
+const {
+  logger
+} = require('../../util/logger');
+
 debuggerRouter.registerHandler(function (message) {
   const device = DeviceManager.getDevice(message.channelId);
   if (device) {
     if (redirectMessage.test(message.payload.method)) {
-      if (message.payload.method === 'Debugger.setBreakpointByUrl') {
-        // message.discard();
-        // return;
-      }
       if (message.payload && message.payload.method === 'Page.reload') {
         message.payload.ignoreCache = true;
       }
@@ -28,7 +27,7 @@ debuggerRouter.registerHandler(function (message) {
     }
   }
   else {
-    Logger.error('loss message from "proxy.inspector" device not found in channelId [' + message.channelId + ']');
+    logger.error('loss message from "proxy.inspector" device not found in channelId [' + message.channelId + ']');
     message.to('proxy.native');
   }
 }).at('proxy.inspector');
