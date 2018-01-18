@@ -5,6 +5,6 @@ coverage/
 .idea/
 .DS_Store
 .vscode/
-lib
-dest
+lib/
+dest/
 frontend/weex

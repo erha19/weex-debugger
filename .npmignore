@@ -8,6 +8,6 @@ frontend/devtools
 .git
 .vscode
 
-src
+src/
 
 
