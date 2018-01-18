@@ -1,9 +1,12 @@
-const mlink = require('mlink');
+const mlink = require('../midware');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const url = require('url');
 const WebSocket = require('ws');
 const request = require('../../util/request');
 const config = require('../../lib/config');
+const {
+  logger
+} = require('../../util/logger');
 
 class RuntimeManager {
   constructor () {
@@ -27,6 +30,7 @@ class RuntimeManager {
 
         if (found) {
           if (found.webSocketDebuggerUrl) {
+            logger.verbose(`Have found the webSocketDebuggerUrl: ${found.webSocketDebuggerUrl}`);
             const ws = new WebSocket(found.webSocketDebuggerUrl);
             const terminal = new WebsocketTerminal(ws, channelId);
             const _runtimeTerminalMaps = this.runtimeTerminalMap[channelId];
@@ -39,10 +43,12 @@ class RuntimeManager {
             resolve(terminal);
           }
           else {
+            logger.verbose(`Not found the webSocketDebuggerUrl from the ${found}`);
             reject('TOAST_DO_NOT_OPEN_CHROME_DEVTOOL');
           }
         }
         else {
+          logger.verbose(`Not found the remote debug json`);
           reject('TOAST_CAN_NOT_FIND_RUNTIME');
         }
       }).catch((e) => {
@@ -57,7 +63,7 @@ class RuntimeManager {
       popTerminal.websocket.close();
     }
     else {
-      console.error('try to remove a non-exist runtime');
+      logger.error('Try to remove a non-exist runtime');
     }
   }
   has (channelId) {

@@ -455,3 +455,21 @@ legend {
     background: #ffffff;
     color: #000000;
 }
+.bug_report{
+    display: block;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 999;
+    opacity: .2;
+    transition: all .2s ease;
+    background: url('./bug.png') center center no-repeat #000;
+}
+
+.bug_report:hover{
+    opacity: 1;
+}

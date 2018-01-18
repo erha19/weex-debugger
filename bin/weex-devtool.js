@@ -8,7 +8,6 @@ const exit = require('exit');
 const path = require('path');
 const detect = require('detect-port');
 const del = require('del');
-const mlink = require('mlink');
 const os = require('os');
 const packageInfo = require('../package.json');
 const debugRun = require('../lib/util/debug_run');
@@ -18,16 +17,20 @@ const hook = require('../lib/util/hook');
 const env = require('../lib/util/env');
 const hosts = require('../lib/util/hosts');
 const headless = require('../lib/server/headless');
+const {
+  LOGLEVELS,
+  logger
+} =require('../lib/util/logger')
 
 program
 .option('-v, --version', 'display version')
 .option('-h, --help', 'display help')
 .option('-H --host [host]', 'set the host ip of debugger server')
-.option('-V, --verbose', 'display logs of debugger server')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
 .option('--min', 'minimize the jsbundle')
-.option('--debug', 'set log level to debug mode')
+.option('--telemetry', 'upload usage data to help us improve the toolkit')
+.option('--verbose', 'display all logs of debugger server')
 .option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
 .option('--remotedebugport [remotedebugport]', 'set the remote debug port', config.remoteDebugPort);
 
@@ -44,19 +47,31 @@ if (program.help === undefined) {
   program.outputHelp();
   exit(0);
 }
+
 // Fix tj's commander bug overwrite --version
 if (program.version === undefined) {
-  console.log(packageInfo.version);
+  logger.log(packageInfo.version);
   exit(0);
 }
 
 if (program.host && !hosts.isValidLocalHost(program.host)) {
-  console.log('[' + program.host + '] is not your local address!');
+  logger.error('[' + program.host + '] is not your local address!');
   exit(0);
 }
 
+if (program.telemetry) {
+  hook.allowTarck()
+}
+
+if (program.loglevel) {
+  program.loglevel = program.loglevel.toLowercase && program.loglevel.toLowercase()
+  if(LOGLEVELS.indexOf(program.loglevel) > -1) {
+    logger.setLevel(program.loglevel)
+  }
+}
+
 if (program.verbose) {
-  config.logLevel = 'debug';
+  logger.setLevel('verbose')
 }
 
 if (program.remotedebugport) {
@@ -76,10 +91,8 @@ env.getVersionOf('node', (v) => {
 
 // Formate config 
 config.ip = program.host || ip.address();
-config.verbose = program.verbose;
 config.manual = program.manual;
 config.min = program.min;
-config.logLevel = program.loglevel;
 
 process.on('uncaughtException', (err) => {
   try {
@@ -96,11 +109,11 @@ process.on('uncaughtException', (err) => {
     }, 30000);
     killTimer.unref();
   } catch (e) {
-      console.log('Error Message: ', e.stack);
+    logger.error('Error Message: ', e.stack);
   }
 });
 
-process.on('unhandledRejection', (reason, p) => {
+process.on('unhandledRejection', (reason, p) => {logger
   const params = Object.assign({
     stack: reason,
     os: os.platform(),
@@ -108,7 +121,7 @@ process.on('unhandledRejection', (reason, p) => {
     npm: config.npmVersion
   }, config.weexVersion);
   hook.record('/weex_tool.weex_debugger.app_crash', params);
-  console.log('Unhandled Rejection at:', p, 'reason:', reason);
+  logger.error(reason);
   // application specific logging, throwing an error, or other logic here
 });
 
@@ -132,7 +145,6 @@ detect(program.port).then( (open) => {
     debugRun(__filename, config);
   }
   else {
-    mlink.Logger.setLogLevel(mlink.Logger.LogLevel[config.logLevel.toUpperCase()]);
     // Clear files on bundleDir
     try {
       del.sync(path.join(__dirname, '../frontend/', config.bundleDir, '/*'), {

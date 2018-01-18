@@ -1,9 +1,10 @@
-const Router = require('mlink').Router;
-const Logger = require('mlink').Logger;
+const mlink = require('../midware');
+const Router = mlink.Router;
+const Logger = mlink.Logger;
+const Hub = mlink.Hub;
 const debuggerRouter = Router.get('debugger');
-const DeviceManager = require('../lib/device_manager');
-const RuntimeManager = require('../lib/runtime_manager');
-const Hub = require('mlink').Hub;
+const DeviceManager = require('../managers/device_manager');
+const RuntimeManager = require('../managers/runtime_manager');
 const runtimeProxyHub = Hub.get('runtime.proxy');
 
 debuggerRouter.registerHandler(function (message) {
