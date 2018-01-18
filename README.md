@@ -24,8 +24,7 @@ We advise you to use weex-toolkit which will call weex-devtool.
 ##  usage
 
 ``` bash
-$ weex xbind debugx weex-debugger
-$ weex debugx [options] [vue_file|bundles_dir]
+$ weex debug [options] [vue_file|bundles_dir]
 ```     
 | Options | Description |
 | :--- | :--- |
@@ -42,7 +41,7 @@ $ weex debugx [options] [vue_file|bundles_dir]
      
 #### start debugger
 ```
-$weex debugx
+$ weex debug
 ```
 his command will start debug server and launch a chrome opening `DeviceList` page.
 this page will display a QR code, you can use [Playground](https://weex.apache.org/cn/playground.html) scan it for starting debug or integrate [Weex devtools](#Integrate devtool) into your application.
@@ -67,6 +66,7 @@ This command will compile each of the files in `your/vue/path` and deploy them o
 
 ##  How to access devtools in native
 
-  Android: pls refer to [Weex Devtool Android](https://github.com/weexteam/weex_devtools_android/blob/master/README.md)
+  - Android: pls refer to [Weex Devtool Android](https://github.com/weexteam/weex_devtools_android/blob/master/README.md)
   
-  IOS: pls refer to [Weex Devtool IOS](https://github.com/weexteam/weex-devtool-iOS/blob/master/README-zh.md)
+  - IOS: pls refer to [Weex Devtool IOS](https://github.com/weexteam/weex-devtool-iOS/blob/master/README-zh.md)
+  
