@@ -1,6 +1,8 @@
 importScripts('/lib/runtime/EventEmitter.js');
 self.$$frameworkFlag = {};
 var channelId;
+var shouldReturnResult = false;
+var requestId;
 var payloads = []
 var injectedGlobals = ['Promise',
   // W3C
@@ -50,21 +52,29 @@ onmessage = function (message) {
   eventEmitter.emit(message.data && message.data.method, message.data)
 };
 self.callNativeModule = function () {
-  var message = {
-    method: 'WxDebug.syncCall',
-    params: {
-      method: 'callNativeModule',
-      args: Array.prototype.slice.call(arguments)
-    },
-    channelId: channelId
-  }
-  var result = syncRequest(message);
-  if (result.error) {
-    self.console.error(result.error);
-    // throw new Error(result.error);
-  }
-  else return result.ret;
+    var message = {
+        method: 'WxDebug.syncCall',
+        params: {
+        method: 'callNativeModule',
+        args: Array.prototype.slice.call(arguments)
+        },
+        channelId: channelId
+    }
+    var result = syncRequest(message);
+    if (shouldReturnResult && requestId) {
+        postData({
+            id: requestId,
+            result: null,
+            error: {errorCode: 0}
+        });
+    }
+    if (result && result.error) {
+        self.console.error(result.error);
+        // throw new Error(result.error);
+    }
+    else return result && result.ret;
 }
+
 self.callNativeComponent = function () {
   var message = {
     method: 'WxDebug.syncCall',
@@ -81,6 +91,7 @@ self.callNativeComponent = function () {
   }
   else return result.ret;
 };
+
 self.callNative = function (instance, tasks, callback) {
   for (var i = 0; i < tasks.length; i++) {
     var task = tasks[i];
@@ -103,6 +114,7 @@ self.callNative = function (instance, tasks, callback) {
   };
   postData(payload);
 };
+
 self.callAddElement = function (instance, ref, dom, index, callback) {
   var payload = {
     method: 'WxDebug.callAddElement',
@@ -182,7 +194,7 @@ eventEmitter.on('WxDebug.importScript', function (data) {
     new Function('', data.params.source)();
   }
 })
-eventEmitter.on('WxDebug.execJSWithResult', function (data) {
+eventEmitter.on('WxDebug.callJsResult', function (data) {
   var method = data.params.method;
   if (method === 'createInstance') {
     var url = data.params.sourceUrl;
@@ -203,6 +215,8 @@ eventEmitter.on('WxDebug.execJSWithResult', function (data) {
     }
   }
   else if (self[data.params.method]) {
+    shouldReturnResult = true;
+    requestId = +data.id
     self[data.params.method].apply(null, data.params.args);
   }
   else {
@@ -227,10 +241,11 @@ eventEmitter.on('WxDebug.callJS', function (data) {
       delete instanceMap[data.params.args[0]];
     }
     else {
-      // self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
+      self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
     }
   }
   else if (self[data.params.method]) {
+    shouldReturnResult = false;
     self[data.params.method].apply(null, data.params.args);
   }
   else {

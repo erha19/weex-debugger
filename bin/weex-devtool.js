@@ -59,6 +59,10 @@ if (program.host && !hosts.isValidLocalHost(program.host)) {
   exit(0);
 }
 
+if (program.telemetry) {
+  hook.allowTarck()
+}
+
 if (program.loglevel) {
   program.loglevel = program.loglevel.toLowercase && program.loglevel.toLowercase()
   if(LOGLEVELS.indexOf(program.loglevel) > -1) {
@@ -116,7 +120,6 @@ process.on('unhandledRejection', (reason, p) => {logger
     node: config.nodeVersion,
     npm: config.npmVersion
   }, config.weexVersion);
-  console.log(reason, typeof reason)
   hook.record('/weex_tool.weex_debugger.app_crash', params);
   logger.error(reason);
   // application specific logging, throwing an error, or other logic here
