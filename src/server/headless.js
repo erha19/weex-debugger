@@ -10,15 +10,13 @@ exports.launchHeadless = async (host, remotePort) => {
     args: [`--remote-debugging-port=${remotePort}`, `--disable-gpu`]
   });
   logger.verbose(`Headless has been launched`);
-  if (!page) {
-    page = await browser.newPage();
-  }
+  page = await browser.newPage();
   await page.goto(`http://${host}/runtime.html`);
   logger.verbose(`Headless page goto http://${host}/runtime.html`);
 };
 exports.closeHeadless = async () => {
   if (page) {
-    await page.goto('about:blank');
+    await page.close();
   }
   if (browser) {
     await browser.close();
