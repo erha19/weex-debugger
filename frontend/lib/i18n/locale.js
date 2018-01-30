@@ -6,7 +6,7 @@ var gl_localeText={
         "CLICK_TIPS":"点击二维码启动模拟器进行调试",
         "OR":"或",
         "TIPS":"这个二维码开始调试",
-        "VERSION":"weex devtool 1.0.0-rc.36",
+        "VERSION":"weex devtool 1.0.1",
         "DISCONNECT_TIPS":"设备断开连接,请重新扫码",
         "BUNDLE_TIPS":"扫描或者点击二维码加载bundle(点击仅限模拟器)",
         "TIMELINE_TIPS_DESC":"请刷新手机中的当前页面或跳转到新的weex页面，然后此面板将显示详细的性能报告",
@@ -34,8 +34,8 @@ var gl_localeText={
         "PROPHET_LOAD":"从本地加载",
         "TOAST_JS_RUNTIME_INIT_FAIL":"Js Debug执行环境初始化失败，参见控制台输出的帮助信息进行修复!",
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"请不要打开chrome自带的的inspector",
-        "TOAST_CAN_NOT_FIND_RUNTIME":"找不到运行时~!",
-        "ONLY_SUPPORT_IOS":"模拟器启动目前仅支持iOS设备!"
+        "TOAST_CAN_NOT_FIND_RUNTIME":"无法初始化JSDebug执行环境，请重启程序",
+        "ONLY_SUPPORT_IOS":"模拟器启动需安装Xcode环境且不支持Windows平台使用"
     },
     "en":{
         "SCAN":"Scan",
@@ -44,7 +44,7 @@ var gl_localeText={
         "CLICK_TIPS":"qrcode to start a simulator for debugging",
         "OR":"or",
         "TIPS":"this qrcode to start debugger",
-        "VERSION":"weex devtool 1.0.0-rc.36",
+        "VERSION":"weex devtool 1.0.1",
         "DISCONNECT_TIPS":"device disconnect! please rescan",
         "BUNDLE_TIPS":"Click or Scan for rendering(click only for simulator)",
         "TIMELINE_TIPS_DESC":"Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.",

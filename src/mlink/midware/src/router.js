@@ -5,7 +5,9 @@ const Channel = require('./channel');
 const Handler = require('./handler');
 const Emitter = require('./emitter');
 const Message = require('./message');
-const { logger } = require('../../../util/logger');
+const {
+  logger
+} = require('../../../util/logger');
 const _routerInstances = {};
 class Router extends Emitter {
   constructor (id) {
@@ -13,14 +15,12 @@ class Router extends Emitter {
     if (_routerInstances[id]) {
       return _routerInstances[id];
     }
-
     this.hubs = {};
     this.id = id;
     this.channelMap = {};
     this.handlerList = [];
     _routerInstances[id] = this;
   }
-
   static check () {
     Object.keys(_routerInstances).forEach((id) => {
       if (Object.keys(_routerInstances[id].hubs).length === 0) {
@@ -28,11 +28,9 @@ class Router extends Emitter {
       }
     });
   }
-
   static get (id) {
     return _routerInstances[id] || new Router(id);
   }
-
   static dump () {
     Object.keys(_routerInstances).forEach(id => {
       const router = _routerInstances[id];
@@ -41,22 +39,18 @@ class Router extends Emitter {
       }
     });
   }
-
   link (hub) {
     this.hubs[hub.id] = hub;
     hub.router = this;
   }
-
   reply (message, payload) {
     this.pushMessage(message._from.hubId, message._from.terminalId, payload);
   }
-
   newChannel (mode) {
     const channel = new Channel(mode);
     this.channelMap[channel.id] = channel;
     return channel.id;
   }
-
     // fixme
   pushMessageByChannelId (hubId, channelId, payload) {
     const message = new Message(payload, 'unknown', 'unknown', channelId);
@@ -64,7 +58,6 @@ class Router extends Emitter {
     message.route();
     this._fetchMessage(message);
   }
-
   pushMessage (hubId, terminalId, payload) {
     if (arguments.length === 2) {
       payload = terminalId;
@@ -75,8 +68,8 @@ class Router extends Emitter {
         hubId = hubId.hubId;
         terminalId = hubId.terminalId;
       }
-            else {
-        throw new Error('the first argument of pushMessage must be a string or object');
+      else {
+        logger.error('the first argument of pushMessage must be a string or object');
       }
     }
     const message = new Message(payload, 'unknown', 'unknown');
@@ -84,7 +77,6 @@ class Router extends Emitter {
     message.route();
     this._pushMessage(message);
   }
-
   _pushMessage (message) {
     message.destination.forEach(dest => {
       if (this.hubs[dest.hubId]) {
@@ -96,7 +88,7 @@ class Router extends Emitter {
         }
       }
       else {
-        throw new Error('Hub [' + dest.hubId + '] not found!');
+        logger.error('Hub [' + dest.hubId + '] not found!');
       }
     });
     message.destroy();
@@ -112,34 +104,30 @@ class Router extends Emitter {
             return others;
           }
           else {
-            throw new Error('invalid channelId:' + channelId);
+            logger.wran(`There should be a connection that request to a close device, invalid channelId: ${channelId}`);
           }
         }
         else {
-                    // throw new Error('invalid message no channelId');
+          logger.error('invalid message no channelId');
         }
       });
       this._pushMessage(message);
     }
   }
-
   _fetchMessage (message) {
-        // Handler.run(this.handlerList)
+    // Handler.run(this.handlerList)
     this.emit(Router.Event.MESSAGE_RECEIVED, message._from.hubId + '.' + message._from.terminalId, message);
     return Handler.run(this.handlerList, message).then((data) => { // todo 如何保证消息的顺序
       this._dispatchMessage(message);
-    })
-        .catch(e => {
-          console.error(e);
-        });
+    }).catch(e => {
+      console.error(e);
+    });
   }
-
   registerHandler (handler) {
     const currentHandler = new Handler(handler, this);
     this.handlerList.push(currentHandler);
     return currentHandler;
   }
-
   _event (signal) {
     switch (signal.type) {
       case Router.Event.TERMINAL_JOINED:
@@ -151,7 +139,7 @@ class Router extends Emitter {
             channel.join(signal.hubId, signal.terminalId, signal.forced);
           }
           else {
-            throw new Error('the channel [' + signal.channelId + '] of terminal [' + signal.terminalId + '] is not found!');
+            logger.warn('There should be a connection that is not closed properly, the channel [' + signal.channelId + '] of terminal [' + signal.terminalId + '] is not found!');
           }
           const cacheMessages = channel.getCache(signal.hubId, signal.terminalId);
           cacheMessages.forEach(m => this._dispatchMessage(m));

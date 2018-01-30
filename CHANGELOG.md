@@ -2,8 +2,13 @@
 All notable changes to this project will be documented in this file.
 
 
-### [Unreleased]
-### [1.0.0] - 2018-1-18
+### 1.0.1
+#### Changed
+  - Fix issues [weex-toolkit/issues/265](https://github.com/weexteam/weex-toolkit/issues/265).
+  - Fix wrong release version on the page.
+  - Support multi-terminal debugging mode, you can open multiple debugger services in the command line.
+
+### 1.0.0
 #### Added
   - Added weex performance analysis tools，only supports latest weex devtool sdk.
   - Merge debug logs from debugger and inspector.

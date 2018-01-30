@@ -2,7 +2,9 @@ const mlink = require('../midware');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const url = require('url');
 const WebSocket = require('ws');
+const os = require('os');
 const request = require('../../util/request');
+const hook = require('../../util/hook');
 const config = require('../../lib/config');
 const {
   logger
@@ -19,7 +21,7 @@ class RuntimeManager {
         let found = false;
         for (const target of list) {
           const urlObj = url.parse(target.url);
-          if (urlObj.pathname === '/runtime.html' && urlObj.port === config.port) {
+          if (urlObj.pathname === '/runtime.html' && urlObj.port === config.port + '') {
             found = target;
             break;
           }
@@ -27,7 +29,6 @@ class RuntimeManager {
             found = target;
           }
         }
-
         if (found) {
           if (found.webSocketDebuggerUrl) {
             logger.verbose(`Have found the webSocketDebuggerUrl: ${found.webSocketDebuggerUrl}`);
@@ -63,6 +64,13 @@ class RuntimeManager {
       popTerminal.websocket.close();
     }
     else {
+      const params = Object.assign({
+        stack: 'ERROR: Try to remove a non-exist runtime',
+        os: os.platform(),
+        node: config.nodeVersion,
+        npm: config.npmVersion
+      }, config.weexVersion);
+      hook.record('/weex_tool.weex_debugger.app_crash', params);
       logger.error('Try to remove a non-exist runtime');
     }
   }

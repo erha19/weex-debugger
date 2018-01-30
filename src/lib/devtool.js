@@ -25,7 +25,7 @@ let startPath = 1;
 const builder = require('weex-builder');
 
 function resolveBundleUrl (bundlePath, ip, port) {
-  return 'http://' + ip + ':' + port + path.join('/' + config.bundleDir, bundlePath.replace(/\.(we|vue)$/, '.js'));
+  return `http://${ip}:${port}/${config.bundleDir}/${bundlePath.replace(/\.(we|vue)$/, '.js')}`;
 }
 
 function isUrl (str) {
