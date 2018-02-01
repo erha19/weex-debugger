@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/27.
- */
 const util = require('../util');
 class Emitter {
   constructor () {

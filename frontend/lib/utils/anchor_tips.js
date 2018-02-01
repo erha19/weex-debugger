@@ -1,7 +1,3 @@
-/**
- * Created by exolution on 17/4/12.
- */
-
 function AnchorTips(target,anchor,tips,container){
     this.container=container||document.body
 

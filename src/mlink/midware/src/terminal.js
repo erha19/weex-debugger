@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/24.
- */
 const EventEmitter = require('events').EventEmitter;
 const uuid = require('uuid');
 const Promise = require('ipromise');

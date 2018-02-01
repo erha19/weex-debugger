@@ -1,10 +1,8 @@
-/**
- * Created by exolution on 17/3/22.
- */
 let _uuid = 0;
 let _messageBuffer = [];
 const util = require('../util');
 const { logger } = require('../../../util/logger');
+
 class Message {
   constructor (payload, hubId, terminalId, channelId) {
     this._from = {

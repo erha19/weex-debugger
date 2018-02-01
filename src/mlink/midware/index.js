@@ -1,7 +1,3 @@
-/**
- * Created by exolution on 17/2/22.
- */
-
 module.exports = {
   'Router': require('./src/router'),
   'Enum': require('./src/enum'),

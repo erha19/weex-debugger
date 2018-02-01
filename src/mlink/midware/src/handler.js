@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/24.
- */
 const Promise = require('ipromise');
 class Handler {
   constructor (handler, router) {

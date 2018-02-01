@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/23.
- */
 const invok = require('invok');
 const Promise = require('ipromise');
 class Filter {

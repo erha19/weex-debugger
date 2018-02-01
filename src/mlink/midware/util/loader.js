@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/27.
- */
 const fs = require('fs');
 const path = require('path');
 const Router = require('../src/router');

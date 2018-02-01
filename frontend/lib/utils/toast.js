@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/4/12.
- */
 function toast(text, delayed, theme) {
     let noticeCtn = document.createElement('div')
     noticeCtn.className = "widget-notice " + (theme || '')
