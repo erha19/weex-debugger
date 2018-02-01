@@ -1,6 +1,3 @@
-/**
- * Created by exolution on 17/2/24.
- */
 const Channel = require('./channel');
 const Handler = require('./handler');
 const Emitter = require('./emitter');
@@ -8,6 +5,7 @@ const Message = require('./message');
 const {
   logger
 } = require('../../../util/logger');
+
 const _routerInstances = {};
 class Router extends Emitter {
   constructor (id) {
@@ -104,7 +102,7 @@ class Router extends Emitter {
             return others;
           }
           else {
-            logger.wran(`There should be a connection that request to a close device, invalid channelId: ${channelId}`);
+            logger.warn(`There should be a connection that request to a close device, invalid channelId: ${channelId}`);
           }
         }
         else {
