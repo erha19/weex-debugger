@@ -28,6 +28,7 @@ program
 .option('-H --host [host]', 'set the host ip of debugger server')
 .option('-p, --port [port]', 'set debugger server port', '8088')
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
+.option('-e,--ext [ext]', 'set enabled extname for compiler default is vue')
 .option('--min', 'minimize the jsbundle')
 .option('--telemetry', 'upload usage data to help us improve the toolkit')
 .option('--verbose', 'display all logs of debugger server')
@@ -93,6 +94,7 @@ env.getVersionOf('node', (v) => {
 config.ip = program.host || ip.address();
 config.manual = program.manual;
 config.min = program.min;
+config.ext = program.ext || 'vue';
 
 process.on('uncaughtException', (err) => {
   try {
