@@ -447,11 +447,11 @@ legend {
     line-height: 30px;
     font-size: 20px;
     cursor: pointer;
+    transition: all .5s ease;
 }
 
 .page-switch-btn:hover {
-    background: #ffffff;
-    color: #000000;
+    transform: translateX(10px);
 }
 
 #prophet-page {

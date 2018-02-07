@@ -2,7 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 ### 1.0.4
-#### 
+#### Changeed
+  - Add iconfont support for frontend.
+  - Optimized interface display of debugger page.
+#### Removed
+  - Remove useless source on `frontend/assets`.
 
 ### 1.0.3
 #### Fixed
