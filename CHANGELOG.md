@@ -1,11 +1,28 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.4
+#### Changeed
+  - Add iconfont support for frontend.
+  - Optimized interface display of debugger page.
+#### Removed
+  - Remove useless source on `frontend/assets`.
+
+### 1.0.3
+#### Fixed
+  - Fix less/sass etc loader compile error. [commit/346f7c](https://github.com/weexteam/weex-builder/commit/346f7c37b0032f17b023d80c9e15306764484d23)
+#### Changed
+  - Set default compile mode to vue|we. [commit/50f8bf](https://github.com/weexteam/weex-builder/commit/50f8bf13a6c914dd89b9728ef470a985b640e81a)
+
+### 1.0.2
+#### Fixed
+  - Fix issue [weex-toolkit/issues/277](https://github.com/weexteam/weex-toolkit/issues/277)
 
 ### 1.0.1
-#### Changed
-  - Fix issues [weex-toolkit/issues/265](https://github.com/weexteam/weex-toolkit/issues/265).
+#### Fixed
+  - Fix issue [weex-toolkit/issues/265](https://github.com/weexteam/weex-toolkit/issues/265).
   - Fix wrong release version on the page.
+#### Added
   - Support multi-terminal debugging mode, you can open multiple debugger services in the command line.
 
 ### 1.0.0

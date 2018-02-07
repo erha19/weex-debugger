@@ -149,7 +149,7 @@ websocket.onmessage = function (event) {
             if(bundles&&bundles.length>0) {
                 bundles.forEach(function (url, i) {
                     var q = document.createElement('div')
-                    url += `?_wx_tpl=${url}&wh_weex=true`
+                    url += `?_wx_tpl=${url}`
                     q.innerHTML = '<p>' + new URL(url).pathname.split('/').slice(-1)[0] + '</p>'
                     q.className = 'bundle-qr'
                     bundleQrcodeCtn.appendChild(q)
@@ -169,14 +169,6 @@ websocket.onmessage = function (event) {
                 })
                 var qrcodeBtn=$('#qrcode_btn')
                 var bundleQrcode=$('.bundle-qrcode')
-                new QRCode(qrcodeBtn, {
-                    text: '请点击',
-                    width: 52,
-                    height: 52,
-                    colorDark: "#000000",
-                    colorLight: "#E0E0E0",
-                    correctLevel: QRCode.CorrectLevel.L
-                });
                 qrcodeBtn.style.visibility='visible'
                 qrcodeBtn.onclick=function(){
                     bundleQrcode.style.display='block'
@@ -198,8 +190,9 @@ websocket.onmessage = function (event) {
         $('#inspector').contentWindow.location.reload()
     }
     else if (message.method === 'WxDebug.deviceDisconnect') {
+        console.log('bacl', message)
         timeout = setTimeout(function () {
-            history.back()
+            // history.back()
         }, 8000)
     }
     else if(message.method==='WxDebug.bundleRendered'){
@@ -231,6 +224,11 @@ document.onkeydown = function (evt) {
         evt.preventDefault();
         return false
     }
+    else if (evt.key == 'n' && evt.ctrlKey) {
+        evt.preventDefault();
+        window.open('/#new', '_blank')
+        return false
+    }
 }
 function init() {
     $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`
@@ -240,26 +238,35 @@ function init() {
             websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
         }
         shouldReloadApp=false
-        // $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
-        //     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
-        //         // evt.preventDefault()
-        //         // evt.stopPropagation()
-        //         // websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
-        //         // return false
-        //     }
-        // },true)
+        $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
+            if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
+                evt.preventDefault()
+                evt.stopPropagation()
+                websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
+                return false
+            }
+        },true)
     }
 }
+
+function hasClassName(selector, classname) {
+    return $(selector).className.indexOf(classname) > -1;
+}
+function replaceClassName(selector, from, to) {
+    var $selector = $(selector);
+    $selector.className = $selector.className.replace(from, to)
+}
+
 $help.onclick=function(){
-    if($help.innerHTML==='?') {
-        $help.innerHTML='x'
+    if(hasClassName('.help span', 'icon-bangzhu')) {
+        replaceClassName('.help span', 'icon-bangzhu', 'icon-close')
         $tipsMask.style.display='block'
         setTimeout(function(){
             $tipsMask.className+=' widget-anchor-show'
         },100)
     }
     else{
-        $help.innerHTML='?'
+        replaceClassName('.help span', 'icon-close', 'icon-bangzhu')
         $tipsMask.className=$tipsMask.className.replace(/ widget-anchor-show/g,'')
         setTimeout(function(){
             $tipsMask.style.display='none'

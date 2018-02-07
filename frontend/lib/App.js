@@ -2,6 +2,11 @@ var maxReconnectCount = 10
 var websocket
 var channelId
 var connectUrl
+
+var $ = function (selector) {
+    return document.querySelector(selector)
+}
+
 function send(message) {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify(message))
@@ -56,7 +61,7 @@ function connect() {
         sessionStorage.removeItem('channelId')
         sessionStorage.removeItem('connectUrl')
         document.getElementById('qrcode').innerHTML = ''
-        document.querySelector('.qrcode-wrap').className += '  loading-state'
+        $('.qrcode-wrap').className += '  loading-state'
         if (maxReconnectCount-- > 0) {
             setTimeout(connect, 3000)
         }
@@ -76,15 +81,13 @@ function createQRCode(channelId, connectUrl) {
 
 
 }
-document.querySelector('.new').onclick = function () {
-    window.open(location.href.replace(/#.*$|$/, '#new'), '_blank')
-}
+
 var loadingSimulator=false
-document.querySelector('#qrcode').onclick = function () {
+$('#qrcode').onclick = function () {
     if (channelId&&!loadingSimulator) {
         if(navigator.platform=='MacIntel') {
             loadingSimulator=true
-            document.querySelector('.qrcode-wrap').className += '  loading-state'
+            $('.qrcode-wrap').className += '  loading-state'
             send({method: 'WxDebug.simrun', params: channelId})
         }
         else{
@@ -93,31 +96,38 @@ document.querySelector('#qrcode').onclick = function () {
 
     }
 }
+function hasClassName(selector, classname) {
+    return $(selector).className.indexOf(classname) > -1;
+}
+function replaceClassName(selector, from, to) {
+    var $selector = $(selector);
+    $selector.className = $selector.className.replace(from, to)
+}
 
-document.querySelector('.help').onclick = function () {
-    if (document.querySelector('.help').innerHTML === '?') {
-        document.querySelector('.help').innerHTML = 'x'
-        document.querySelector('.mask').style.animation = 'expand 0.6s ease 1 forwards'
-        document.querySelector('.description b:nth-child(1)').style.animation = 'blink 0.3s ease 1.1s 2'
+$('.help').onclick = function () {
+    if (hasClassName('.help span', 'icon-bangzhu')) {
+        replaceClassName('.help span', 'icon-bangzhu', 'icon-close')
+        $('.mask').style.animation = 'expand 0.6s ease 1 forwards'
+        $('.description b:nth-child(1)').style.animation = 'blink 0.3s ease 1.1s 2'
         // Size is diffrence between the same fontsize chinese and Engilsh
         if (navigator.language.split('-')[0] === 'zh') {
-            document.querySelector('.description b:nth-child(2)').style.animation = 'blink-and-translate-zh 1s ease 1.1s 1 forwards'
-            document.querySelector('.scan-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
-            document.querySelector('.click-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
+            $('.description b:nth-child(2)').style.animation = 'blink-and-translate-zh 1s ease 1.1s 1 forwards'
+            $('.scan-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
+            $('.click-tips').style.animation = 'show 0.3s linear 2.1s 1 forwards'
         }
         else {
-            document.querySelector('.description b:nth-child(2)').style.animation = 'blink-and-translate-en 1s ease 1.1s 1 forwards'
-            document.querySelector('.scan-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
-            document.querySelector('.click-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
+            $('.description b:nth-child(2)').style.animation = 'blink-and-translate-en 1s ease 1.1s 1 forwards'
+            $('.scan-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
+            $('.click-tips').style.animation = 'show-en 0.3s linear 2.1s 1 forwards'
         }
        }
     else {
-        document.querySelector('.help').innerHTML = '?'
-        document.querySelector('.mask').style.animation = 'collapse 0.6s ease 1'
-        document.querySelector('.description b:nth-child(1)').style.animation = ''
-        document.querySelector('.description b:nth-child(2)').style.animation = ''
-        document.querySelector('.scan-tips').style.animation = ''
-        document.querySelector('.click-tips').style.animation = ''
+        replaceClassName('.help span', 'icon-close', 'icon-bangzhu')
+        $('.mask').style.animation = 'collapse 0.6s ease 1'
+        $('.description b:nth-child(1)').style.animation = ''
+        $('.description b:nth-child(2)').style.animation = ''
+        $('.scan-tips').style.animation = ''
+        $('.click-tips').style.animation = ''
 
     }
 }
@@ -127,7 +137,7 @@ connect()
 
 if (!notFirst) {
     setTimeout(function () {
-        document.querySelector('.help').onclick()
+        $('.help').onclick()
     }, 1000)
 
 
@@ -136,6 +146,6 @@ if (!notFirst) {
 function initQrcode() {
     createQRCode(channelId, connectUrl)
     setTimeout(function(){
-        document.querySelector('.qrcode-wrap').className='qrcode-wrap'
+        $('.qrcode-wrap').className='qrcode-wrap'
     },800)
 }

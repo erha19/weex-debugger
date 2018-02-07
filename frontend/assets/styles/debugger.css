@@ -33,7 +33,13 @@ body {
     height: 52px;
     vertical-align: middle;
 }
-@media screen and (max-width: 1200px) {
+@media screen and (max-width: 1400px) {
+    .info-ctn > .app-info-panel {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 950px) {
     .info-ctn{
         display: none;
     }
@@ -351,11 +357,36 @@ legend {
     max-height: 30px;
 }
 #qrcode_btn{
+    position: relative;
     visibility:hidden;
     width:52px;
     height:52px;
     display: inline-block;
-    overflow: hidden;
+    cursor: pointer;
+}
+#qrcode_btn span {
+    color: #fff;
+    text-align: center;
+    line-height: 52px;
+    font-size:52px;
+}
+
+#qrcode_btn .bundle_tip{
+    opacity: 0;
+    padding: 5px 2px;
+    position: absolute;
+    color: #fff;
+    top: -20px;
+    font-size: 14px;
+    line-height: 20px;
+    width: 110px;
+    text-align: center;
+    left: calc((110px - 100%)/-2);
+    transition: all ease .2s;
+}
+#qrcode_btn:hover > .bundle_tip{
+    opacity: 1;
+    top: -35px;
 }
 .mask.bundle-qrcode{
     z-index: 998;
@@ -386,6 +417,12 @@ legend {
     background: #fff;
     color:#000;
 }
+.help span{
+    display: block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+}
 .line.short>span:nth-child(1){
     position: relative;
     z-index: 101;
@@ -402,20 +439,19 @@ legend {
     top:50%;
     right: 15px;
     margin-top: -15px;
-    border: 1px solid rgba(255, 255, 255, 0.75);
     padding: 0 15px;
     border-radius: 6px;
-    height: 31px;
+    height: 30px;
     color: rgba(255, 255, 255, 0.75);
     text-align: center;
     line-height: 30px;
     font-size: 20px;
     cursor: pointer;
+    transition: all .5s ease;
 }
 
 .page-switch-btn:hover {
-    background: #ffffff;
-    color: #000000;
+    transform: translateX(10px);
 }
 
 #prophet-page {
@@ -464,10 +500,19 @@ legend {
     position: fixed;
     right: 20px;
     bottom: 20px;
+    background-color: rgb(187, 35, 35);
     z-index: 999;
     opacity: .2;
     transition: all .2s ease;
-    background: url('./bug.png') center center no-repeat #000;
+    text-decoration: none;
+}
+
+.bug_report i {
+    display: block;
+    font-size: 28px;
+    color: #fff;
+    text-align: center;
+    line-height: 50px;
 }
 
 .bug_report:hover{

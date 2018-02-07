@@ -26,7 +26,7 @@ body:before{
 }
 
 .qrcode-ctn {
-    background: url(qrcode_bg.png);
+    background: url(../images/qrcode_bg.png);
     width: 216px;
     height: 216px;
     display: inline-block;
@@ -182,7 +182,7 @@ body:before{
     height: 216px;
     top: 30px;
     left: 0;
-    background: url(qrcode_bg.png);
+    background: url(../images/qrcode_bg.png);
     backface-visibility: hidden;
     transition: 1s;
     transform: rotateY(180deg);
@@ -238,6 +238,12 @@ body:before{
 .help:hover{
     background: #fff;
     color:#000;
+}
+.help span{
+    display: block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
 }
 .scan-tips{
     position: absolute;

@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>weex-debugger-</title>
-    <link rel="stylesheet" href="assets/debugger.css">
-    <link rel="stylesheet" href="assets/toast.css">
-    <link rel="stylesheet" href="assets/anchor-tips.css">
-    <link rel="stylesheet" href="assets/timeline.css">
+    <link rel="stylesheet" href="assets/styles/debugger.css">
+    <link rel="stylesheet" href="assets/styles/toast.css">
+    <link rel="stylesheet" href="assets/styles/anchor-tips.css">
+    <link rel="stylesheet" href="assets/styles/timeline.css">
+    <link rel="stylesheet" href="assets/styles/iconfont.css">
     <script src="lib/utils/anchor_tips.js"></script>
     <script src="lib/utils/toast.js"></script>
     <script src="lib/i18n/locale.js"></script>
@@ -25,9 +26,9 @@
     </div>
 </div>
 <div class="header">
-    <a href="/" title="Back to QR code."><img class="logo" src="assets/logo.svg" alt=""></a>
+    <a href="/" title="Back to QR code."><img class="logo" src="assets/images/logo.svg" alt=""></a>
     <div class="info-ctn">
-        <div class="column">
+        <div class="column app-info-panel">
             <div class="line"><span>App Info</span><b id="app_info"></b></div>
             <div class="line"><span>SDK Version</span><b id="sdk_version"></b></div>
         </div>
@@ -77,9 +78,16 @@
                     </div>
                 </div>
                 <div class="column">
-                    <div id="qrcode_btn"></div>
+                    <div id="qrcode_btn">
+                        <span class="iconfont icon-qrcode-scan"></span>
+                        <div class="bundle_tip i18n">
+                            ${QRCODE_BUNDLE_TIP}
+                        </div>
+                    </div>
                 </div>
-                <div class="help">?</div>
+                <div class="help">
+                    <span class="iconfont icon-bangzhu"></span>
+                </div>
             </div>
             <div id="prophet-menu" class="i18n">
                 <div id="refresh-btn" class="menu-btn">${PROPHET_REFRESH}</div>
@@ -161,7 +169,9 @@
     </div>
 </div>
 <div class="widget-anchor-mask tips-mask"></div>
-<a class="bug_report" title="Bug Report" target="_blank" href="https://github.com/weexteam/weex-debugger/issues"></a>
+<a class="bug_report" title="Bug Report" target="_blank" href="https://github.com/weexteam/weex-debugger/issues">
+    <i class="iconfont icon-bug"></i>
+</a>
 
 <script src="lib/debug/debugger.js"></script>
 <script src="lib/prophet/preprocessTracingData.js"></script>
