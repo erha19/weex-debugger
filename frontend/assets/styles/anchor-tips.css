@@ -7,14 +7,14 @@
     transition:0.3s
 }
 .widget-anchor-left{
-    background-image: url(arrow2.png);
+    background-image: url(../images/arrow_right.png);
 
 }
 .widget-anchor-show .widget-anchor-left{
     transform: rotate(-89deg);
 }
 .widget-anchor-left-bottom{
-    background-image: url(arrow.png);
+    background-image: url(../images/arrow_left.png);
 
 }
 .widget-anchor-show .widget-anchor-left-bottom{
@@ -22,13 +22,13 @@
 }
 
 .widget-anchor-right{
-    background-image: url(arrow.png);
+    background-image: url(../images/arrow_left.png);
 }
 .widget-anchor-show .widget-anchor-right{
     transform: rotate(48deg);
 }
 .widget-anchor-right-bottom{
-    background-image: url(arrow2.png);
+    background-image: url(../images/arrow_right.png);
 
 }
 .widget-anchor-show .widget-anchor-right-bottom{

@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <link rel="stylesheet" href="assets/entry.css">
-    <link rel="stylesheet" href="assets/toast.css">
+    <link rel="stylesheet" href="assets/styles/entry.css">
+    <link rel="stylesheet" href="assets/styles/toast.css">
+    <link rel="stylesheet" href="assets/styles/iconfont.css">
     <script src="vendor/qrcode.min.js"></script>
     <script src="lib/utils/toast.js"></script>
     <script src="lib/i18n/locale.js"></script>
@@ -13,7 +14,7 @@
 <body>
 <div class="ctn">
     <div class="logo">
-        <img src="assets/logo.svg" alt="">
+        <img src="assets/images/logo.svg" alt="">
     </div>
     <div class="qrcode-wrap loading-state">
         <div class="qrcode-ctn">
@@ -31,7 +32,7 @@
         </div>
     </div>
     <div class="description i18n">
-        <b>${SCAN}</b> ${OR} <b>${CLICK}</b> ${TIPS}<span class="new" title="open a new instance">+</span>
+        <b>${SCAN}</b> ${OR} <b>${CLICK}</b> ${TIPS}
 
         <div class="scan-tips"> ${SCAN_TIPS}</div>
     </div>
@@ -41,7 +42,9 @@
 
 </div>
 <div class="mask"></div>
-<div class="help">?</div>
+<div class="help">
+    <span class="iconfont icon-bangzhu"></span>
+</div>
 </body>
 <script src="lib/app.js"></script>
 </html>
