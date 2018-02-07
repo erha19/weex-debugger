@@ -3,7 +3,7 @@
   "description": "weex developer tool for debugging weex app with chrome devtool",
   "version": "1.0.4",
   "author": "erha19 <faterrole@gmail.com>",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "main": "index.js",
   "keywords": [
     "weex",
