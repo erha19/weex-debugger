@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.5
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
+  - Upgrade `puppeteer` to `v1.0.0` version.
+
 ### 1.0.4
 #### Changeed
   - Add iconfont support for frontend.
