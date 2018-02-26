@@ -1,8 +1,13 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.7
+  - Fix bug that playground app can't open remote url while using JSdebug, remove '?' while it is the last char.
+  - Formate time for logger.
+  - Add 'content-type' for the http respense.
+
 ### 1.0.6
-  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842).
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842)
   - Rename `frontend/lib/App.js` to `app.js`.
 
 ### 1.0.5

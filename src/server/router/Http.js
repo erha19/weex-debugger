@@ -51,8 +51,8 @@ httpRouter.get('/source/*', function * (next) {
     }
     else {
       this.response.status = 200;
+      this.response['content-type'] = 'text/javascript';
       this.set('Access-Control-Allow-Origin', '*');
-      this.type = 'text/javascript';
       this.response.body = content;
     }
   }
@@ -62,7 +62,7 @@ httpRouter.get('/source/*', function * (next) {
     const file = MemoryFile.get(path + query);
     if (file) {
       this.response.status = 200;
-      this.type = 'text/javascript';
+      this.response['content-type'] = 'text/javascript';
       if (file.url && config.proxy) {
         logger.verbose(`Fetch jsbundle ${file.url}`);
         const content = yield getRemote(file.url).catch(function (e) {

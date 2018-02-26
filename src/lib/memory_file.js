@@ -24,6 +24,9 @@ class MemoryFile {
       }
     }
     else this.name = fileName;
+    if (this.name.charAt(this.name.length - 1) === '?') {
+      this.name = this.name.substring(0, this.name.length - 1)
+    }
     const md5 = Crypto.createHash('md5');
     md5.update(content);
     const md5Str = md5.digest('hex');
