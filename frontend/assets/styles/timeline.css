@@ -5,7 +5,6 @@
 
 .timeline-component {
   position: absolute;
-  border-bottom: 1px solid #bbbbbb;
   top: 0;
   left: 0;
   right: 0;
@@ -76,13 +75,27 @@
   text-align: center;
   margin: 0;
 }
+.data-analyse-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
 
 .data-analyse-panel {
   position: absolute;
+  border-top: 1px solid #bbbbbb;
+  background: #fff;
+  min-height: 250px;
+  max-height: 350px;
+  width: 100%;
+  display:flex;
+  flex-direction: column;
+  z-index: 999;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 250px;
+  transform:none !important;
 }
 
 .data-analyse-tabnav {
@@ -99,17 +112,33 @@
   line-height: 25px;
   font-size: 14px;
   padding: 0 5px;
+  cursor: pointer;
   border: 1px solid transparent;
 }
 
 .data-analyse-tab-item:hover {
   background: #eaeaea;
+  border-bottom: 1px solid #bbbbbb;
 }
+
+
 
 .data-analyse-tab-item-active {
   background: white;
   border-color: #bbbbbb;
   border-bottom-color: transparent;
+}
+
+.data-analyse-tab-item-active:hover {
+  background: white;
+  border-bottom: 1px solid transparent;
+}
+
+.data-analyse-summary {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 100%;
 }
 
 .data-analyse-summary p {

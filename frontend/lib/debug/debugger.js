@@ -77,9 +77,6 @@ websocket.onopen = function () {
             toProphetPage();
         }
     }, false);
-    timeout = setTimeout(function () {
-        history.back()
-    }, 5000)
 }
 websocket.onclose = function () {
     history.back()
@@ -190,9 +187,8 @@ websocket.onmessage = function (event) {
         $('#inspector').contentWindow.location.reload()
     }
     else if (message.method === 'WxDebug.deviceDisconnect') {
-        console.log('bacl', message)
         timeout = setTimeout(function () {
-            // history.back()
+            history.back()
         }, 8000)
     }
     else if(message.method==='WxDebug.bundleRendered'){
@@ -219,6 +215,7 @@ websocket.onmessage = function (event) {
         }
     }
 }
+
 document.onkeydown = function (evt) {
     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
         evt.preventDefault();
@@ -230,6 +227,7 @@ document.onkeydown = function (evt) {
         return false
     }
 }
+
 function init() {
     $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=1`
     var shouldReloadApp=true
