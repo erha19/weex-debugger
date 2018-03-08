@@ -58,9 +58,12 @@ debuggerRouter.registerHandler(function (message) {
       'method': 'Runtime.consoleAPICalled',
       'params': {
         'type': payload.params.message.level,
-        'args': payload.params.message.parameters,
+        'args': [{
+          type: 'string',
+          value: payload.params.message.text
+        }] || [],
         'executionContextId': 1
-          // "stackTrace": payload.params.message.stackTrace
+        // "stackTrace": payload.params.message.stackTrace
       }
     };
   }
@@ -90,5 +93,13 @@ debuggerRouter.registerHandler(function (message) {
   else if (payload.result && payload.id === undefined) {
     message.discard();
   }
-  message.to('proxy.inspector');
+  // remove useless but large message
+  if (payload.method && payload.method === 'Page.screencastFrameAck') {
+    message.discard();
+  }
+  else {
+    message.to('proxy.inspector');
+  }
+  // message.to('proxy.inspector');
+  
 }).at('proxy.native').when('!payload.method||payload.method.split(".")[0]!=="WxDebug"');
