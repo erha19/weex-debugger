@@ -2,17 +2,24 @@
 All notable changes to this project will be documented in this file.
 
 ### 1.0.7
-  - Fix bug that playground app can't open remote url while using JSdebug, remove '?' while it is the last char.
+#### Changeed
   - Formate time for logger.
   - Add 'content-type' for the http respense.
+#### Fixed
+  - Fix bug that playground app can't open remote url while using JSdebug, remove '?' while it is the last char.
+  - Add native log from `weex-devtool` into console.
 
 ### 1.0.6
-  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842)
+#### Changeed
   - Rename `frontend/lib/App.js` to `app.js`.
+#### Fixed
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842)
 
 ### 1.0.5
-  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
+#### Changeed
   - Upgrade `puppeteer` to `v1.0.0` version.
+#### Fixed
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
 
 ### 1.0.4
 #### Changeed
