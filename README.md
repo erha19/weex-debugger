@@ -43,13 +43,15 @@ $ weex debug [options] [vue_file|bundles_dir]
 ```
 $ weex debug
 ```
-his command will start debug server and launch a chrome opening `DeviceList` page.
+> **NOTE：** Since `weex-toolkit@1.1.0`, `weex debug` command have been replace with `weex-debugger`, you can start `weex-debugger` just using `weex debug` command, if you want to use `weex-debugger` below `weex-toolkit@1.1.0`, you can binding command using `weex xbind [command] weex-debugger` to binding command into your `weex-toolkit`.
+
+This command will start debug server and launch a chrome opening `DeviceList` page.
 this page will display a QR code, you can use [Playground](https://weex.apache.org/cn/playground.html) scan it for starting debug or integrate [Weex devtools](#Integrate devtool) into your application.
 
 ##### debug with `.vue` file
 
 ```
-$ weex debugx your_weex.vue
+$ weex debug your_weex.vue
 ```
 
 This command will compile `your_weex.vue` to `your_weex.js`  and start the debug server as upon command.
@@ -59,7 +61,7 @@ This command will compile `your_weex.vue` to `your_weex.js`  and start the debug
 ##### start debugger with a directory of vue files
 
 ```
-$weex debugx your/vue/path  -e index.vue
+$weex debug your/vue/path  -e index.vue
 ```
 
 This command will compile each of the files in `your/vue/path` and deploy them on the bundled server with the new file mapped to the path `http://localhost:port/weex/`.

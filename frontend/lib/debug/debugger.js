@@ -1,15 +1,7 @@
-var $ = function (selector) {
-    return document.querySelector(selector)
-}
 
 var channelId = new URLSearchParams(location.search).get('channelId');
-
-document.title = document.title + channelId
-
-
 var screencastParams = null;
 var isProphetPageShowing = false;
-
 var $help=$('.help')
 var $tipsMask=$('.tips-mask')
 var $switchBtn=$('.page-switch-btn')
@@ -22,6 +14,8 @@ var $remoteDebug = $('#remote_debug');
 var hash = window.location.hash || '#debugger';
 
 var timeout
+
+document.title = document.title + channelId
 
 websocket = new WebSocket('ws://' + location.host + '/debugProxy/debugger/' + channelId);
 
@@ -191,7 +185,7 @@ websocket.onmessage = function (event) {
             history.back()
         }, 8000)
     }
-    else if(message.method==='WxDebug.bundleRendered'){
+    else if (message.method==='WxDebug.bundleRendered'){
         var found=false
         if(!message.params)found=true
         else {
@@ -204,15 +198,22 @@ websocket.onmessage = function (event) {
         if(found){
             $('.bundle-qrcode').style.display='none'
         }
-    } else if (message.method === 'WxDebug.sendTracingData') {
+    }
+    else if (message.method === 'WxDebug.sendTracingData') {
         refreshProphetPage(message.params.data);
-    } else if (message.method === 'WxDebug.sendSummaryInfo') {
+    }
+    else if (message.method === 'WxDebug.sendSummaryInfo') {
         setSummaryInfo(message.params.summaryInfo);
-    } else if (message.method === 'Page.startScreencast') {
+    }
+    else if (message.method === 'Page.startScreencast') {
         screencastParams = message.params;
         if (isProphetPageShowing) {
             websocket.send(JSON.stringify({method: 'Page.stopScreencast'}));
         }
+    }
+    else if (message.method === 'WxDebug.cancelPerformanceTest') {
+      // function from performance test
+      generatePerformanceReport (message.params);
     }
 }
 
@@ -247,15 +248,7 @@ function init() {
     }
 }
 
-function hasClassName(selector, classname) {
-    return $(selector).className.indexOf(classname) > -1;
-}
-function replaceClassName(selector, from, to) {
-    var $selector = $(selector);
-    $selector.className = $selector.className.replace(from, to)
-}
-
-$help.onclick=function(){
+$help.onclick = function(){
     if(hasClassName('.help span', 'icon-bangzhu')) {
         replaceClassName('.help span', 'icon-bangzhu', 'icon-close')
         $tipsMask.style.display='block'
@@ -281,11 +274,6 @@ var shouldShowStepTips = localStorage.getItem('shouldShowStepTips')
 if (shouldShowStepTips!=2) {
     $help.onclick()
     localStorage.setItem('shouldShowStepTips', '2')
-}
-
-
-function generatei18nTips(tip) {
-    return gl_localeText[navigator.language.split('-')[0] || 'en'][tip];
 }
 
 new AnchorTips(document.querySelectorAll('.line.short>span:nth-child(1)')[0],AnchorTips.LEFT,generatei18nTips('JSDEBUG_TIP'),$('.tips-mask'))

@@ -1,201 +1,44 @@
 #prophet-page {
-  user-select: none;
-  cursor: default;
-}
+  cursor: default; }
+  #prophet-page .timeline-component {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 250px; }
+  #prophet-page #timeline-panel {
+    height: 100%; }
+  #prophet-page #timeline-panel:active {
+    cursor: -webkit-grabbing; }
+  #prophet-page #timeline-detail {
+    position: absolute;
+    padding: 4px 12px;
+    background: white;
+    -webkit-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 105; }
+  #prophet-page #timeline-detail p {
+    font-size: 13px;
+    line-height: 20px;
+    margin: 0;
+    white-space: nowrap; }
+  #prophet-page #timeline-detail span {
+    color: #303F9F;
+    font-weight: bold; }
+  #prophet-page #timeline-scrollbar {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    height: 0;
+    background: white;
+    z-index: 200;
+    overflow-y: scroll;
+    overflow-x: hidden; }
+  #prophet-page #timeline-scrollbar::-webkit-scrollbar {
+    width: 8px; }
+  #prophet-page #timeline-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(143, 143, 143, 0.6);
+    border-radius: 50px; }
 
-.timeline-component {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 250px;
-}
-
-#timeline-panel {
-  height: 100%;
-}
-
-#timeline-panel:active {
-  cursor: -webkit-grabbing;
-}
-
-#timeline-detail {
-  position: absolute;
-  padding: 4px 12px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
-  display: none;
-  z-index: 105;
-}
-
-#timeline-detail p {
-  font-size: 13px;
-  line-height: 20px;
-  margin: 0;
-  white-space: nowrap;
-}
-
-#timeline-detail span {
-  color: #303F9F;
-  font-weight: bold;
-}
-
-#timeline-scrollbar {
-  position: absolute;
-  right: 1px;
-  top: 0;
-  height: 0;
-  background: white;
-  z-index: 200;
-  overflow-y: scroll;
-  overflow-x: hidden;
-}
-
-#timeline-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-#timeline-scrollbar::-webkit-scrollbar-thumb {
-    background-color: hsla(0, 0%, 56%, 0.6);
-    border-radius: 50px;
-}
-
-#timeline-tip {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  padding: 10px;
-  line-height: 28px;
-  color: #787878;
-}
-
-#timeline-tip p {
-  text-align: center;
-  margin: 0;
-}
-.data-analyse-content {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-
-.data-analyse-panel {
-  position: absolute;
-  border-top: 1px solid #bbbbbb;
-  background: #fff;
-  min-height: 250px;
-  max-height: 350px;
-  width: 100%;
-  display:flex;
-  flex-direction: column;
-  z-index: 999;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  transform:none !important;
-}
-
-.data-analyse-tabnav {
-  height: 30px;
-  background: #f3f3f3;
-  border-bottom: 1px solid #bbbbbb;
-  padding-left: 3px;
-}
-
-.data-analyse-tab-item {
-  display: inline-block;
-  height: 26px;
-  margin: 3px 0px 0 0px;
-  line-height: 25px;
-  font-size: 14px;
-  padding: 0 5px;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.data-analyse-tab-item:hover {
-  background: #eaeaea;
-  border-bottom: 1px solid #bbbbbb;
-}
-
-
-
-.data-analyse-tab-item-active {
-  background: white;
-  border-color: #bbbbbb;
-  border-bottom-color: transparent;
-}
-
-.data-analyse-tab-item-active:hover {
-  background: white;
-  border-bottom: 1px solid transparent;
-}
-
-.data-analyse-summary {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  height: 100%;
-}
-
-.data-analyse-summary p {
-  font-size: 14px;
-}
-
-.summary-col {
-  float: left;
-  width: 33%;
-}
-
-.data-analyse-summary .info-name {
-  display: inline-block;
-}
-
-.data-analyse-summary .info-content {
-  display: inline-block;
-  margin-left: 30px;
-  text-align: center;
-  color: #303F9F;
-}
-
-.data-analyse-summary #summary-warning-info .info-content {
-  color: #a51717;
-}
-
-.data-analyse-help {
-  display: none;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.data-analyse-help table {
-  border: 1px solid #e0e0e0;
-  border-collapse: collapse;
-}
-
-.data-analyse-help th, .data-analyse-help td{
-  padding: 8px 20px;
-  border: 1px solid #e0e0e0;
-}
-
-.data-analyse-help .thread-block {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-right: 10px;
-}
-
-.data-analyse-help .js-block {
-  background: #FFE082;
-}
-
-.data-analyse-help .dom-block {
-  background: #A5D6A7;
-}
-
-.data-analyse-help .ui-block {
-  background: #90CAF9;
-}
+/*# sourceMappingURL=timeline.css.map */

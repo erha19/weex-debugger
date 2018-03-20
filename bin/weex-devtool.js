@@ -43,6 +43,9 @@ program['arguments']('[target]').action(function (target) {
 
 program.parse(process.argv);
 
+// overwrite the cmdname for weex-toolkit
+program._name = `weex debug`;
+
 // Fix tj's commander bug overwrite --help
 if (program.help === undefined) {
   program.outputHelp();
