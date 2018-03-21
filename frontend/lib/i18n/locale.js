@@ -3,7 +3,7 @@ var gl_localeText={
         "SCAN":"扫描",
         "CLICK":"点击",
         "SCAN_TIPS":"使用WeexPlayground或者您自己的WeexApp扫描",
-        "CLICK_TIPS":"点击二维码启动模拟器进行调试",
+        "CLICK_TIPS":"点击二维码启动模拟器进行调试(需安装Xcode本地环境)",
         "OR":"或",
         "TIPS":"这个二维码开始调试",
         "VERSION":"weex devtool 1.0.7",
@@ -35,13 +35,14 @@ var gl_localeText={
         "TOAST_JS_RUNTIME_INIT_FAIL":"Js Debug执行环境初始化失败，参见控制台输出的帮助信息进行修复!",
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"请不要打开chrome自带的的inspector",
         "TOAST_CAN_NOT_FIND_RUNTIME":"无法初始化JSDebug执行环境，请重启程序",
-        "ONLY_SUPPORT_IOS":"模拟器启动需安装Xcode环境且不支持Windows平台使用"
+        "ONLY_SUPPORT_IOS":"模拟器启动需安装Xcode环境且不支持Windows平台使用",
+        "PLEASE_INSTALL_XCODE":"模拟器调试请在本地安装Xcode环境"
     },
     "en":{
         "SCAN":"Scan",
         "CLICK":"Click",
-        "SCAN_TIPS":"qrcode with WeexPlayground or your own weex app",
-        "CLICK_TIPS":"qrcode to start a simulator for debugging",
+        "SCAN_TIPS":"scan qrcode with WeexPlayground or your own weex app",
+        "CLICK_TIPS":"start simulator debugger (Xcode environment)",
         "OR":"or",
         "TIPS":"this qrcode to start debugger",
         "VERSION":"weex devtool 1.0.7",
@@ -73,6 +74,7 @@ var gl_localeText={
         "TOAST_JS_RUNTIME_INIT_FAIL":"Js Debug execution environment initialization failed, see the console output help to repair!",
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"Please do not open the inspector that comes with chrome",
         "TOAST_CAN_NOT_FIND_RUNTIME":"Please restart，can not find the runtime",
-        "ONLY_SUPPORT_IOS":"Just support ios simulator now!"
+        "ONLY_SUPPORT_IOS":"Just support ios simulator now!",
+        "PLEASE_INSTALL_XCODE":"Please setup Xcode on your platform."
     }
 }

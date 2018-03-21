@@ -23,7 +23,7 @@ debuggerRouter.registerHandler((message) => {
       debuggerRouter.pushMessage('page.entry', {
         method: 'WxDebug.prompt',
         params: {
-          messageText: 'start simulator error',
+          messageText: 'PLEASE_INSTALL_XCODE',
           channelId: message.payload.params
         }
       });

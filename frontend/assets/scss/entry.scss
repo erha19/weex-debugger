@@ -66,7 +66,7 @@ body{
 .version {
     color: #ccc;
     font-weight: lighter;
-    margin-top: 8px;
+    margin-top: 20px;
     position: relative;
 }
 
@@ -265,23 +265,26 @@ body{
     width: 0;
     z-index: 2222;
     color: #fff;
-    left: 57px;
-    height: 33px;
+    left: 55px;
+    line-height: 24px;
+    height: 24px;
     overflow: hidden;
     text-align: left;
     top: 0
 }
 
 .click-tips {
+    word-break: keep-all;
     position: absolute;
     background: #000;
     width: 0;
     z-index: 2222;
     color: #fff;
-    left: 57px;
-    height: 33px;
+    left: 55px;
+    height: 24px;
+    line-height: 24px;
     overflow: hidden;
-    top: -10px;
+    top: -12px;
     font-size: 24px;
     text-align: left;
 }
@@ -300,7 +303,7 @@ body{
 
 @keyframes show-en {
     100% {
-        width: 600px;
+        width: 800px;
         transform: translate(9px, 0);
     }
 }

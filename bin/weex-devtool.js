@@ -127,6 +127,9 @@ process.on('unhandledRejection', (reason, p) => {logger
   }, config.weexVersion);
   hook.record('/weex_tool.weex_debugger.app_crash', params);
   logger.error(reason);
+  if (/simctl error/.test(reason)) {
+    logger.warn(`The simulator debug need Xcode environment, you can run \`simctl --version\` to check if you have the correct environment.`);
+  }
   // application specific logging, throwing an error, or other logic here
 });
 

@@ -4,7 +4,7 @@ const DeviceManager = require('../managers/device_manager');
 const bundleWrapper = require('../../util/bundle_wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
-const util = require('../../util');
+const crypto = require('../../util/crypto');
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
   if (payload.method === 'WxDebug.initJSRuntime') {
@@ -17,7 +17,7 @@ debuggerRouter.registerHandler(function (message) {
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstance') {
     let code = payload.params.args[1];
     if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
-      code = util.obfuscate(code);
+      code = crypto.obfuscate(code);
     }
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
@@ -25,10 +25,10 @@ debuggerRouter.registerHandler(function (message) {
         bundleUrl: payload.params.args[2].bundleUrl
       }
     });
-    payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (util.md5(code) + '.js'), bundleWrapper(code)).getUrl();
+    payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
   }
   else if (payload.method === 'WxDebug.importScript') {
-    payload.params.sourceUrl = new MemoryFile('imported_' + util.md5(payload.params.source) + '.js', payload.params.source).getUrl();
+    payload.params.sourceUrl = new MemoryFile('imported_' + crypto.md5(payload.params.source) + '.js', payload.params.source).getUrl();
   }
   else if (payload.method === 'syncReturn') {
     message.payload = {
