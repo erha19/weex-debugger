@@ -1,6 +1,6 @@
 #prophet-page {
   .data-analyse-tool {
-    display: block;
+    display: none;
     margin: 0 auto;
     font-size: 14px;
     width: 100%;
@@ -421,6 +421,9 @@
       .basic-details {
         padding-left: 20px;
         summary{
+          &:before {
+            top: 0;
+          }
           margin: 0;
         }
         ul {
@@ -530,15 +533,24 @@
     }
   }
   .data-analyse-summary {
-    display: none;
+    display: block;
     align-items: center;
     flex: 1;
-    height: 100%;
+    .summary-content{
+      display: flex;
+      align-items: center;
+      justify-items: center;
+      height: 100%;
+    }
     p {
       font-size: 14px;
     }
     .info-name {
       display: inline-block;
+      p {
+        text-align: left;
+        width: 150px;
+      }
     }
     .info-content {
       display: inline-block;
@@ -554,8 +566,9 @@
   }
   
   .summary-col {
-    float: left;
-    width: 33%;
+    flex: 1;
+    max-width: 33%;
+    text-align: center;
   }
   
   .state-ok {
@@ -615,7 +628,4 @@
       background: #90CAF9;
     }
   }
-}
-.hidden{
-  display: none;
 }

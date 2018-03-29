@@ -63,6 +63,8 @@
 // modal
 .modal{
   display: none;
+  align-items: center;
+  justify-content: center;
   background: rgba(0, 0, 0, .30);
   z-index: 999;
   position: fixed;
@@ -72,8 +74,6 @@
   left: 0;
   .modal-dialog {
     position: relative;
-    margin: 30px auto;
-    margin-top: 10%;
     width: 600px;
     border: 1px solid #ddd;
     background: #fff;
@@ -81,11 +81,13 @@
   }
   .modal-header{
     padding-left: 40px;
+    padding-right: 40px;
     padding-top: 35px;
     padding-bottom: 10px;
     color: #6d6969;
   }
   .modal-body {
+    padding:0 40px;
     li{
       list-style: none;
       margin: 20px 0;

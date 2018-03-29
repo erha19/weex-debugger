@@ -7,7 +7,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 85%;
+  height: calc(100% - 100px);
   background: white;
   visibility: hidden;
   z-index: 10;

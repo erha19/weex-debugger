@@ -46,6 +46,10 @@ debuggerRouter.registerHandler(function (message) {
     message.to('page.debugger');
     return;
   }
+  else if (payload.method === 'WxDebug.sendPerformanceData') {
+    message.to('page.debugger');
+    return;
+  }
   message.to('runtime.worker');
 }).at('proxy.native').when('payload.method&&payload.method.split(".")[0]==="WxDebug"');
 debuggerRouter.registerHandler(function (message) {

@@ -1,4 +1,4 @@
-importScripts('/lib/runtime/EventEmitter.js');
+importScripts('/lib/constructors/EventEmitter.js');
 self.$$frameworkFlag = {};
 var channelId;
 var shouldReturnResult = false;
@@ -19,10 +19,6 @@ Object.defineProperty(this, 'setTimeout', {
   },
   set: function () {}
 });
-
-function EventEmitter() {
-  this._handlers = {};
-}
 
 function createWeexBundleEntry(sourceUrl) {
   var code = '';
@@ -194,35 +190,35 @@ eventEmitter.on('WxDebug.importScript', function (data) {
     new Function('', data.params.source)();
   }
 })
-eventEmitter.on('WxDebug.callJsResult', function (data) {
-  var method = data.params.method;
-  if (method === 'createInstance') {
-    var url = data.params.sourceUrl;
-    postMessage({
-      method: 'WxRuntime.clearLog',
-    });
-    importScripts(url);
-    self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
-    instanceMap[data.params.args[0]] = true;
-  }
-  else if (method === 'destroyInstance') {
-    if (instanceMap[data.params.args[0]]) {
-      self.destroyInstance(data.params.args[0]);
-      delete instanceMap[data.params.args[0]];
-    }
-    else {
-      // self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
-    }
-  }
-  else if (self[data.params.method]) {
-    shouldReturnResult = true;
-    requestId = +data.id
-    self[data.params.method].apply(null, data.params.args);
-  }
-  else {
-    self.console.warn('execJSWithResult[' + data.params.method + '] error: jsframework has no such api');
-  }
-});
+// eventEmitter.on('WxDebug.callJsResult', function (data) {
+//   var method = data.params.method;
+//   if (method === 'createInstance') {
+//     var url = data.params.sourceUrl;
+//     postMessage({
+//       method: 'WxRuntime.clearLog',
+//     });
+//     importScripts(url);
+//     self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
+//     instanceMap[data.params.args[0]] = true;
+//   }
+//   else if (method === 'destroyInstance') {
+//     if (instanceMap[data.params.args[0]]) {
+//       self.destroyInstance(data.params.args[0]);
+//       delete instanceMap[data.params.args[0]];
+//     }
+//     else {
+//       // self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
+//     }
+//   }
+//   else if (self[data.params.method]) {
+//     shouldReturnResult = true;
+//     requestId = +data.id
+//     self[data.params.method].apply(null, data.params.args);
+//   }
+//   else {
+//     self.console.warn('execJSWithResult[' + data.params.method + '] error: jsframework has no such api');
+//   }
+// });
 
 eventEmitter.on('WxDebug.callJS', function (data) {
   var method = data.params.method;

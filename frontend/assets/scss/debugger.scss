@@ -1,6 +1,7 @@
 @import 'iconfont.scss';
 @import 'components.scss';
 @import 'common.scss';
+@import 'animation.scss';
 
 #debugger-page {
   height: 100%;
@@ -17,7 +18,7 @@
 }
 
 .header {
-    height: 15%;
+    height: 100px;
     background: rgb(64, 64, 64);
     position: relative;
     .switch {
@@ -228,7 +229,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 85%;
+    height: calc(100% - 100px);
     z-index: 10;
     background: rgba(255, 255, 255, 0);
 }

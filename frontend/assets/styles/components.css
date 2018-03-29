@@ -54,6 +54,12 @@
 
 .modal {
   display: none;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
   background: rgba(0, 0, 0, 0.3);
   z-index: 999;
   position: fixed;
@@ -63,8 +69,6 @@
   left: 0; }
   .modal .modal-dialog {
     position: relative;
-    margin: 30px auto;
-    margin-top: 10%;
     width: 600px;
     border: 1px solid #ddd;
     background: #fff;
@@ -72,48 +76,51 @@
             box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5); }
   .modal .modal-header {
     padding-left: 40px;
+    padding-right: 40px;
     padding-top: 35px;
     padding-bottom: 10px;
     color: #6d6969; }
-  .modal .modal-body li {
-    list-style: none;
-    margin: 20px 0; }
-  .modal .modal-body .small {
-    font-size: 12px;
-    padding-left: 35px;
-    color: #585858; }
-  .modal .modal-body .loadding {
-    margin: 20px auto;
-    margin-bottom: 10px;
-    position: relative;
-    width: 80px;
-    height: 80px; }
-  .modal .modal-body .loading-spinner {
-    -webkit-animation-duration: 0.75s;
-            animation-duration: 0.75s;
-    -webkit-animation-iteration-count: infinite;
-            animation-iteration-count: infinite;
-    -webkit-animation-name: rotate-forever;
-            animation-name: rotate-forever;
-    -webkit-animation-timing-function: linear;
-            animation-timing-function: linear;
-    height: 50px;
-    width: 50px;
-    border: 3px solid #44ade2;
-    border-right-color: transparent;
-    border-radius: 50%;
-    display: inline-block; }
-  .modal .modal-body .process-description {
-    text-align: center;
-    line-height: 30px;
-    font-size: 14px; }
-  .modal .modal-body .loading-spinner {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    bottom: 0;
-    left: calc(50% - 28px);
-    margin: -15px 0 -15px; }
+  .modal .modal-body {
+    padding: 0 40px; }
+    .modal .modal-body li {
+      list-style: none;
+      margin: 20px 0; }
+    .modal .modal-body .small {
+      font-size: 12px;
+      padding-left: 35px;
+      color: #585858; }
+    .modal .modal-body .loadding {
+      margin: 20px auto;
+      margin-bottom: 10px;
+      position: relative;
+      width: 80px;
+      height: 80px; }
+    .modal .modal-body .loading-spinner {
+      -webkit-animation-duration: 0.75s;
+              animation-duration: 0.75s;
+      -webkit-animation-iteration-count: infinite;
+              animation-iteration-count: infinite;
+      -webkit-animation-name: rotate-forever;
+              animation-name: rotate-forever;
+      -webkit-animation-timing-function: linear;
+              animation-timing-function: linear;
+      height: 50px;
+      width: 50px;
+      border: 3px solid #44ade2;
+      border-right-color: transparent;
+      border-radius: 50%;
+      display: inline-block; }
+    .modal .modal-body .process-description {
+      text-align: center;
+      line-height: 30px;
+      font-size: 14px; }
+    .modal .modal-body .loading-spinner {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      bottom: 0;
+      left: calc(50% - 28px);
+      margin: -15px 0 -15px; }
   .modal .modal-footer {
     padding: 20px 170px;
     display: -webkit-box;

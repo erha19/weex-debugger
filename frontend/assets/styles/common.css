@@ -66,4 +66,7 @@ details[open] > summary::before {
   content: '\e791';
   font-size: 12px; }
 
+.hidden {
+  display: none !important; }
+
 /*# sourceMappingURL=common.css.map */

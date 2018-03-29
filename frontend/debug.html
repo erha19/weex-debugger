@@ -82,9 +82,9 @@
                         </div>
                     </div>
                     <div id="prophet-menu" class="i18n">
-                        <div id="refresh-btn" class="menu-btn"><span class="iconfont icon-28"></span> Refresh</div>
-                        <div id="save-data-btn" class="menu-btn"><span class="iconfont icon-download"></span> Download</div>
-                        <div id="load-data-btn" class="menu-btn"><span class="iconfont icon-custom-add"></span> Load</div>
+                        <div id="refresh-btn" class="menu-btn refresh-btn"><span class="iconfont icon-28"></span> Refresh</div>
+                        <div id="save-data-btn" class="menu-btn save-data-btn"><span class="iconfont icon-download"></span> Download</div>
+                        <div id="load-data-btn" class="menu-btn load-data-btn"><span class="iconfont icon-custom-add"></span> Load</div>
                         <input id="fileInput" type="file" style="display:none;" />
                     </div>
                 </div>
@@ -117,15 +117,17 @@
             </div>
             <div class="data-analyse-content">
                 <div class="data-analyse-summary">
-                    <div id="summary-pie-chart" class="summary-col"></div>
-                    <div id="summary-global-info" class="summary-col"></div>
-                    <div id="summary-warning-info" class="summary-col"></div>
+                    <div class="summary-content">
+                        <div id="summary-pie-chart" class="summary-col"></div>
+                        <div id="summary-global-info" class="summary-col">No data</div>
+                        <div id="summary-warning-info" class="summary-col"></div>
+                    </div>
                 </div>
                 <div class="data-analyse-tool">
                     <div class="tool-content">
-                        <div class="tool-report-content">
+                        <div class="tool-report-content hidden">
                         </div>
-                        <div class="tool-description hidden">
+                        <div class="tool-description">
                             <p>Performance test help you identify and fix common problems that affect your weex page performance and user experience. <a>learn more</a></p>
                             <a class="start-testing-button">Perform an page...</a>
                         </div>
@@ -169,7 +171,6 @@
         </div>
     </div>
 
-
     <!-- bundle-qrcode-template -->
     <div class="bundle-qrcode mask">
         <div class="qrcode-ctn i18n">
@@ -179,7 +180,6 @@
             <p>${QRCODE_BUNDLE_TIP}</p>
         </div>
     </div>
-
 
     <!-- modal-template -->
     <div id="modal" class="modal">
@@ -223,15 +223,11 @@
                         </ul>
                     </div>
                     <div class="modal-footer">
-                        <a class="btn  btn-primary start-btn">Run performance</a>
+                        <a class="btn  btn-primary start-btn">Start tracing</a>
                         <a class="btn" onclick="modal.close();">Cancel</a>
                     </div>
                 </form>
                 <form class="process-modal hidden">
-                    <div class="modal-header">
-                        <strong>Testing page ...</strong>
-                    </div>
-
                     <div class="modal-body">
                         <div class="loadding">
                             <div class="loading-spinner"></div>
@@ -239,7 +235,7 @@
                         <p class="process-description"></p>
                     </div>
                     <div class="modal-footer">
-                        <a class="btn  btn-primary stop-btn">Stop</a>
+                        <a class="btn  btn-primary stop-btn">Stop tracing</a>
                         <button class="btn" type="button" onclick="modal.close();">Cancel</button>
                     </div>
                 </form>
@@ -268,6 +264,8 @@
 </body>
 
 <script src="lib/common.js"></script>
+<script src="lib/constructors/EventEmitter.js"></script>
+<script src="lib/constructors/WebsocketClient.js"></script>
 <script src="lib/utils/anchor_tips.js"></script>
 <script src="lib/utils/toast.js"></script>
 <script src="lib/i18n/locale.js"></script>
@@ -276,7 +274,7 @@
 <script src="lib/prophet/template/report.js"></script>
 <script src="lib/prophet/preprocessTracingData.js"></script>
 <script src="lib/prophet/timeline.js"></script>
-<script src="lib/prophet/main.js"></script>
+<script src="lib/prophet/index.js"></script>
 <script src="lib/prophet/performance.js"></script>
 
 </html>

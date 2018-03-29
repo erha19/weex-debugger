@@ -130,6 +130,9 @@ process.on('unhandledRejection', (reason, p) => {logger
   if (/simctl error/.test(reason)) {
     logger.warn(`The simulator debug need Xcode environment, you can run \`simctl --version\` to check if you have the correct environment.`);
   }
+  else if (/Chromium revision is not downloaded/.test(reason)) {
+    logger.warn(`You may not have installed chromium properly, you can find solution here https://github.com/weexteam/weex-toolkit/issues/275.`);
+  }
   // application specific logging, throwing an error, or other logic here
 });
 

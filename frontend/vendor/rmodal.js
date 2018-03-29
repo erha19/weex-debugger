@@ -17,9 +17,10 @@ var addClass = function (el, cls) {
 };
 
 var removeClass = function (el, cls) {
+    cls = cls.split(/\s+/);
     el.className = el.className
     .split(/\s+/)
-    .filter(function (c) { return !!c && c != cls; })
+    .filter(function (c) { return !!c && cls.indexOf(c) === -1; })
     .join(' ');
 };
 
@@ -83,7 +84,7 @@ RModal.prototype._doOpen = function _doOpen () {
     removeClass(this.dialog, this.opts.dialogCloseClass);
     addClass(this.dialog, this.opts.dialogOpenClass);
 
-    this.overlay.style.display = 'block';
+    this.overlay.style.display = 'flex';
 
     if (this.opts.focus) {
         this.focusOutElement = document.activeElement;

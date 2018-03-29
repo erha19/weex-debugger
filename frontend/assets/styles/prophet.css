@@ -42,7 +42,7 @@
     border-radius: 50px; }
 
 #prophet-page .data-analyse-tool {
-  display: block;
+  display: none;
   margin: 0 auto;
   font-size: 14px;
   width: 100%; }
@@ -413,6 +413,8 @@
       padding-left: 20px; }
       #prophet-page .data-analyse-tool .score-items .basic-details summary {
         margin: 0; }
+        #prophet-page .data-analyse-tool .score-items .basic-details summary:before {
+          top: 0; }
       #prophet-page .data-analyse-tool .score-items .basic-details ul {
         padding: 0;
         margin: 0; }
@@ -520,18 +522,29 @@
     background: white;
     border-bottom: 1px solid transparent; }
 #prophet-page .data-analyse-summary {
-  display: none;
+  display: block;
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
   -webkit-box-flex: 1;
       -ms-flex: 1;
-          flex: 1;
-  height: 100%; }
+          flex: 1; }
+  #prophet-page .data-analyse-summary .summary-content {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    justify-items: center;
+    height: 100%; }
   #prophet-page .data-analyse-summary p {
     font-size: 14px; }
   #prophet-page .data-analyse-summary .info-name {
     display: inline-block; }
+    #prophet-page .data-analyse-summary .info-name p {
+      text-align: left;
+      width: 150px; }
   #prophet-page .data-analyse-summary .info-content {
     display: inline-block;
     margin-left: 30px;
@@ -540,8 +553,11 @@
   #prophet-page .data-analyse-summary #summary-warning-info .info-content {
     color: #a51717; }
 #prophet-page .summary-col {
-  float: left;
-  width: 33%; }
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  max-width: 33%;
+  text-align: center; }
 #prophet-page .state-ok:before {
   content: "\e60b";
   color: green;
@@ -594,16 +610,13 @@
   #prophet-page .data-analyse-help .ui-block {
     background: #90CAF9; }
 
-.hidden {
-  display: none; }
-
 #prophet-page {
   width: 100%;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 85%;
+  height: calc(100% - 100px);
   background: white;
   visibility: hidden;
   z-index: 10; }
