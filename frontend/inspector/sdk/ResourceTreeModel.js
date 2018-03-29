@@ -194,10 +194,10 @@ SDK.ResourceTreeModel = class extends SDK.SDKModel {
     this.dispatchEventToListeners(SDK.ResourceTreeModel.Events.FrameNavigated, frame);
     if (frame.isMainFrame()) {
       this.dispatchEventToListeners(SDK.ResourceTreeModel.Events.MainFrameNavigated, frame);
-      if (Common.moduleSetting('preserveConsoleLog').get())
-        Common.console.log(Common.UIString('Navigated to %s', frame.url));
-      else
-        this.target().consoleModel.clear();
+      // if (Common.moduleSetting('preserveConsoleLog').get())
+      //   Common.console.log(Common.UIString('Navigated to %s', frame.url));
+      // else
+      this.target().consoleModel.clear();
     }
     if (addedOrigin)
       this._securityOriginManager.addSecurityOrigin(addedOrigin);
