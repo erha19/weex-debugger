@@ -338,7 +338,6 @@ legend {
   border: 1px solid #bbb;
   padding: 8px 30px;
   font-size: 20px;
-  varter-spacing: 4px;
   border-radius: 5px; }
 
 a {
@@ -2758,8 +2757,9 @@ details[open] > summary::before {
     width: 70px;
     display: inline-block;
     -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
     top: 4px; }
   .header .switch-checkbox {
     display: none; }
@@ -3094,4 +3094,5 @@ details[open] > summary::before {
     line-height: 50px; }
   .bug_report:hover {
     opacity: 1; }
+
 /*# sourceMappingURL=debugger.css.map */

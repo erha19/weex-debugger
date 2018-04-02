@@ -34,7 +34,6 @@ function connect(channelId) {
   });
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     destroyJSRuntime();
-    setTimeout(function(){},0)
     var logLevel = localStorage.getItem('logLevel');
     if (logLevel) {
       message.params.env.WXEnvironment.logLevel = logLevel;

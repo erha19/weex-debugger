@@ -25,9 +25,7 @@
         position: relative;
         width: 70px;
         display: inline-block;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
+        user-select: none;
         top: 4px;
     }
     .switch-checkbox {

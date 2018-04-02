@@ -7,6 +7,7 @@ const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
+  console.log(payload.params.method)
   if (payload.method === 'WxDebug.initJSRuntime') {
     const device = DeviceManager.getDevice(message.channelId);
     payload.params.url = new MemoryFile('js-framework.js', payload.params.source).getUrl();
@@ -15,6 +16,19 @@ debuggerRouter.registerHandler(function (message) {
     }
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstance') {
+    let code = payload.params.args[1];
+    if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
+      code = crypto.obfuscate(code);
+    }
+    debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+      method: 'WxDebug.bundleRendered',
+      params: {
+        bundleUrl: payload.params.args[2].bundleUrl
+      }
+    });
+    payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
+  }
+  else if (payload.method === 'WxDebug.callCreateInstance') { 
     let code = payload.params.args[1];
     if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
       code = crypto.obfuscate(code);

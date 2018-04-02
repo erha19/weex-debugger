@@ -185,7 +185,7 @@ websocket.on('WxDebug.bundleRendered', function (event) {
   }
 })
 websocket.on('Page.startScreencast', function (event) {
-  screencastParams = message.params;
+  screencastParams = event.params;
   if (isProphetPageShowing) {
     websocket.send({
       method: 'Page.stopScreencast'
