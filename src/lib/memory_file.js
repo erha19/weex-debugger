@@ -10,7 +10,6 @@ class MemoryFile {
     return Object.keys(_memoryFileMap);
   }
   constructor (fileName, content) {
-    // fixme ugly! your_current_ip playground default bundle url
     const rHttpHeader = /^(https?|taobao|qap):\/\/(?!.*your_current_ip)/i;
     if (rHttpHeader.test(fileName)) {
       const query = Qs.parse(Url.parse(fileName).query);
@@ -23,7 +22,9 @@ class MemoryFile {
         this.name = this.url.replace(rHttpHeader, '');
       }
     }
-    else this.name = fileName;
+    else {
+      this.name = fileName.replace(/^(https?|taobao|qap):\/\/(.*your_current_ip):(\d+)\//i, 'file://');
+    }
     if (this.name.charAt(this.name.length - 1) === '?') {
       this.name = this.name.substring(0, this.name.length - 1);
     }

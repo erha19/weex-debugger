@@ -60,14 +60,14 @@ debuggerRouter.registerHandler(function (message) {
     });
     message.to('page.debugger');
     // iOS platform need reload signal to reload runtime context.
-    if (device.platform === 'iOS') {
-      setTimeout(() => {
-        debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
-          method: 'WxDebug.reloadInspector',
-          params: device
-        });
-      }, 3000);
-    }
+    // if (device.platform === 'iOS') {
+    //   setTimeout(() => {
+    //     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+    //       method: 'WxDebug.reloadInspector',
+    //       params: device
+    //     });
+    //   }, 3000);
+    // }
   }
   return false;
 }).at('proxy.native').when('payload.method=="WxDebug.registerDevice"');

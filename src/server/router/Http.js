@@ -4,7 +4,7 @@ const mlink = require('../../mlink/midware');
 const DeviceManager = require('../../mlink/managers/device_manager');
 const URL = require('url');
 const config = require('../../lib/config');
-const bundleWrapper = require('../../util/bundle_wrapper');
+const {bundleWrapper} = require('../../util/wrapper');
 const protocols = {
   'http:': require('http'),
   'https:': require('https')

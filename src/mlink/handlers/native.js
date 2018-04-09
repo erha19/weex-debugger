@@ -1,15 +1,15 @@
 const mlink = require('../midware');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const bundleWrapper = require('../../util/bundle_wrapper');
+const {bundleWrapper, apiWrapper} = require('../../util/wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
+const path = require('path');
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
-  console.log(payload.params.method)
+  const device = DeviceManager.getDevice(message.channelId);
   if (payload.method === 'WxDebug.initJSRuntime') {
-    const device = DeviceManager.getDevice(message.channelId);
     payload.params.url = new MemoryFile('js-framework.js', payload.params.source).getUrl();
     if (device.logLevel) {
       payload.params.env.WXEnvironment.logLevel = device.logLevel;
@@ -28,18 +28,35 @@ debuggerRouter.registerHandler(function (message) {
     });
     payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
   }
-  else if (payload.method === 'WxDebug.callCreateInstance') { 
-    let code = payload.params.args[1];
-    if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
-      code = crypto.obfuscate(code);
-    }
-    debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
-      method: 'WxDebug.bundleRendered',
-      params: {
-        bundleUrl: payload.params.args[2].bundleUrl
+  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') { 
+    if (device.platform === 'iOS') {
+      if (payload.params.args.length < 5) {
+        payload.params.args.splice(1, 0, '');
       }
-    });
-    payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
+    }
+    let instanceid = payload.params.args[0];
+    let code = payload.params.args[1];
+    let options = payload.params.args[2];
+    let data = payload.params.args[3];
+    let dependenceCode = payload.params.args[4];
+    if (dependenceCode) {
+      payload.params.dependenceUrl = new MemoryFile(`${path.dirname(options.bundleUrl)}/js-api.js`, apiWrapper(dependenceCode)).getUrl();
+    }
+    else {
+      payload.params.dependenceUrl = '';
+    }
+    if (code) {
+      payload.params.sourceUrl = new MemoryFile(options.bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
+    }
+    else {
+      payload.params.sourceUrl = '';
+    }
+  }
+  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') { 
+    let instanceid = payload.params.args[0];
+    let code = payload.params.args[1];
+    let bundleUrl = payload.params.args[2] && payload.params.args[2].bundleUrl;
+    payload.params.sourceUrl = new MemoryFile((bundleUrl || crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
   }
   else if (payload.method === 'WxDebug.importScript') {
     payload.params.sourceUrl = new MemoryFile('imported_' + crypto.md5(payload.params.source) + '.js', payload.params.source).getUrl();
@@ -56,6 +73,8 @@ debuggerRouter.registerHandler(function (message) {
     message.to('page.debugger');
     return;
   }
+  else if (payload.params.method === 'callJS') {
+  }
   else if (payload.method === 'WxDebug.sendSummaryInfo') {
     message.to('page.debugger');
     return;
@@ -66,8 +85,10 @@ debuggerRouter.registerHandler(function (message) {
   }
   message.to('runtime.worker');
 }).at('proxy.native').when('payload.method&&payload.method.split(".")[0]==="WxDebug"');
+
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
+  const device = DeviceManager.getDevice(message.channelId);
   if (payload.method === 'Page.screencastFrame') {
     payload.params.sessionId = 1;
   }
@@ -86,7 +107,6 @@ debuggerRouter.registerHandler(function (message) {
     };
   }
   else if (payload.method === 'DOM.childNodeRemoved') {
-    const device = DeviceManager.getDevice(message.channelId);
     // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
     // 当没有打开JS Debug时 weex加载bundle devtool是不知道的 只能模糊的通过childNodeRemoved判断
     // 这个标记用来限制短时间内发出很多次通知

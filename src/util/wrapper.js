@@ -1,4 +1,5 @@
-const injectedGlobals = [
+const bundleWrapper = (code, sourceUrl) => {
+  const injectedGlobals = [
     // ES
   'Promise',
     // W3C
@@ -47,13 +48,29 @@ const injectedGlobals = [
   'Vue'
 
 ];
-const bundleWrapper = 'function __weex_bundle_entry__(' + injectedGlobals.join(',') + '){';
+const bundle_wrapper = 'function __weex_bundle_entry__(' + injectedGlobals.join(',') + '){';
 const rearRegexp = /\/\/#\s*sourceMappingURL(?!.*?\s+.)|$/;
-module.exports = function (code, sourceUrl) {
   const match = /^\s*(\/\/.+)\n/.exec(code);
   let anno = '';
   if (match) {
     anno = '$$frameworkFlag["' + (sourceUrl || '@') + '"]="' + match[1].replace(/"/g, '\\"') + '";';
   }
-  return anno + bundleWrapper + code.replace(rearRegexp, '}\n$&');
+  return anno + bundle_wrapper + code.replace(rearRegexp, '}\n$&');
 };
+
+const apiWrapper = (code) => {
+  const apiWrapper = `
+  function __weex_api_entry__(global){
+    for(var prop in global) {
+      if (global.hasOwnProperty(prop))
+      this[prop] = global[prop]
+    }
+    ${code}
+  }`;
+  return apiWrapper;
+};
+
+module.exports = {
+  bundleWrapper,
+  apiWrapper
+}

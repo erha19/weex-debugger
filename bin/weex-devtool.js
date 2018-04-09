@@ -10,17 +10,17 @@ const detect = require('detect-port');
 const del = require('del');
 const os = require('os');
 const packageInfo = require('../package.json');
-const debugRun = require('../src/util/debug_run');
-const config = require('../src/lib/config');
-const devtool = require('../src/lib/devtool');
-const hook = require('../src/util/hook');
-const env = require('../src/util/env');
-const hosts = require('../src/util/hosts');
-const headless = require('../src/server/headless');
+const debugRun = require('../lib/util/debug_run');
+const config = require('../lib/lib/config');
+const devtool = require('../lib/lib/devtool');
+const hook = require('../lib/util/hook');
+const env = require('../lib/util/env');
+const hosts = require('../lib/util/hosts');
+const headless = require('../lib/server/headless');
 const {
   LOGLEVELS,
   logger
-} =require('../src/util/logger')
+} =require('../lib/util/logger')
 
 program
 .option('-v, --version', 'display version')
