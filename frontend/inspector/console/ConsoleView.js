@@ -65,8 +65,9 @@ Console.ConsoleView = class extends UI.VBox {
     this._filterBar = new UI.FilterBar('consoleView');
 
     this._showNativeLogCheckbox = new UI.ToolbarCheckbox(
-        Common.UIString('Show Native log'), Common.UIString('Showing native log or not.'),
+        Common.UIString('Show native log'), Common.UIString('Showing native log or not.'),
         Common.moduleSetting('showNativeConsoleLog'));
+    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateShowMessageCheckbox.bind(this), true);
     this._progressToolbarItem = new UI.ToolbarItem(createElement('div'));
 
     var toolbar = new UI.Toolbar('', this._contentsElement);
@@ -178,6 +179,10 @@ Console.ConsoleView = class extends UI.VBox {
    */
   searchableView() {
     return this._searchableView;
+  }
+
+  _updateShowMessageCheckbox (event) {
+    this._showAllMessagesCheckbox.inputElement.checked = event.target.checked;
   }
 
   _clearHistory() {

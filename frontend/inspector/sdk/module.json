@@ -26,12 +26,12 @@
         {
             "type": "setting",
             "category": "Console",
-            "title": "Show Native log on console",
+            "title": "Show native messages on console",
             "settingName": "showNativeConsoleLog",
             "settingType": "boolean",
             "defaultValue": false,
             "options": [
-                { "value": true, "title": "Show Native log on console" },
+                { "value": false, "title": "Show native messages on console" },
                 { "value": false, "title": "Do not preserve log upon navigation" }
             ]
         },
