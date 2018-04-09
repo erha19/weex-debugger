@@ -67,7 +67,7 @@ Console.ConsoleView = class extends UI.VBox {
     this._showNativeLogCheckbox = new UI.ToolbarCheckbox(
         Common.UIString('Show native log'), Common.UIString('Showing native log or not.'),
         Common.moduleSetting('showNativeConsoleLog'));
-    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateShowMessageCheckbox.bind(this), true);
+    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateMessageList.bind(this), false);
     this._progressToolbarItem = new UI.ToolbarItem(createElement('div'));
 
     var toolbar = new UI.Toolbar('', this._contentsElement);
@@ -97,7 +97,7 @@ Console.ConsoleView = class extends UI.VBox {
     this._filterStatusTextElement = this._filterStatusMessageElement.createChild('span', 'console-info');
     this._filterStatusMessageElement.createTextChild(' ');
     var resetFiltersLink = this._filterStatusMessageElement.createChild('span', 'console-info link');
-    resetFiltersLink.textContent = Common.UIString('Show all messages.');
+    resetFiltersLink.textContent = Common.UIString('Show all messages (include logs from native).');
     resetFiltersLink.addEventListener('click', this._filter.reset.bind(this._filter), true);
 
     this._topGroup = Console.ConsoleGroup.createTopGroup();
@@ -179,10 +179,6 @@ Console.ConsoleView = class extends UI.VBox {
    */
   searchableView() {
     return this._searchableView;
-  }
-
-  _updateShowMessageCheckbox (event) {
-    this._showAllMessagesCheckbox.inputElement.checked = event.target.checked;
   }
 
   _clearHistory() {
@@ -284,8 +280,9 @@ Console.ConsoleView = class extends UI.VBox {
   }
 
   _updateAllMessagesCheckbox() {
-    var hasMultipleCotexts = SDK.targetManager.targets(SDK.Target.Capability.JS).length > 1;
-    this._showAllMessagesCheckbox.element.classList.toggle('hidden', !hasMultipleCotexts);
+    // not need to show
+    // var hasMultipleCotexts = SDK.targetManager.targets(SDK.Target.Capability.JS).length > 1;
+    // this._showAllMessagesCheckbox.element.classList.toggle('hidden', !hasMultipleCotexts);
   }
 
   _registerWithMessageSink() {
