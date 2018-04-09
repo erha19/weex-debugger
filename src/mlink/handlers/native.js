@@ -6,12 +6,21 @@ const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');
+const LOGLEVEL = {
+  debug: 0,
+  log: 1, 
+  info: 2,
+  error: 3,
+  warning: 4,
+  warn: 4
+};
+
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
   const device = DeviceManager.getDevice(message.channelId);
   if (payload.method === 'WxDebug.initJSRuntime') {
     payload.params.url = new MemoryFile('js-framework.js', payload.params.source).getUrl();
-    if (device.logLevel) {
+    if (device && device.logLevel) {
       payload.params.env.WXEnvironment.logLevel = device.logLevel;
     }
   }
@@ -93,18 +102,23 @@ debuggerRouter.registerHandler(function (message) {
     payload.params.sessionId = 1;
   }
   else if (payload.method === 'Console.messageAdded') {
-    message.payload = {
-      'method': 'Runtime.consoleAPICalled',
-      'params': {
-        'type': payload.params.message.level,
-        'args': [{
-          type: 'string',
-          value: payload.params.message.text
-        }] || [],
-        'executionContextId': 1
-        // "stackTrace": payload.params.message.stackTrace
-      }
-    };
+    if (LOGLEVEL[payload.params.message.level] >= LOGLEVEL[device && device.logLevel ? device.logLevel : 'debug']) {
+      message.payload = {
+        'method': 'Runtime.consoleAPICalled',
+        'params': {
+          'type': payload.params.message.level,
+          'args': [{
+            type: 'string',
+            value: payload.params.message.text
+          }] || [],
+          'executionContextId': 1
+          // "stackTrace": payload.params.message.stackTrace
+        }
+      };
+    }
+    else {
+      message.discard();
+    }
   }
   else if (payload.method === 'DOM.childNodeRemoved') {
     // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
