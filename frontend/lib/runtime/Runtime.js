@@ -29,6 +29,9 @@ var injectedGlobals = [
 ];
 
 var cachedSetTimeout = this.setTimeout;
+
+var isSandbox = false;
+
 Object.defineProperty(this, 'setTimeout', {
   get: function () {
     return cachedSetTimeout;
@@ -331,6 +334,7 @@ eventEmitter.on('Console.messageAdded', function (message) {
 });
 
 eventEmitter.on('WxDebug.importScript', function (data) {
+  if (isSandbox) return;
   if (data.params.sourceUrl) {
     importScripts(data.params.sourceUrl);
   }
@@ -366,6 +370,7 @@ eventEmitter.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
   if (method === 'createInstance') {
     var url = data.params.sourceUrl;
+    isSandbox = false;
     postMessage({
       method: 'WxRuntime.clearLog',
     });
@@ -382,6 +387,7 @@ eventEmitter.on('WxDebug.callJS', function (data) {
     var dependenceUrl = data.params.dependenceUrl;
     var context = {};
     var instanceContext = {};
+    isSandbox = true;
     if (url) {
       importScripts(url);
     }
