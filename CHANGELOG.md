@@ -22,13 +22,14 @@ All notable changes to this project will be documented in this file.
   - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842)
 
 ### 1.0.5
-#### Changeed
+#### Changed
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
   - Upgrade `puppeteer` to `v1.0.0` version.
 #### Fixed
   - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
 
 ### 1.0.4
-#### Changeed
+#### Changed
   - Add iconfont support for frontend.
   - Optimized interface display of debugger page.
 #### Removed
