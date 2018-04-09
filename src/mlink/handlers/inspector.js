@@ -23,9 +23,19 @@ debuggerRouter.registerHandler(function (message) {
       message.discard();
     }
     else {
-      message.to('proxy.native');
+      // remove useless but large message
+      if (message.payload.method === 'Page.screencastFrameAck') {
+        message.discard();
+      }
+      else {
+        message.to('proxy.native');
+      }
       if (message.payload.method === 'Page.startScreencast') {
         message.to('page.debugger');
+      }
+      if (message.payload.method === 'Runtime.enable') {
+        message.payload.method = 'Console.enable';
+        message.to('page.native');
       }
     }
     const params = Object.assign({

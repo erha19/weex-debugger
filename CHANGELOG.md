@@ -1,10 +1,32 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.8
+#### Changed
+  - Support debugger on weexSDK v0.18.+ (add sandbox feature).
+#### Fixed
+  - Fix native log can not be filter, [issues 355](https://github.com/weexteam/weex-toolkit/issues/355).
+
+### 1.0.7
+#### Changed
+  - Formate time for logger.
+  - Add 'content-type' for the http respense.
+#### Fixed
+  - Fix bug that playground app can't open remote url while using JSdebug, remove '?' while it is the last char.
+  - Add native log from `weex-devtool` into console.
+
+### 1.0.6
+#### Changed
+  - Rename `frontend/lib/App.js` to `app.js`.
+#### Fixed
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214?focusedCommentId=16359842&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-16359842)
+
 ### 1.0.5
 #### Changed
   - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
   - Upgrade `puppeteer` to `v1.0.0` version.
+#### Fixed
+  - Fix [jira issue](https://issues.apache.org/jira/browse/WEEX-214).
 
 ### 1.0.4
 #### Changed

@@ -5,6 +5,7 @@ const config = require('../../lib/config');
 const debuggerRouter = Router.get('debugger');
 let registerDeviceChannelId;
 let FirstStartDebug = true;
+
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal) {
   const device = DeviceManager.getDevice(signal.channelId);
   if (!device) {
@@ -24,6 +25,7 @@ debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal
     });
   }
 });
+
 debuggerRouter.on(Router.Event.TERMINAL_JOINED, 'page.debugger', function (signal) {
   const device = DeviceManager.getDevice(signal.channelId);
   // Fixme Android will connect twice while first scan.
@@ -40,6 +42,7 @@ debuggerRouter.on(Router.Event.TERMINAL_JOINED, 'page.debugger', function (signa
     }
   });
 });
+
 debuggerRouter.registerHandler(function (message) {
   const device = DeviceManager.registerDevice(message.payload.params, message.channelId);
   if (device) {
@@ -57,14 +60,14 @@ debuggerRouter.registerHandler(function (message) {
     });
     message.to('page.debugger');
     // iOS platform need reload signal to reload runtime context.
-    if (device.platform === 'iOS') {
-      setTimeout(() => {
-        debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
-          method: 'WxDebug.reloadInspector',
-          params: device
-        });
-      }, 3000);
-    }
+    // if (device.platform === 'iOS') {
+    //   setTimeout(() => {
+    //     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+    //       method: 'WxDebug.reloadInspector',
+    //       params: device
+    //     });
+    //   }, 3000);
+    // }
   }
   return false;
 }).at('proxy.native').when('payload.method=="WxDebug.registerDevice"');

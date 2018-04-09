@@ -43,6 +43,9 @@ program['arguments']('[target]').action(function (target) {
 
 program.parse(process.argv);
 
+// overwrite the cmdname for weex-toolkit
+program._name = `weex debug`;
+
 // Fix tj's commander bug overwrite --help
 if (program.help === undefined) {
   program.outputHelp();
@@ -124,6 +127,12 @@ process.on('unhandledRejection', (reason, p) => {logger
   }, config.weexVersion);
   hook.record('/weex_tool.weex_debugger.app_crash', params);
   logger.error(reason);
+  if (/simctl error/.test(reason)) {
+    logger.warn(`The simulator debug need Xcode environment, you can run \`simctl --version\` to check if you have the correct environment.`);
+  }
+  else if (/Chromium revision is not downloaded/.test(reason)) {
+    logger.warn(`You may not have installed chromium properly, you can find solution here https://github.com/weexteam/weex-toolkit/issues/275.`);
+  }
   // application specific logging, throwing an error, or other logic here
 });
 

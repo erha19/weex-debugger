@@ -26,12 +26,12 @@
         {
             "type": "setting",
             "category": "Console",
-            "title": "Preserve log upon navigation",
-            "settingName": "preserveConsoleLog",
+            "title": "Show native messages on console",
+            "settingName": "showNativeConsoleLog",
             "settingType": "boolean",
             "defaultValue": false,
             "options": [
-                { "value": true, "title": "Preserve log upon navigation" },
+                { "value": false, "title": "Show native messages on console" },
                 { "value": false, "title": "Do not preserve log upon navigation" }
             ]
         },

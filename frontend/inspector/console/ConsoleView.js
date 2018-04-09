@@ -64,9 +64,10 @@ Console.ConsoleView = class extends UI.VBox {
 
     this._filterBar = new UI.FilterBar('consoleView');
 
-    this._preserveLogCheckbox = new UI.ToolbarCheckbox(
-        Common.UIString('Preserve log'), Common.UIString('Do not clear log on page reload / navigation'),
-        Common.moduleSetting('preserveConsoleLog'));
+    this._showNativeLogCheckbox = new UI.ToolbarCheckbox(
+        Common.UIString('Show native log'), Common.UIString('Showing native log or not.'),
+        Common.moduleSetting('showNativeConsoleLog'));
+    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateMessageList.bind(this), false);
     this._progressToolbarItem = new UI.ToolbarItem(createElement('div'));
 
     var toolbar = new UI.Toolbar('', this._contentsElement);
@@ -74,7 +75,7 @@ Console.ConsoleView = class extends UI.VBox {
         /** @type {!UI.Action }*/ (UI.actionRegistry.action('console.clear'))));
     toolbar.appendToolbarItem(this._filterBar.filterButton());
     toolbar.appendToolbarItem(this._executionContextComboBox);
-    toolbar.appendToolbarItem(this._preserveLogCheckbox);
+    toolbar.appendToolbarItem(this._showNativeLogCheckbox);
     toolbar.appendToolbarItem(this._progressToolbarItem);
 
     this._filterBar.show(this._contentsElement);
@@ -96,7 +97,7 @@ Console.ConsoleView = class extends UI.VBox {
     this._filterStatusTextElement = this._filterStatusMessageElement.createChild('span', 'console-info');
     this._filterStatusMessageElement.createTextChild(' ');
     var resetFiltersLink = this._filterStatusMessageElement.createChild('span', 'console-info link');
-    resetFiltersLink.textContent = Common.UIString('Show all messages.');
+    resetFiltersLink.textContent = Common.UIString('Show all messages (include logs from native).');
     resetFiltersLink.addEventListener('click', this._filter.reset.bind(this._filter), true);
 
     this._topGroup = Console.ConsoleGroup.createTopGroup();
@@ -109,7 +110,6 @@ Console.ConsoleView = class extends UI.VBox {
     // FIXME: This is a workaround for the selection machinery bug. See crbug.com/410899
     var selectAllFixer = this._messagesElement.createChild('div', 'console-view-fix-select-all');
     selectAllFixer.textContent = '.';
-
     this._showAllMessagesCheckbox = new UI.ToolbarCheckbox(Common.UIString('Show all messages'));
     this._showAllMessagesCheckbox.inputElement.checked = true;
     this._showAllMessagesCheckbox.inputElement.addEventListener('change', this._updateMessageList.bind(this), false);
@@ -280,8 +280,9 @@ Console.ConsoleView = class extends UI.VBox {
   }
 
   _updateAllMessagesCheckbox() {
-    var hasMultipleCotexts = SDK.targetManager.targets(SDK.Target.Capability.JS).length > 1;
-    this._showAllMessagesCheckbox.element.classList.toggle('hidden', !hasMultipleCotexts);
+    // not need to show
+    // var hasMultipleCotexts = SDK.targetManager.targets(SDK.Target.Capability.JS).length > 1;
+    // this._showAllMessagesCheckbox.element.classList.toggle('hidden', !hasMultipleCotexts);
   }
 
   _registerWithMessageSink() {
@@ -1124,9 +1125,17 @@ Console.ConsoleViewFilter = class extends Common.Object {
   shouldBeVisible(viewMessage) {
     var message = viewMessage.consoleMessage();
     var executionContext = UI.context.flavor(SDK.ExecutionContext);
-    if (!message.target())
+    
+    if (!message.target()) {
       return true;
-
+    }
+    // add native log filter
+    if (!Common.moduleSetting('showNativeConsoleLog').get()) {
+      var target = message.target();
+      if (target._name !== 'Runtime.js') {
+        return false;
+      }
+    }
     if (!this._view._showAllMessagesCheckbox.checked() && executionContext) {
       if (message.target() !== executionContext.target())
         return false;
@@ -1176,6 +1185,7 @@ Console.ConsoleViewFilter = class extends Common.Object {
     this._messageURLFiltersSetting.set(this._messageURLFilters);
     this._messageLevelFiltersSetting.set({});
     this._view._showAllMessagesCheckbox.inputElement.checked = true;
+    Common.moduleSetting('showNativeConsoleLog').set(true);
     Common.moduleSetting('hideNetworkMessages').set(false);
     Common.moduleSetting('hideViolationMessages').set(true);
     this._textFilterUI.setValue('');

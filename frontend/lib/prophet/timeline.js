@@ -95,12 +95,10 @@ Timeline.prototype = {
                             this.ctx.oBackingStorePixelRatio ||
                             this.ctx.backingStorePixelRatio || 1,
         
-        ratio = devicePixelRatio / backingStoreRatio;
-    
+        ratio = devicePixelRatio / backingStoreRatio;    
     if (devicePixelRatio !== backingStoreRatio) {
       var oldWidth = width;
       var oldHeight = height;
-
       this.canvas.width = oldWidth * ratio;
       this.canvas.height = oldHeight * ratio;
 
@@ -108,6 +106,12 @@ Timeline.prototype = {
       this.canvas.style.height = oldHeight + 'px';
 
       this.ctx.scale(ratio, ratio);
+    }
+    else {
+      var oldWidth = width;
+      var oldHeight = height;
+      this.canvas.width = oldWidth * ratio;
+      this.canvas.height = oldHeight * ratio;
     }
   },
 

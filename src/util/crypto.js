@@ -1,10 +1,12 @@
 const crypto = require('crypto');
 const JavaScriptObfuscator = require('javascript-obfuscator');
+
 exports.md5 = function (str) {
   const md5 = crypto.createHash('md5');
   md5.update(str);
   return md5.digest('hex');
 };
+
 exports.obfuscate = function (code) {
   const obfuscationResult = JavaScriptObfuscator.obfuscate(code, {
     compact: true,

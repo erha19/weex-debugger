@@ -34,7 +34,6 @@ function connect(channelId) {
   });
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     destroyJSRuntime();
-    setTimeout(function(){},0)
     var logLevel = localStorage.getItem('logLevel');
     if (logLevel) {
       message.params.env.WXEnvironment.logLevel = logLevel;
@@ -61,13 +60,11 @@ function initJSRuntime(message) {
     var method = message.method.split('.')[1];
     if (domain == 'WxRuntime') {
       if (method === 'clearLog') {
-        //console.clear();
+        console.clear();
       }
       else if (method === 'dom') {
         document.getElementById('dom').innerHTML = resolve(message.params);
       }
-    }
-    else {
     }
   };
   worker.postMessage(message);

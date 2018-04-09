@@ -123,6 +123,7 @@ exports.start = function (target, config, cb) {
     builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
       watch: true,
       ext: config.ext,
+      min: config.min,
       devtool: 'inline-source-map'
     }, (err, output, json) => {
       if (err) {

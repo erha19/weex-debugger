@@ -1,10 +1,25 @@
-importScripts('/lib/runtime/EventEmitter.js');
+importScripts('/lib/constructors/EventEmitter.js');
 self.$$frameworkFlag = {};
 var channelId;
 var shouldReturnResult = false;
 var requestId;
-var payloads = []
-var injectedGlobals = ['Promise',
+var originGlobal;
+var payloads = [];
+var instanceMap = {};
+var injectedContextVariable = [
+  'Promise',
+  // W3C
+  'window', 'weex', 'service', 'Rax', 'services', 'global', 'screen', 'document', 'navigator', 'location', 'fetch', 'Headers', 'Response', 'Request', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'alert',
+  // ModuleJS
+  'define', 'require',
+  // Weex
+  'bootstrap', 'register', 'render', '__d', '__r', '__DEV__', '__weex_define__', '__weex_require__', '__weex_viewmodel__', '__weex_document__', '__weex_bootstrap__', '__weex_options__', '__weex_data__', '__weex_downgrade__', '__weex_require_module__', 'Vue',
+  // hook
+  'setTimeout', 'callNativeModule', 'callNativeComponent','callNative','callAddElement'
+]
+
+var injectedGlobals = [
+  'Promise',
   // W3C
   'window', 'weex', 'service', 'Rax', 'services', 'global', 'screen', 'document', 'navigator', 'location', 'fetch', 'Headers', 'Response', 'Request', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'alert',
   // ModuleJS
@@ -12,17 +27,17 @@ var injectedGlobals = ['Promise',
   // Weex
   'bootstrap', 'register', 'render', '__d', '__r', '__DEV__', '__weex_define__', '__weex_require__', '__weex_viewmodel__', '__weex_document__', '__weex_bootstrap__', '__weex_options__', '__weex_data__', '__weex_downgrade__', '__weex_require_module__', 'Vue'
 ];
+
 var cachedSetTimeout = this.setTimeout;
+
+var isSandbox = false;
+
 Object.defineProperty(this, 'setTimeout', {
   get: function () {
     return cachedSetTimeout;
   },
   set: function () {}
 });
-
-function EventEmitter() {
-  this._handlers = {};
-}
 
 function createWeexBundleEntry(sourceUrl) {
   var code = '';
@@ -44,35 +59,206 @@ function createWeexBundleEntry(sourceUrl) {
   code += ');';
   return code;
 }
+
+function createApiBundleEntry(instance) {
+  var code = '';
+  code += `__weex_api_entry__(instanceMap[${instance}]);`
+  return code;
+}
+
 var origConsole = self.console;
 var clearConsole = self.console.clear.bind(self.console);
 self.__WEEX_DEVTOOL__ = true;
 var eventEmitter = new EventEmitter();
+
+function postData(payload) {
+  payloads.push(payload)
+  try {
+    self.console.debug(`CallNative with some json data:`, payload);
+    postMessage(payload);
+  }
+  catch (e) {
+    self.console.warn(`CallNative with some non-json data:`, payload);
+    payload = JSON.parse(JSON.stringify(payload));
+    postMessage(payload);
+  }
+}
+
+var _rewriteLog = function () {
+  var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
+  var backupConsole = {
+    error: origConsole.error,
+    warn: origConsole.warn,
+    info: origConsole.info,
+    log: origConsole.log,
+    debug: origConsole.debug
+  };
+
+  function resetConsole() {
+    self.console.error = backupConsole.error;
+    self.console.warn = backupConsole.warn;
+    self.console.info = backupConsole.info;
+    self.console.log = backupConsole.log;
+    self.console.debug = backupConsole.debug;
+    self.console.time = origConsole.time;
+    self.console.timeEnd = origConsole.timeEnd;
+  }
+
+  function noop() {}
+  return function (logLevel) {
+    resetConsole();
+    LEVELS.slice(LEVELS.indexOf(logLevel) + 1).forEach(function (level) {
+      self.console[level] = noop;
+    })
+  }
+}();
+
 onmessage = function (message) {
   eventEmitter.emit(message.data && message.data.method, message.data)
 };
+
+// self.callNativeLog = function (str_array) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance,
+//       domStr: domStr
+//     }
+//   };
+//   postData(payload);
+// };
+// self.callCreateBody = function (instance, domStr) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance,
+//       domStr: domStr
+//     }
+//   };
+//   postData(payload);
+// };
+// self.callUpdateFinish = function (instance, tasks, callback) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateFinish',
+//     params: {
+//       instance: instance,
+//       tasks: tasks,
+//       callback: callback
+//     }
+//   };
+//   postData(payload);
+// };
+// self.callCreateFinish = function (instance) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callRefreshFinish = function (instance, tasks, callback) {
+//   var payload = {
+//     method: 'WxDebug.callRefreshFinish',
+//     params: {
+//       instance: instance,
+//       tasks: tasks,
+//       callback: callback
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callUpdateAttrs = function (instance, ref, data) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateAttrs',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       data: data
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callUpdateStyle = function (instance, ref, data) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateStyle',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       data: data
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callRemoveElement = function (instance, ref) {
+//   var payload = {
+//     method: 'WxDebug.callRemoveElement',
+//     params: {
+//       nstance: instance,
+//       ref: ref
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callMoveElement = function (instance, ref, parentRef, index_str) {
+//   var payload = {
+//     method: 'WxDebug.callMoveElement',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       parentRef: parentRef,
+//       index_str: index_str
+//     }
+//   };
+//   postData(payload);;
+// }
+// self.callAddEvent = function (instance, ref, event) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       event: event
+//     }
+//   };
+//   postData(payload);
+// }
+// self.callRemoveEvent = function (instance, ref, event) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       event: event
+//     }
+//   };
+//   postData(payload);
+// }
+
 self.callNativeModule = function () {
-    var message = {
-        method: 'WxDebug.syncCall',
-        params: {
-        method: 'callNativeModule',
-        args: Array.prototype.slice.call(arguments)
-        },
-        channelId: channelId
-    }
-    var result = syncRequest(message);
-    if (shouldReturnResult && requestId) {
-        postData({
-            id: requestId,
-            result: null,
-            error: {errorCode: 0}
-        });
-    }
-    if (result && result.error) {
-        self.console.error(result.error);
-        // throw new Error(result.error);
-    }
-    else return result && result.ret;
+  var message = {
+    method: 'WxDebug.syncCall',
+    params: {
+      method: 'callNativeModule',
+      args: Array.prototype.slice.call(arguments)
+    },
+    channelId: channelId
+  }
+  var result = syncRequest(message);
+  if (shouldReturnResult && requestId) {
+    postData({
+      id: requestId,
+      result: null,
+      error: {
+        errorCode: 0
+      }
+    });
+  }
+  if (result && result.error) {
+    self.console.error(result.error);
+    // throw new Error(result.error);
+  }
+  else return result && result.ret;
 }
 
 self.callNativeComponent = function () {
@@ -98,9 +284,7 @@ self.callNative = function (instance, tasks, callback) {
     if (task.method == 'addElement') {
       for (var key in task.args[1].style) {
         if (Number.isNaN(task.args[1].style[key])) {
-          self.console.error('invalid value [NaN] for style [' + key + ']', task);
-          //task.args[1].style[key]=0;
-        }
+          self.console.error('invalid value [NaN] for style [' + key + ']', task);        }
       }
     }
   }
@@ -129,46 +313,6 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
   postData(payload);
 };
 
-function postData(payload) {
-  payloads.push(payload)
-  try {
-    self.console.debug(`CallNative with some json data:`, payload)
-    postMessage(payload);
-  }
-  catch (e) {
-    self.console.warn(`CallNative with some non-json data:`, payload);
-    payload = JSON.parse(JSON.stringify(payload));
-    postMessage(payload);
-  }
-}
-var _rewriteLog = function () {
-  var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
-  var backupConsole = {
-    error: origConsole.error,
-    warn: origConsole.warn,
-    info: origConsole.info,
-    log: origConsole.log,
-    debug: origConsole.debug
-  };
-
-  function resetConsole() {
-    self.self.console.error = backupConsole.error;
-    self.self.console.warn = backupConsole.warn;
-    self.console.info = backupConsole.info;
-    self.self.console.log = backupConsole.log;
-    self.console.debug = backupConsole.debug;
-    self.console.time = origConsole.time;
-    self.console.timeEnd = origConsole.timeEnd;
-  }
-
-  function noop() {}
-  return function (logLevel) {
-    resetConsole();
-    LEVELS.slice(LEVELS.indexOf(logLevel) + 1).forEach(function (level) {
-      self.console[level] = noop;
-    })
-  }
-}();
 eventEmitter.on('WxDebug.initJSRuntime', function (message) {
   channelId = message.channelId;
   for (var key in message.params.env) {
@@ -177,16 +321,20 @@ eventEmitter.on('WxDebug.initJSRuntime', function (message) {
     }
   }
   importScripts(message.params.url);
+  // importScripts('/lib/runtime/js-framework.js');
   _rewriteLog(message.params.env.WXEnvironment.logLevel);
 });
+
 eventEmitter.on('WxDebug.changeLogLevel', function (message) {
   self.WXEnvironment.logLevel = message.params;
 });
+
 eventEmitter.on('Console.messageAdded', function (message) {
   self.console.error('[Native Error]', message.params.message.text);
 });
-var instanceMap = {};
+
 eventEmitter.on('WxDebug.importScript', function (data) {
+  if (isSandbox) return;
   if (data.params.sourceUrl) {
     importScripts(data.params.sourceUrl);
   }
@@ -194,46 +342,84 @@ eventEmitter.on('WxDebug.importScript', function (data) {
     new Function('', data.params.source)();
   }
 })
-eventEmitter.on('WxDebug.callJsResult', function (data) {
-  var method = data.params.method;
-  if (method === 'createInstance') {
-    var url = data.params.sourceUrl;
-    postMessage({
-      method: 'WxRuntime.clearLog',
-    });
-    importScripts(url);
-    self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
-    instanceMap[data.params.args[0]] = true;
-  }
-  else if (method === 'destroyInstance') {
-    if (instanceMap[data.params.args[0]]) {
-      self.destroyInstance(data.params.args[0]);
-      delete instanceMap[data.params.args[0]];
+
+/**
+ * Run js code in a specific context.
+ * @param {string} code
+ * @param {object} context
+ */
+function runInContext(instanceId, code, context) {
+  var keys = []
+  var args = []
+  for (var key in context) {
+    if (key === '__core-js_shared__') {
+      key = '__core_js_shared__'
     }
-    else {
-      // self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
-    }
+    keys.push(key)
+    args.push(context[key])
   }
-  else if (self[data.params.method]) {
-    shouldReturnResult = true;
-    requestId = +data.id
-    self[data.params.method].apply(null, data.params.args);
-  }
-  else {
-    self.console.warn('execJSWithResult[' + data.params.method + '] error: jsframework has no such api');
-  }
-});
+  var bundle = `
+    (function (instanceContext) {
+      ${code}
+    })(this.instanceMap[${instanceId}])
+  `
+  return (new Function(...keys, bundle))(...args)
+}
 
 eventEmitter.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
   if (method === 'createInstance') {
     var url = data.params.sourceUrl;
+    isSandbox = false;
     postMessage({
       method: 'WxRuntime.clearLog',
     });
     importScripts(url);
     self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
-    instanceMap[data.params.args[0]] = true;
+    instanceMap[data.params.args[0]] = {};
+  }
+  else if (method === 'createInstanceContext') {
+    if (!data.params) return;
+    var url = data.params.sourceUrl;
+    var instanceid = data.params.args[0];
+    var options = data.params.args[2];
+    var instanceData = data.params.args[3];
+    var dependenceUrl = data.params.dependenceUrl;
+    var context = {};
+    var instanceContext = {};
+    isSandbox = true;
+    if (url) {
+      importScripts(url);
+    }
+    if (dependenceUrl) {
+      importScripts(dependenceUrl);
+    }
+    for (var prop in global) {
+      if (global.hasOwnProperty(prop) && injectedContextVariable.indexOf(prop) > -1) {
+        context[prop] = global[prop];
+      }
+    }
+    instanceContext = self.createInstanceContext(instanceid, options, instanceData);
+    for (var prop in instanceContext) {
+      if (instanceContext.hasOwnProperty(prop) && prop !== 'callNative') {
+        context[prop] = instanceContext[prop];
+      }
+    }
+    instanceMap[instanceid] = context;
+    if (dependenceUrl) {
+      runInContext(instanceid, createApiBundleEntry(instanceid), context)
+    }
+    if (url) {
+      runInContext(instanceid, createWeexBundleEntry(url), context)
+    }
+  }
+  else if (method === 'importScript') {
+    var url = data.params.sourceUrl;
+    var instanceContext = instanceMap[data.params.args[0]]
+    importScripts(url)
+    if (instanceContext) {
+      runInContext(data.params.args[0], createWeexBundleEntry(url), instanceContext)
+    }
   }
   else if (method === 'destroyInstance') {
     if (instanceMap[data.params.args[0]]) {
@@ -244,9 +430,22 @@ eventEmitter.on('WxDebug.callJS', function (data) {
       self.console.warn('invalid destroyInstance[' + data.params.args[0] + '] because runtime has been refreshed(It does not impact your code. )');
     }
   }
-  else if (self[data.params.method]) {
+  else if (method === '__WEEX_CALL_JAVASCRIPT__') {
+    console.log('CALLJS_______', data.params.args)
+    var instanceContext = instanceMap[data.params.args[0]];
+    if (instanceContext && instanceContext['__WEEX_CALL_JAVASCRIPT__']) {
+      instanceContext['__WEEX_CALL_JAVASCRIPT__'].apply(null, data.params.args)
+    }
+  }
+  else if ((instanceMap[data.params.args[0]] && instanceMap[data.params.args[0]][method]) || self[method]) {
     shouldReturnResult = false;
-    self[data.params.method].apply(null, data.params.args);
+    var instanceContext = instanceMap[data.params.args[0]];
+    if (instanceContext && instanceContext[data.params.method]) {
+      instanceContext[method].apply(null, data.params.args);
+    }
+    else {
+      self[method].apply(null, data.params.args);
+    }
   }
   else {
     self.console.warn('callJS[' + data.params.method + '] error: jsframework has no such api');
@@ -269,7 +468,6 @@ function syncRequest(data) {
     return JSON.parse(request.responseText);
   }
   else {
-    // self.console.error('sync request failed:['+request.status+']'+request.responseText);
     return {
       error: request.responseText
     };

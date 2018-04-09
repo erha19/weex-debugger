@@ -3,10 +3,6 @@ var websocket
 var channelId
 var connectUrl
 
-var $ = function (selector) {
-    return document.querySelector(selector)
-}
-
 function send(message) {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify(message))
@@ -44,7 +40,6 @@ function connect() {
             initQrcode()
         }
         else if (message.method == 'WxDebug.startDebugger') {
-
             if (channelId === message.params) {
                 sessionStorage.removeItem('channelId')
                 sessionStorage.removeItem('connectUrl')
@@ -53,10 +48,11 @@ function connect() {
         }
         else if (message.method == 'WxDebug.prompt'&&channelId === message.params.channelId) {
             var delayed = 5000 + message.params.messageText.length / 6 * 1000
-            toast(message.params.messageText.replace(/\n/g, '<br>'), delayed)
-
+            removeClassName($('.qrcode-wrap'), 'loading-state')
+            toast(translateI18n(message.params.messageText), delayed)
         }
     }
+
     websocket.onclose = function () {
         sessionStorage.removeItem('channelId')
         sessionStorage.removeItem('connectUrl')
@@ -87,7 +83,7 @@ $('#qrcode').onclick = function () {
     if (channelId&&!loadingSimulator) {
         if(navigator.platform=='MacIntel') {
             loadingSimulator=true
-            $('.qrcode-wrap').className += '  loading-state'
+            addClassName($('.qrcode-wrap'), 'loading-state')
             send({method: 'WxDebug.simrun', params: channelId})
         }
         else{
