@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -75,6 +75,13 @@
           "regenerator": true
         }
       ]
+    ]
+  },
+  "changelog": {
+    "messages": [
+      "Disable clearlog method on Runtime progress.",
+      "Support debugger on weexSDK v0.18.+ (add sandbox feature).",
+      "Add filter support for native logs."
     ]
   }
 }
