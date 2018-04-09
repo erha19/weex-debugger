@@ -34,7 +34,7 @@ debuggerRouter.registerHandler(function (message) {
         message.to('page.debugger');
       }
       if (message.payload.method === 'Runtime.enable') {
-        message.payload.method = 'Console.enable'
+        message.payload.method = 'Console.enable';
         message.to('page.native');
       }
     }

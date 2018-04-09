@@ -1,14 +1,14 @@
 const mlink = require('../midware');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const {bundleWrapper, apiWrapper} = require('../../util/wrapper');
+const { bundleWrapper, apiWrapper } = require('../../util/wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');
 const LOGLEVEL = {
   debug: 0,
-  log: 1, 
+  log: 1,
   info: 2,
   error: 3,
   warning: 4,
@@ -37,19 +37,17 @@ debuggerRouter.registerHandler(function (message) {
     });
     payload.params.sourceUrl = new MemoryFile(payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
   }
-  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') { 
+  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') {
     if (device.platform === 'iOS') {
       if (payload.params.args.length < 5) {
         payload.params.args.splice(1, 0, '');
       }
     }
-    let instanceid = payload.params.args[0];
-    let code = payload.params.args[1];
-    let options = payload.params.args[2];
-    let data = payload.params.args[3];
-    let dependenceCode = payload.params.args[4];
+    const code = payload.params.args[1];
+    const options = payload.params.args[2];
+    const dependenceCode = payload.params.args[4];
     if (dependenceCode) {
-      payload.params.dependenceUrl = new MemoryFile(`${path.dirname(options.bundleUrl)}/js-api.js`, apiWrapper(dependenceCode)).getUrl();
+      payload.params.dependenceUrl = new MemoryFile(`${path.dirname(options.bundleUrl)}/imported_${crypto.md5(dependenceCode)}.js`, apiWrapper(dependenceCode)).getUrl();
     }
     else {
       payload.params.dependenceUrl = '';
@@ -61,10 +59,9 @@ debuggerRouter.registerHandler(function (message) {
       payload.params.sourceUrl = '';
     }
   }
-  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') { 
-    let instanceid = payload.params.args[0];
-    let code = payload.params.args[1];
-    let bundleUrl = payload.params.args[2] && payload.params.args[2].bundleUrl;
+  else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') {
+    const code = payload.params.args[1];
+    const bundleUrl = payload.params.args[2] && payload.params.args[2].bundleUrl;
     payload.params.sourceUrl = new MemoryFile((bundleUrl || crypto.md5(code) + '.js'), bundleWrapper(code)).getUrl();
   }
   else if (payload.method === 'WxDebug.importScript') {
@@ -153,5 +150,4 @@ debuggerRouter.registerHandler(function (message) {
     message.to('proxy.inspector');
   }
   // message.to('proxy.inspector');
-  
 }).at('proxy.native').when('!payload.method||payload.method.split(".")[0]!=="WxDebug"');
