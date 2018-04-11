@@ -82,6 +82,7 @@
       "Disable clearlog method on Runtime progress.",
       "Support debugger on weexSDK v0.18.+ (add sandbox feature).",
       "Add filter support for native logs."
-    ]
+    ],
+    "url": "https://github.com/weexteam/weex-debugger/blob/master/README.md"
   }
 }
