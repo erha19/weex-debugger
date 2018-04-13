@@ -100,23 +100,21 @@ websocket.on('WxDebug.pushDebuggerInfo', function (event) {
     $('#app_info').innerHTML = appInfo
     $('#app_info').title = device.name + '@' + device.model
     $('#sdk_version').innerHTML = sdkVersion
-    $('#remote_debug').checked = typeof (device.remoteDebug) === "undefined" ? sessionStorage.getItem('remoteDebug') === "true" : device.remoteDebug;
-    $('#network').checked = typeof (device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
+    $('#remote_debug').checked = typeof (device.remoteDebug) === "undefined" ? false : device.remoteDebug;
+    $('#network').checked = typeof (device.network) === "undefined" ? false : device.network;
     $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
     $('#log_level').value = sessionStorage.getItem('logLevel') || 'debug'
     $('#remote_debug').onchange = function () {
       var checked = this.checked;
-      sessionStorage.setItem('remoteDebug', checked);
       remoteTimer && clearTimeout(remoteTimer)
       remoteTimer = setTimeout(function () {
         websocket.send({
           method: 'WxDebug.' + (checked ? 'enable' : 'disable')
         })
-      }, 500)
+      }, 200)
     }
     $('#network').onchange = function () {
       var checked = this.checked;
-      sessionStorage.setItem('network', checked);
       networkTimer && clearTimeout(networkTimer)
       networkTimer = setTimeout(function () {
         websocket.send({
@@ -125,7 +123,7 @@ websocket.on('WxDebug.pushDebuggerInfo', function (event) {
             enable: checked
           }
         })
-      }, 500)
+      }, 200)
     }
     $('#element_mode').onchange = function () {
       sessionStorage.setItem('elmentMode', this.value);

@@ -1,35 +1,21 @@
-{
-  "parser": "babel-eslint",
+'use strict'
 
-  "parserOptions": {
-    "ecmaVersion": 6,
-    "sourceType": "module"
+const version = require('./package.json').version;
+
+module.exports = {
+
+  parser: "babel-eslint",
+
+  parserOptions: {
+    ecmaVersion: 6,
+    sourceType: "module"
   },
-
-  "env": {
-    "es6": true,
-    "node": true,
-    "mocha": true
+  env: {
+    es6: true,
+    node: true,
+    mocha: true
   },
-
-  "globals": {
-    "weex": false,
-    "document": false,
-    "navigator": false,
-    "window": false,
-    "location": false,
-    "callNative": false,
-    "callNativeModule": false,
-    "callAddElement":false,
-    "callJS": false,
-    "notifyTrimMemory": false,
-    "markupState": false,
-    "compileAndRunBundle": false,
-    "expect": false,
-    "sinon": false
-  },
-
-  "rules": {
+  rules: {
     "flowtype/no-types-missing-file-annotation": 0,
     "accessor-pairs": 2,
     "arrow-spacing": [2, { "before": true, "after": true }],

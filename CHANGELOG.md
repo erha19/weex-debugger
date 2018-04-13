@@ -1,6 +1,11 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.10
+#### Changed
+  - Support debugger on muticontext.
+  - Remove useless log while using Js Debbug.
+
 ### 1.0.9
 #### Changed
   - Disable clearlog method on Runtime progress.

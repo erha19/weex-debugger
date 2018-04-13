@@ -431,7 +431,6 @@ eventEmitter.on('WxDebug.callJS', function (data) {
     }
   }
   else if (method === '__WEEX_CALL_JAVASCRIPT__') {
-    console.log('CALLJS_______', data.params.args)
     var instanceContext = instanceMap[data.params.args[0]];
     if (instanceContext && instanceContext['__WEEX_CALL_JAVASCRIPT__']) {
       instanceContext['__WEEX_CALL_JAVASCRIPT__'].apply(null, data.params.args)

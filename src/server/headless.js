@@ -14,6 +14,7 @@ exports.launchHeadless = async (host, remotePort) => {
   await page.goto(`http://${host}/runtime.html`);
   logger.verbose(`Headless page goto http://${host}/runtime.html`);
 };
+
 exports.closeHeadless = async () => {
   if (page) {
     await page.close();
