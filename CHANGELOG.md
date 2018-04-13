@@ -1,11 +1,20 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.10
+#### Changed
+  - Support debugger on muticontext.
+  - Remove useless log while using Js Debbug.
+
+### 1.0.9
+#### Changed
+  - Disable clearlog method on Runtime progress.
+
 ### 1.0.8
 #### Changed
   - Support debugger on weexSDK v0.18.+ (add sandbox feature).
 #### Fixed
-  - Fix native log can not be filter, [issues 355](https://github.com/weexteam/weex-toolkit/issues/355).
+  - Fixed [issues 355](https://github.com/weexteam/weex-toolkit/issues/355).
 
 ### 1.0.7
 #### Changed

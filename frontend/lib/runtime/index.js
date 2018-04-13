@@ -60,7 +60,7 @@ function initJSRuntime(message) {
     var method = message.method.split('.')[1];
     if (domain == 'WxRuntime') {
       if (method === 'clearLog') {
-        console.clear();
+        // console.clear();
       }
       else if (method === 'dom') {
         document.getElementById('dom').innerHTML = resolve(message.params);
