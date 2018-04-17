@@ -74,7 +74,7 @@ var eventEmitter = new EventEmitter();
 function postData(payload) {
   payloads.push(payload)
   try {
-    self.console.debug(`CallNative with some json data:`, payload);
+    // self.console.debug(`CallNative with some json data:`, payload);
     postMessage(payload);
   }
   catch (e) {
