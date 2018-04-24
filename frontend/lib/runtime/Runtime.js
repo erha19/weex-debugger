@@ -45,16 +45,11 @@ Object.defineProperty(this, 'setTimeout', {
 function createWeexBundleEntry(sourceUrl) {
   var code = '';
   if (self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@']) {
-    code += (self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@']) + '\n';
+    code += `// { "framework": "${(self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@'])}" }\n`;
   }
   code += '__weex_bundle_entry__(';
   injectedGlobals.forEach(function (g, i) {
-    if (false && g === 'navigator') {
-      code += 'typeof ' + g + '==="undefined"||' + g + '===self.' + g + '?undefined:' + g;
-    }
-    else {
-      code += 'typeof ' + g + '==="undefined"?undefined:' + g;
-    }
+    code += 'typeof ' + g + '==="undefined"?undefined:' + g;
     if (i < injectedGlobals.length - 1) {
       code += ',';
     }
@@ -75,9 +70,11 @@ self.__WEEX_DEVTOOL__ = true;
 var eventEmitter = new EventEmitter();
 
 function postData(payload) {
-  payloads.push(payload)
+  if (payload.method === 'WxDebug.callCreateBody' && !payload.params.domStr) {
+    return;
+  }
   try {
-    // self.console.debug(`CallNative with some json data:`, payload);
+    self.console.debug(`CallNative with some json data:`, payload);
     postMessage(payload);
   }
   catch (e) {
@@ -85,6 +82,7 @@ function postData(payload) {
     payload = JSON.parse(JSON.stringify(payload));
     postMessage(payload);
   }
+  payloads.push(payload)
 }
 
 var _rewriteLog = function () {
@@ -251,136 +249,128 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
   };
   postData(payload);
 };
+
 /**
  * init hook function for (layout/sandbox)
  */
-self.callNativeLog = function (str_array) {
-  var payload = {
-    method: 'WxDebug.callNativeLog',
-    params: {
-      instance: instance,
-      domStr: domStr
-    }
-  };
-  postData(payload);
-};
 
-self.callCreateBody = function (instance, domStr) {
-  var payload = {
-    method: 'WxDebug.callCreateBody',
-    params: {
-      instance: instance,
-      domStr: domStr
-    }
-  };
-  postData(payload);
-};
+// self.callCreateBody = function (instance, domStr) {
+//   if (!domStr) return;
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance,
+//       domStr: domStr
+//     }
+//   };
+//   postData(payload);
+// };
 
-self.callUpdateFinish = function (instance, tasks, callback) {
-  var payload = {
-    method: 'WxDebug.callUpdateFinish',
-    params: {
-      instance: instance,
-      tasks: tasks,
-      callback: callback
-    }
-  };
-  postData(payload);
-};
+// self.callUpdateFinish = function (instance, tasks, callback) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateFinish',
+//     params: {
+//       instance: instance,
+//       tasks: tasks,
+//       callback: callback
+//     }
+//   };
+//   postData(payload);
+// };
 
-self.callCreateFinish = function (instance) {
-  var payload = {
-    method: 'WxDebug.callCreateBody',
-    params: {
-      instance: instance
-    }
-  };
-  postData(payload);
-}
+// self.callCreateFinish = function (instance) {
+//   var payload = {
+//     method: 'WxDebug.callCreateBody',
+//     params: {
+//       instance: instance
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callRefreshFinish = function (instance, tasks, callback) {
-  var payload = {
-    method: 'WxDebug.callRefreshFinish',
-    params: {
-      instance: instance,
-      tasks: tasks,
-      callback: callback
-    }
-  };
-  postData(payload);
-}
+// self.callRefreshFinish = function (instance, tasks, callback) {
+//   var payload = {
+//     method: 'WxDebug.callRefreshFinish',
+//     params: {
+//       instance: instance,
+//       tasks: tasks,
+//       callback: callback
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callUpdateAttrs = function (instance, ref, data) {
-  var payload = {
-    method: 'WxDebug.callUpdateAttrs',
-    params: {
-      instance: instance,
-      ref: ref,
-      data: data
-    }
-  };
-  postData(payload);
-}
+// self.callUpdateAttrs = function (instance, ref, data) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateAttrs',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       data: data
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callUpdateStyle = function (instance, ref, data) {
-  var payload = {
-    method: 'WxDebug.callUpdateStyle',
-    params: {
-      instance: instance,
-      ref: ref,
-      data: data
-    }
-  };
-  postData(payload);
-}
+// self.callUpdateStyle = function (instance, ref, data) {
+//   var payload = {
+//     method: 'WxDebug.callUpdateStyle',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       data: data
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callRemoveElement = function (instance, ref) {
-  var payload = {
-    method: 'WxDebug.callRemoveElement',
-    params: {
-      nstance: instance,
-      ref: ref
-    }
-  };
-  postData(payload);
-}
+// self.callRemoveElement = function (instance, ref) {
+//   var payload = {
+//     method: 'WxDebug.callRemoveElement',
+//     params: {
+//       nstance: instance,
+//       ref: ref
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callMoveElement = function (instance, ref, parentRef, index_str) {
-  var payload = {
-    method: 'WxDebug.callMoveElement',
-    params: {
-      instance: instance,
-      ref: ref,
-      parentRef: parentRef,
-      index_str: index_str
-    }
-  };
-  postData(payload);;
-}
+// self.callMoveElement = function (instance, ref, parentRef, index_str) {
+//   var payload = {
+//     method: 'WxDebug.callMoveElement',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       parentRef: parentRef,
+//       index_str: index_str
+//     }
+//   };
+//   postData(payload);;
+// }
 
-self.callAddEvent = function (instance, ref, event) {
-  var payload = {
-    method: 'WxDebug.callAddEvent',
-    params: {
-      instance: instance,
-      ref: ref,
-      event: event
-    }
-  };
-  postData(payload);
-}
+// self.callAddEvent = function (instance, ref, event) {
+//   var payload = {
+//     method: 'WxDebug.callAddEvent',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       event: event
+//     }
+//   };
+//   postData(payload);
+// }
 
-self.callRemoveEvent = function (instance, ref, event) {
-  var payload = {
-    method: 'WxDebug.callRemoveEvent',
-    params: {
-      instance: instance,
-      ref: ref,
-      event: event
-    }
-  };
-  postData(payload);
-}
+// self.callRemoveEvent = function (instance, ref, event) {
+//   var payload = {
+//     method: 'WxDebug.callRemoveEvent',
+//     params: {
+//       instance: instance,
+//       ref: ref,
+//       event: event
+//     }
+//   };
+//   postData(payload);
+// }
 
 eventEmitter.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
@@ -430,11 +420,13 @@ eventEmitter.on('WxDebug.callJS', function (data) {
     }
   }
   else if (method === 'importScript') {
-    var url = data.params.sourceUrl;
-    var instanceContext = instanceMap[data.params.args[0]]
-    importScripts(url)
-    if (instanceContext) {
-      runInContext(data.params.args[0], createWeexBundleEntry(url), instanceContext)
+    if (isSandbox) {
+      var url = data.params.sourceUrl;
+      var instanceContext = instanceMap[data.params.args[0]]
+      importScripts(url)
+      if (instanceContext) {
+        runInContext(data.params.args[0], createWeexBundleEntry(url), instanceContext)
+      }
     }
   }
   else if (method === 'destroyInstance') {
@@ -460,8 +452,8 @@ eventEmitter.on('WxDebug.callJS', function (data) {
   // }
   else if ((instanceMap[data.params.args[0]] && instanceMap[data.params.args[0]][method]) || self[method]) {
     shouldReturnResult = false;
-    var instanceContext = instanceMap[data.params.args[0]];
-    if (instanceContext && instanceContext[data.params.method]) {
+    if (isSandbox) {
+      var instanceContext = instanceMap[data.params.args[0]];
       instanceContext[method].apply(null, data.params.args);
     }
     else {
