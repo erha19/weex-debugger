@@ -7,7 +7,7 @@ const normalize = (url) => {
     urlObj.search = '?' + urlObj.query;
   }
   return urlObj.format();
-}
+};
 const bundleWrapper = (code, sourceUrl) => {
   const injectedGlobals = [
     // ES
@@ -60,7 +60,7 @@ const transformUrlToLocalUrl = (sourceURl) => {
     bundleUrl = bundleUrl.substring(0, bundleUrl.length - 1);
   }
   return '/source/' + bundleUrl;
-}
+};
 module.exports = {
   bundleWrapper,
   apiWrapper,

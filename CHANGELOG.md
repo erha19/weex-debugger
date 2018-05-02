@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ### 1.0.11
 #### Fixed
+  - Fixed [weex-toolkit/issues/265](https://github.com/weexteam/weex-toolkit/issues/265#issuecomment-385626763)
+
+### 1.0.11
+#### Fixed
   - Fixed [weex-toolkit/issues/366](https://github.com/weexteam/weex-toolkit/issues/366)
 #### Changed
   - Remove useless `callNative` log.
