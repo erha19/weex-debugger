@@ -134,7 +134,7 @@ exports.start = function (target, config, cb) {
         logger.log(output.toString());
         if (!shouldReloadDebugger) {
           shouldReloadDebugger = true;
-          const bundles = json.assets.map((o) => o.name);
+          const bundles = json.assets.map((o) => o.name.replace('\\', '/'));
           const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
           config.bundleUrls = bundleUrls;
           this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
