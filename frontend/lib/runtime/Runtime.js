@@ -254,123 +254,123 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
  * init hook function for (layout/sandbox)
  */
 
-// self.callCreateBody = function (instance, domStr) {
-//   if (!domStr) return;
-//   var payload = {
-//     method: 'WxDebug.callCreateBody',
-//     params: {
-//       instance: instance,
-//       domStr: domStr
-//     }
-//   };
-//   postData(payload);
-// };
+self.callCreateBody = function (instance, domStr) {
+  if (!domStr) return;
+  var payload = {
+    method: 'WxDebug.callCreateBody',
+    params: {
+      instance: instance,
+      domStr: domStr
+    }
+  };
+  postData(payload);
+};
 
-// self.callUpdateFinish = function (instance, tasks, callback) {
-//   var payload = {
-//     method: 'WxDebug.callUpdateFinish',
-//     params: {
-//       instance: instance,
-//       tasks: tasks,
-//       callback: callback
-//     }
-//   };
-//   postData(payload);
-// };
+self.callUpdateFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callUpdateFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  postData(payload);
+};
 
-// self.callCreateFinish = function (instance) {
-//   var payload = {
-//     method: 'WxDebug.callCreateBody',
-//     params: {
-//       instance: instance
-//     }
-//   };
-//   postData(payload);
-// }
+self.callCreateFinish = function (instance) {
+  var payload = {
+    method: 'WxDebug.callCreateBody',
+    params: {
+      instance: instance
+    }
+  };
+  postData(payload);
+}
 
-// self.callRefreshFinish = function (instance, tasks, callback) {
-//   var payload = {
-//     method: 'WxDebug.callRefreshFinish',
-//     params: {
-//       instance: instance,
-//       tasks: tasks,
-//       callback: callback
-//     }
-//   };
-//   postData(payload);
-// }
+self.callRefreshFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callRefreshFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  postData(payload);
+}
 
-// self.callUpdateAttrs = function (instance, ref, data) {
-//   var payload = {
-//     method: 'WxDebug.callUpdateAttrs',
-//     params: {
-//       instance: instance,
-//       ref: ref,
-//       data: data
-//     }
-//   };
-//   postData(payload);
-// }
+self.callUpdateAttrs = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateAttrs',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  postData(payload);
+}
 
-// self.callUpdateStyle = function (instance, ref, data) {
-//   var payload = {
-//     method: 'WxDebug.callUpdateStyle',
-//     params: {
-//       instance: instance,
-//       ref: ref,
-//       data: data
-//     }
-//   };
-//   postData(payload);
-// }
+self.callUpdateStyle = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateStyle',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  postData(payload);
+}
 
-// self.callRemoveElement = function (instance, ref) {
-//   var payload = {
-//     method: 'WxDebug.callRemoveElement',
-//     params: {
-//       nstance: instance,
-//       ref: ref
-//     }
-//   };
-//   postData(payload);
-// }
+self.callRemoveElement = function (instance, ref) {
+  var payload = {
+    method: 'WxDebug.callRemoveElement',
+    params: {
+      nstance: instance,
+      ref: ref
+    }
+  };
+  postData(payload);
+}
 
-// self.callMoveElement = function (instance, ref, parentRef, index_str) {
-//   var payload = {
-//     method: 'WxDebug.callMoveElement',
-//     params: {
-//       instance: instance,
-//       ref: ref,
-//       parentRef: parentRef,
-//       index_str: index_str
-//     }
-//   };
-//   postData(payload);;
-// }
+self.callMoveElement = function (instance, ref, parentRef, index_str) {
+  var payload = {
+    method: 'WxDebug.callMoveElement',
+    params: {
+      instance: instance,
+      ref: ref,
+      parentRef: parentRef,
+      index_str: index_str
+    }
+  };
+  postData(payload);;
+}
 
-// self.callAddEvent = function (instance, ref, event) {
-//   var payload = {
-//     method: 'WxDebug.callAddEvent',
-//     params: {
-//       instance: instance,
-//       ref: ref,
-//       event: event
-//     }
-//   };
-//   postData(payload);
-// }
+self.callAddEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callAddEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  postData(payload);
+}
 
-// self.callRemoveEvent = function (instance, ref, event) {
-//   var payload = {
-//     method: 'WxDebug.callRemoveEvent',
-//     params: {
-//       instance: instance,
-//       ref: ref,
-//       event: event
-//     }
-//   };
-//   postData(payload);
-// }
+self.callRemoveEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callRemoveEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  postData(payload);
+}
 
 eventEmitter.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
