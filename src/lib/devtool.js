@@ -109,6 +109,12 @@ exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
   return bundleUrls;
 };
 
+exports.reload = function () {
+  Router.get('debugger').pushMessage('proxy.native', {
+    method: 'WxDebug.reload'
+  });
+};
+
 exports.start = function (target, config, cb) {
   resolveConnectUrl(config);
   if (isUrl(target)) {
@@ -140,9 +146,7 @@ exports.start = function (target, config, cb) {
           this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
         }
         else {
-          Router.get('debugger').pushMessage('proxy.native', {
-            method: 'WxDebug.reload'
-          });
+          exports.reload();
         }
       }
     });
