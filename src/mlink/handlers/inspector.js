@@ -38,13 +38,6 @@ debuggerRouter.registerHandler(function (message) {
         message.to('page.native');
       }
     }
-    const params = Object.assign({
-      stack: 'ERROR: loss message from "proxy.inspector"',
-      os: os.platform(),
-      node: config.nodeVersion,
-      npm: config.npmVersion
-    }, config.weexVersion);
-    hook.record('/weex_tool.weex_debugger.app_crash', params);
   }
   else {
     logger.error('loss message from "proxy.inspector" device not found in channelId [' + message.channelId + ']');

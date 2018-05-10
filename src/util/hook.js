@@ -1,6 +1,9 @@
 
 const request = require('request');
 const dns = require('dns');
+const {
+  logger
+} = require('./logger');
 let shouldBeTelemetry = false;
 
 exports.record = (logkey, gokey) => {
@@ -14,11 +17,16 @@ exports.record = (logkey, gokey) => {
     }
   }
   url += `t=${(new Date()).getTime()}`;
-  dns.resolve('gm.mmstat.com', function (err) {
-    if (!err) {
-      request.get(url);
-    }
-  });
+  try {
+    dns.resolve('gm.mmstat.com', function (err) {
+      if (!err) {
+        request.get(url);
+      }
+    });
+  }
+  catch(e) {
+    logger.error(e);
+  }
 };
 
 exports.allowTarck = () => {

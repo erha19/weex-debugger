@@ -81,7 +81,7 @@ function postData(payload) {
     return;
   }
   try {
-    self.console.debug(`CallNative with some json data:`, payload);
+    // self.console.debug(`CallNative with some json data:`, payload);
     postMessage(payload);
   }
   catch (e) {
