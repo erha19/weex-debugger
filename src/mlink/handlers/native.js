@@ -144,12 +144,7 @@ debuggerRouter.registerHandler(function (message) {
   else if (payload.result && payload.id === undefined) {
     message.discard();
   }
-  // remove useless but large message
-  if (payload.method && payload.method === 'Page.screencastFrameAck') {
-    message.discard();
-  }
-  else {
-    message.to('proxy.inspector');
-  }
+
+  message.to('proxy.inspector');
   // message.to('proxy.inspector');
 }).at('proxy.native').when('!payload.method||payload.method.split(".")[0]!=="WxDebug"');
