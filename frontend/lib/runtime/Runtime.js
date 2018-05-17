@@ -253,7 +253,7 @@ function initLayoutAndSandboxEnv() {
   
   self.callCreateFinish = function (instance) {
     var payload = {
-      method: 'WxDebug.callCreateBody',
+      method: 'WxDebug.callCreateFinish',
       params: {
         instance: instance
       }
