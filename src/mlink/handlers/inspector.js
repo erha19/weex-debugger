@@ -1,8 +1,5 @@
-const os = require('os');
 const mlink = require('../midware');
 const debuggerRouter = mlink.Router.get('debugger');
-const hook = require('../../util/hook');
-const config = require('../../lib/config');
 const DeviceManager = require('../managers/device_manager');
 const redirectMessage = /^(Page.(enable|disable|reload)|Debugger|Target|Worker|Runtime\.runIfWaitingForDebugger)/;
 const ignoredMessage = /^(ServiceWorker)/;
@@ -23,20 +20,17 @@ debuggerRouter.registerHandler(function (message) {
       message.discard();
     }
     else {
-      // remove useless but large message
-      if (message.payload.method === 'Page.screencastFrameAck') {
-        message.discard();
-      }
-      else {
-        message.to('proxy.native');
-      }
       if (message.payload.method === 'Page.startScreencast') {
         message.to('page.debugger');
       }
-      if (message.payload.method === 'Runtime.enable') {
+      else if (message.payload.method === 'Runtime.enable') {
         message.payload.method = 'Console.enable';
-        message.to('page.native');
+        message.to('proxy.native');
       }
+      else if (message.payload.method === 'Page.screencastFrameAck') {
+        message.to('page.debugger');
+      }
+      message.to('proxy.native');
     }
   }
   else {
