@@ -6,7 +6,7 @@ var gl_localeText={
         "CLICK_TIPS":"点击二维码启动模拟器进行调试(需安装Xcode本地环境)",
         "OR":"或",
         "TIPS":"这个二维码开始调试",
-        "VERSION":"weex devtool 1.0.12",
+        "VERSION":"weex devtool 1.0.13",
         "DISCONNECT_TIPS":"设备断开连接,请重新扫码",
         "BUNDLE_TIPS":"扫描或者点击二维码加载bundle(点击仅限模拟器)",
         "TIMELINE_TIPS_DESC":"请刷新手机中的当前页面或跳转到新的weex页面，然后此面板将显示详细的性能报告",
@@ -36,7 +36,8 @@ var gl_localeText={
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"请不要打开chrome自带的的inspector",
         "TOAST_CAN_NOT_FIND_RUNTIME":"无法初始化JSDebug执行环境，请重启程序",
         "ONLY_SUPPORT_IOS":"模拟器启动需安装Xcode环境且不支持Windows平台使用",
-        "PLEASE_INSTALL_XCODE":"模拟器调试请在本地安装Xcode环境"
+        "PLEASE_INSTALL_XCODE":"模拟器调试请在本地安装Xcode环境",
+        "NOT_SUPPORT_YET": "模拟器调试暂不可使用"
     },
     "en":{
         "SCAN":"Scan",
@@ -45,7 +46,7 @@ var gl_localeText={
         "CLICK_TIPS":"start simulator debugger (Xcode environment)",
         "OR":"or",
         "TIPS":"this qrcode to start debugger",
-        "VERSION":"weex devtool 1.0.12",
+        "VERSION":"weex devtool 1.0.13",
         "DISCONNECT_TIPS":"device disconnect! please rescan",
         "BUNDLE_TIPS":"Click or Scan for rendering(click only for simulator)",
         "TIMELINE_TIPS_DESC":"Please refresh the current page in your phone or jump into a new weex page, then this panel will show you a detailed performance report.",
@@ -75,6 +76,7 @@ var gl_localeText={
         "TOAST_DO_NOT_OPEN_CHROME_DEVTOOL":"Please do not open the inspector that comes with chrome",
         "TOAST_CAN_NOT_FIND_RUNTIME":"Please restart，can not find the runtime",
         "ONLY_SUPPORT_IOS":"Just support ios simulator now!",
-        "PLEASE_INSTALL_XCODE":"Please setup Xcode on your platform."
+        "PLEASE_INSTALL_XCODE":"Please setup Xcode on your platform.",
+        "NOT_SUPPORT_YET": "Debug with simulator doesn't support now."
     }
 }

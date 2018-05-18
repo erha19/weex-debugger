@@ -80,6 +80,8 @@ function createQRCode(channelId, connectUrl) {
 
 var loadingSimulator=false
 $('#qrcode').onclick = function () {
+    toast(translateI18n('NOT_SUPPORT_YET'),5000);
+    return;
     if (channelId&&!loadingSimulator) {
         if(navigator.platform=='MacIntel') {
             loadingSimulator=true
