@@ -1,6 +1,17 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.13
+#### Fixed
+  - Fixed the application screencast.
+  - Fixed the filter of device log.
+#### Changed
+  - Remove simulator debugger.
+
+### 1.0.12
+#### Fixed
+  - Fixed issue https://github.com/weexteam/weex-toolkit/issues/265.
+
 ### 1.0.11
 #### Fixed
   - Fixed [weex-toolkit/issues/265](https://github.com/weexteam/weex-toolkit/issues/265#issuecomment-385626763)
