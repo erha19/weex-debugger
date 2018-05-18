@@ -65,9 +65,9 @@ Console.ConsoleView = class extends UI.VBox {
     this._filterBar = new UI.FilterBar('consoleView');
 
     this._showNativeLogCheckbox = new UI.ToolbarCheckbox(
-        Common.UIString('Show native log'), Common.UIString('Showing native log or not.'),
+        Common.UIString('Show Device Log'), Common.UIString('Showing native log or not.'),
         Common.moduleSetting('showNativeConsoleLog'));
-    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateMessageList.bind(this), false);
+    this._showNativeLogCheckbox.inputElement.addEventListener('change', this._updateFilterStatus.bind(this), false);
     this._progressToolbarItem = new UI.ToolbarItem(createElement('div'));
 
     var toolbar = new UI.Toolbar('', this._contentsElement);
@@ -96,9 +96,9 @@ Console.ConsoleView = class extends UI.VBox {
     this._messagesElement.insertBefore(this._filterStatusMessageElement, this._messagesElement.firstChild);
     this._filterStatusTextElement = this._filterStatusMessageElement.createChild('span', 'console-info');
     this._filterStatusMessageElement.createTextChild(' ');
-    var resetFiltersLink = this._filterStatusMessageElement.createChild('span', 'console-info link');
-    resetFiltersLink.textContent = Common.UIString('Show all messages (include logs from native).');
-    resetFiltersLink.addEventListener('click', this._filter.reset.bind(this._filter), true);
+    // var resetFiltersLink = this._filterStatusMessageElement.createChild('span', 'console-info link');
+    // resetFiltersLink.textContent = Common.UIString('Show all messages (include logs from native).');
+    // resetFiltersLink.addEventListener('click', this._filter.reset.bind(this._filter), true);
 
     this._topGroup = Console.ConsoleGroup.createTopGroup();
     this._currentGroup = this._topGroup;
