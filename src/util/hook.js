@@ -24,7 +24,7 @@ exports.record = (logkey, gokey) => {
       }
     });
   }
-  catch(e) {
+  catch (e) {
     logger.error(e);
   }
 };

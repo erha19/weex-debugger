@@ -223,6 +223,11 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
   postData(payload);
 };
 
+self.nativeLog = function (args){
+  _rewriteLog(self.WXEnvironment.logLevel);
+  self.console.log(args)
+}
+
 /**
  * init hook function for (layout/sandbox)
  */
@@ -469,7 +474,8 @@ eventEmitter.on('WxDebug.initJSRuntime', function (message) {
   if (transitionString2Boob(message.params.isLayoutAndSandbox)) {
     initLayoutAndSandboxEnv();
   }
-  importScripts(message.params.url);
+  importScripts('./js-framework.js');
+  // importScripts(message.params.url);
   _rewriteLog(message.params.env.WXEnvironment.logLevel);
 });
 

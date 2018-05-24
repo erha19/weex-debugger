@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -79,10 +79,8 @@
   },
   "changelog": {
     "messages": [
-      "Fixed the application screencast.",
-      "Fixed the filter of device log.",
-      "Remove simulator debugger."
+      "Suprrot JS FRAMEWORK 0.26.0+."
     ],
-    "url": "https://github.com/weexteam/weex-debugger/blob/master/README.md"
+    "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }
 }

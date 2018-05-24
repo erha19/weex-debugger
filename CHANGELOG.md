@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.14
+#### Fixed
+  - Suprrot JS FRAMEWORK 0.26.0+
+
 ### 1.0.13
 #### Fixed
   - Fixed the application screencast.
