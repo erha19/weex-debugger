@@ -474,8 +474,8 @@ eventEmitter.on('WxDebug.initJSRuntime', function (message) {
   if (transitionString2Boob(message.params.isLayoutAndSandbox)) {
     initLayoutAndSandboxEnv();
   }
-  importScripts('./js-framework.js');
-  // importScripts(message.params.url);
+  // importScripts('./js-framework.js');
+  importScripts(message.params.url);
   _rewriteLog(message.params.env.WXEnvironment.logLevel);
 });
 

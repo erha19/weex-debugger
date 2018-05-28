@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -79,6 +79,7 @@
   },
   "changelog": {
     "messages": [
+      "Remove the local reference to JS FRAMEWORK.",
       "Suprrot JS FRAMEWORK 0.26.0+."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
