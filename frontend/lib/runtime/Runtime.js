@@ -306,7 +306,7 @@ function initLayoutAndSandboxEnv() {
     var payload = {
       method: 'WxDebug.callRemoveElement',
       params: {
-        nstance: instance,
+        instance: instance,
         ref: ref
       }
     };
