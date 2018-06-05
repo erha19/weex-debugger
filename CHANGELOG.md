@@ -1,7 +1,11 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
-### 1.0.14
+### 1.0.16
+#### Changed
+  - Support for the weex v0.19.0.
+
+### 1.0.15
 #### Fixed
   - Remove the local reference to JS FRAMEWORK.
 
