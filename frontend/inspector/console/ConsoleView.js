@@ -75,7 +75,7 @@ Console.ConsoleView = class extends UI.VBox {
         /** @type {!UI.Action }*/ (UI.actionRegistry.action('console.clear'))));
     toolbar.appendToolbarItem(this._filterBar.filterButton());
     toolbar.appendToolbarItem(this._executionContextComboBox);
-    toolbar.appendToolbarItem(this._showNativeLogCheckbox);
+    // toolbar.appendToolbarItem(this._showNativeLogCheckbox);
     toolbar.appendToolbarItem(this._progressToolbarItem);
 
     this._filterBar.show(this._contentsElement);
