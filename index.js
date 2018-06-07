@@ -17,7 +17,7 @@ const startServerAndLaunchDevtool = (entry, config, cb) => {
   Config.port = config.port || 8088;
   Config.remoteDebugPort = config.remoteDebugPort || 9222;
   Config.enableHeadless = !(config.enableHeadless === false);
-  Config.mannul = config.mannul;
+  Config.mannul = config.mannul || false;
   Devtool.start(entry, Config, cb);
 };
 
