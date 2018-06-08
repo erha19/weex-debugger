@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.17
+#### Changed
+  - Turning off display of client log information due to memory leaks.
+
 ### 1.0.16
 #### Changed
   - Support for the weex v0.19.0.
