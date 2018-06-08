@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ### 1.0.17
 #### Changed
-  - Turning off display of client log information due to memory leaks.
+  - Turning off display of client log information due to [issue 408](https://github.com/weexteam/weex-toolkit/issues/408).
 
 ### 1.0.16
 #### Changed
