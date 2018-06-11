@@ -47,7 +47,8 @@ function createWeexBundleEntry(sourceUrl) {
       code += ',';
     }
   });
-  code += ');';
+  // Avoiding the structure of comments in the last line causes `}` to be annotated
+  code += '\n);';
   return code;
 }
 
