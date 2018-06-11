@@ -1,6 +1,12 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.18
+#### Fixed
+  - Avoiding the structure of comments in the last line causes `}` to be annotated.
+#### Changed
+  - Add mannul api expose for npm useage.
+  
 ### 1.0.17
 #### Changed
   - Turning off display of client log information due to [issue 408](https://github.com/weexteam/weex-toolkit/issues/408).

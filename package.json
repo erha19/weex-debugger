@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -79,7 +79,8 @@
   },
   "changelog": {
     "messages": [
-      "Temporarily remove log message from native, cause of the issue: https://github.com/weexteam/weex-toolkit/issues/408."
+      "Bugfix: Avoiding the structure of comments in the last line causes `}` to be annotated.",
+      "Changed: Add mannul api expose for npm useage"
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }
