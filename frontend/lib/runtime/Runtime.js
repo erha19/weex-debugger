@@ -77,6 +77,17 @@ function transitionString2Boob(str) {
   }
 }
 
+// The argument maybe an undefine value
+function protectedAragument(arg) {
+  var args = Array.prototype.slice.call(arg);
+  for(var i = 0; i < args.length; i++) {
+    if (!args[i]){
+      args[i] = '';
+    }
+  }
+  return args;
+}
+
 function postData(payload) {
   if (payload.method === 'WxDebug.callCreateBody' && !payload.params.domStr) {
     return;
@@ -150,7 +161,7 @@ self.callNativeModule = function () {
     method: 'WxDebug.syncCall',
     params: {
       method: 'callNativeModule',
-      args: Array.prototype.slice.call(arguments)
+      args: protectedAragument(arguments)
     },
     channelId: channelId
   }
@@ -172,11 +183,17 @@ self.callNativeModule = function () {
 }
 
 self.callNativeComponent = function () {
+  var args = Array.prototype.slice.call(arguments);
+  for(var i = 0; i < args.length; i++) {
+    if (!args[i]){
+      args[i] = ''
+    }
+  }
   var message = {
     method: 'WxDebug.syncCall',
     params: {
       method: 'callNativeComponent',
-      args: Array.prototype.slice.call(arguments)
+      args: args
     },
     channelId: channelId
   }
