@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.19
+#### Fixed
+  - Protect the parameters passed to native.
+  
 ### 1.0.18
 #### Fixed
   - Avoiding the structure of comments in the last line causes `}` to be annotated.
