@@ -16,7 +16,7 @@ const devtool = require('../lib/lib/devtool');
 const hook = require('../lib/util/hook');
 const env = require('../lib/util/env');
 const hosts = require('../lib/util/hosts');
-const headless = require('../lib/server/headless');
+// const headless = require('../lib/server/headless');
 const {
   LOGLEVELS,
   logger
@@ -137,7 +137,7 @@ process.on('unhandledRejection', (reason, p) => {logger
 });
 
 process.on('SIGINT', err => {
-  headless.closeHeadless();
+  // headless.closeHeadless();
   exit(0);
 })
 // Check whether the port is occupied

@@ -6,9 +6,8 @@ const debugServer = require('../server');
 const hook = require('../util/hook');
 const boxen = require('boxen');
 
-const detect = require('detect-port');
 const launcher = require('../util/launcher');
-const headless = require('../server/headless');
+// const headless = require('../server/headless');
 const mlink = require('../mlink/midware');
 const Router = mlink.Router;
 
@@ -79,21 +78,21 @@ exports.startServer = function (ip, port) {
 exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   logger.info('Launching Dev Tools...');
-  if (config.enableHeadless) {
-    startPath += 2;
-    // Check whether the port is occupied
-    detect(config.remoteDebugPort).then(function (open) {
-      if (+config.remoteDebugPort !== open) {
-        headless.closeHeadless();
-        logger.info(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
-      }
-      else {
-        logger.info(`Starting inspector on port ${open}`);
-      }
-      config.remoteDebugPort = open;
-      headless.launchHeadless(`${config.ip}:${config.port}`, open);
-    });
-  }
+  // if (config.enableHeadless) {
+  //   startPath += 2;
+  //   // Check whether the port is occupied
+  //   detect(config.remoteDebugPort).then(function (open) {
+  //     if (+config.remoteDebugPort !== open) {
+  //       headless.closeHeadless();
+  //       logger.info(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
+  //     }
+  //     else {
+  //       logger.info(`Starting inspector on port ${open}`);
+  //     }
+  //     config.remoteDebugPort = open;
+  //     headless.launchHeadless(`${config.ip}:${config.port}`, open);
+  //   });
+  // }
   launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
   hook.record('/weex_tool.weex_debugger.start_debugger', { start_path: startPath });
 };
