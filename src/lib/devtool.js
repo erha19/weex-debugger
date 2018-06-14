@@ -1,11 +1,12 @@
 const hosts = require('../util/hosts');
-const path = require('path');
+// const path = require('path');
 const chalk = require('chalk');
 const config = require('./config');
 const debugServer = require('../server');
-const hook = require('../util/hook');
+// const hook = require('../util/hook');
 const boxen = require('boxen');
 
+// const detect = require('detect-port');
 const launcher = require('../util/launcher');
 // const headless = require('../server/headless');
 const mlink = require('../mlink/midware');
@@ -21,7 +22,7 @@ const {
 // 7 - start with debugserver with headless server and building
 let startPath = 1;
 
-const builder = require('weex-builder');
+// const builder = require('weex-builder');
 
 function resolveBundleUrl (bundlePath, ip, port) {
   return `http://${ip}:${port}/${config.bundleDir}/${bundlePath.replace(/\.(we|vue)$/, '.js')}`;
@@ -78,23 +79,25 @@ exports.startServer = function (ip, port) {
 exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   logger.info('Launching Dev Tools...');
-  // if (config.enableHeadless) {
-  //   startPath += 2;
-  //   // Check whether the port is occupied
-  //   detect(config.remoteDebugPort).then(function (open) {
-  //     if (+config.remoteDebugPort !== open) {
-  //       headless.closeHeadless();
-  //       logger.info(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
-  //     }
-  //     else {
-  //       logger.info(`Starting inspector on port ${open}`);
-  //     }
-  //     config.remoteDebugPort = open;
-  //     headless.launchHeadless(`${config.ip}:${config.port}`, open);
-  //   });
-  // }
-  launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
-  hook.record('/weex_tool.weex_debugger.start_debugger', { start_path: startPath });
+  if (config.enableHeadless) {
+    startPath += 2;
+    // // Check whether the port is occupied
+    // detect(config.remoteDebugPort).then(function (open) {
+    //   if (+config.remoteDebugPort !== open) {
+    //     headless.closeHeadless();
+    //     logger.info(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
+    //   }
+    //   else {
+    //     logger.info(`Starting inspector on port ${open}`);
+    //   }
+    //   config.remoteDebugPort = open;
+    //   headless.launchHeadless(`${config.ip}:${config.port}`, open);
+    // });
+  }
+  else {
+    launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
+  }
+  // hook.record('/weex_tool.weex_debugger.start_debugger', { start_path: startPath });
 };
 
 exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
@@ -121,35 +124,35 @@ exports.start = function (target, config, cb) {
     config.bundleUrls = bundleUrls;
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
   }
-  else if (target) {
-    const filePath = path.resolve(target);
-    let shouldReloadDebugger = false;
-    startPath += 4;
-    builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
-      watch: true,
-      ext: config.ext,
-      min: config.min,
-      devtool: 'inline-source-map'
-    }, (err, output, json) => {
-      if (err) {
-        logger.error(err);
-      }
-      else {
-        logger.info('Build completed!\nChild');
-        logger.log(output.toString());
-        if (!shouldReloadDebugger) {
-          shouldReloadDebugger = true;
-          const bundles = json.assets.map((o) => o.name.replace('\\', '/'));
-          const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
-          config.bundleUrls = bundleUrls;
-          this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
-        }
-        else {
-          exports.reload();
-        }
-      }
-    });
-  }
+  // else if (target) {
+  //   const filePath = path.resolve(target);
+  //   let shouldReloadDebugger = false;
+    // startPath += 4;
+  //   builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
+  //     watch: true,
+  //     ext: config.ext,
+  //     min: config.min,
+  //     devtool: 'inline-source-map'
+  //   }, (err, output, json) => {
+  //     if (err) {
+  //       logger.error(err);
+  //     }
+  //     else {
+  //       logger.info('Build completed!\nChild');
+  //       logger.log(output.toString());
+  //       if (!shouldReloadDebugger) {
+  //         shouldReloadDebugger = true;
+  //         const bundles = json.assets.map((o) => o.name.replace('\\', '/'));
+  //         const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
+  //         config.bundleUrls = bundleUrls;
+  //         this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
+  //       }
+  //       else {
+  //         exports.reload();
+  //       }
+  //     }
+  //   });
+  // }
   else {
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
   }
