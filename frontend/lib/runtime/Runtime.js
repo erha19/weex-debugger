@@ -57,6 +57,7 @@ function createApiBundleEntry(instance) {
   code += `__weex_api_entry__(instanceMap[${instance}]);`
   return code;
 }
+
 var origConsole = self.console;
 var clearConsole = self.console.clear.bind(self.console);
 self.__WEEX_DEVTOOL__ = true;
@@ -383,17 +384,13 @@ eventEmitter.on('WxDebug.callJS', function (data) {
   }
   else if (method === 'createInstanceContext') {
     if (!data.params) return;
-    var url = data.params.sourceUrl;
     var instanceid = data.params.args[0];
-    var options = data.params.args[2];
-    var instanceData = data.params.args[3];
+    var options = data.params.args[1];
+    var instanceData = data.params.args[2];
     var dependenceUrl = data.params.dependenceUrl;
     var context = {};
     var instanceContext = {};
     isSandbox = true;
-    if (url) {
-      importScripts(url);
-    }
     if (dependenceUrl) {
       importScripts(dependenceUrl);
     }
@@ -411,9 +408,6 @@ eventEmitter.on('WxDebug.callJS', function (data) {
     instanceMap[instanceid] = context;
     if (dependenceUrl) {
       runInContext(instanceid, createApiBundleEntry(instanceid), context)
-    }
-    if (url) {
-      runInContext(instanceid, createWeexBundleEntry(url), context)
     }
   }
   else if (method === 'importScript') {
