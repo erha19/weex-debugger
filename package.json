@@ -1,7 +1,7 @@
 {
   "name": "simple-weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
