@@ -158,9 +158,11 @@ class Router extends Emitter {
     }
   }
 }
+
 Router.Event = {
   TERMINAL_JOINED: 0,
   TERMINAL_LEAVED: 1,
   MESSAGE_RECEIVED: 2
 };
+
 module.exports = Router;

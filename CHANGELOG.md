@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.20-beta.0
+#### Fixed
+  - Try to fix the socket connect issue on android devtool, should use weex_inspector > 0.16.7.
+
 ### 1.0.19
 #### Fixed
   - Protect the parameters passed to native.
