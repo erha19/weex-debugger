@@ -26,12 +26,15 @@ function connect(channelId) {
       worker.postMessage(message);
     }
   });
+
   RuntimeSocket.on('WxDebug.deviceDisconnect', function () {
     location.href = `http://${location.host}/runtime.html`
   })
+
   RuntimeSocket.on('WxDebug.refresh', function () {
     location.reload();
   });
+
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     destroyJSRuntime();
     var logLevel = localStorage.getItem('logLevel');
@@ -58,76 +61,6 @@ function initJSRuntime(message) {
     RuntimeSocket.send(message);
     var domain = message.method.split('.')[0];
     var method = message.method.split('.')[1];
-    if (domain == 'WxRuntime') {
-      if (method === 'clearLog') {
-        // console.clear();
-      }
-      else if (method === 'dom') {
-        document.getElementById('dom').innerHTML = resolve(message.params);
-      }
-    }
   };
   worker.postMessage(message);
-}
-//initJSRuntime();
-function resolve(root) {
-  var html = `<${root.type} ${resolveStyle(root.style)}`;
-  var value = '';
-  for (var key in root.attr) {
-    if (root.attr.hasOwnProperty(key)) {
-      if (root.type == 'text' && key == 'value') {
-        value = root.attr[key];
-      }
-      html += ` ${key}="${root.attr[key]}"`;
-    }
-  }
-  html += '>';
-  if (value) {
-    html += value;
-  }
-  else {
-    for (var i = 0; root.children && i < root.children.length; i++) {
-      html += resolve(root.children[i]);
-    }
-  }
-  html += `</${root.type}>`;
-  return html;
-}
-
-function resolveStyle(styles) {
-  var styleText = '';
-  for (var key in styles) {
-    if (styles.hasOwnProperty(key)) {
-      styleText += key.replace(/([a-z])([A-Z])/g, function (m, a, b) {
-        return a + '-' + b.toLowerCase();
-      }) + ':' + resolveStyleValue(styles[key]) + ';';
-    }
-  }
-  if (styleText) {
-    styleText = ` style="${styleText}"`;
-  }
-  return styleText;
-}
-var cssNumber = {
-  columnCount: true,
-  fillOpacity: true,
-  flexGrow: true,
-  flexShrink: true,
-  fontWeight: true,
-  lineHeight: true,
-  opacity: true,
-  order: true,
-  orphans: true,
-  widows: true,
-  zIndex: true,
-  zoom: true
-};
-
-function resolveStyleValue(value) {
-  if (isNaN(value) || cssNumber[value]) {
-    return value;
-  }
-  else {
-    return value + 'px';
-  }
 }

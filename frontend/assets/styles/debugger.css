@@ -2751,8 +2751,7 @@ details[open] > summary::before {
 .header {
   height: 100px;
   background: #404040;
-  position: relative;
-  z-index: 10; }
+  position: relative; }
   .header .switch {
     position: relative;
     width: 70px;

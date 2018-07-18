@@ -28,6 +28,7 @@ var injectedGlobals = ['Promise',
 ];
 var cachedSetTimeout = this.setTimeout;
 var isSandbox = false;
+
 Object.defineProperty(this, 'setTimeout', {
   get: function () {
     return cachedSetTimeout;
@@ -53,9 +54,7 @@ function createWeexBundleEntry(sourceUrl) {
 }
 
 function createApiBundleEntry(instance) {
-  var code = '';
-  code += `__weex_api_entry__(instanceMap[${instance}]);`
-  return code;
+  return `__weex_api_entry__(instanceMap[${instance}]);`
 }
 var origConsole = self.console;
 var clearConsole = self.console.clear.bind(self.console);
@@ -149,9 +148,7 @@ function runInContext(instanceId, code, context) {
     args.push(context[key])
   }
   var bundle = `
-    (function (instanceContext) {
       ${code}
-    })(this.instanceMap[${instanceId}])
   `
   return (new Function(...keys, bundle))(...args)
 }
@@ -395,6 +392,7 @@ eventEmitter.on('WxDebug.callJS', function (data) {
       importScripts(url);
     }
     if (dependenceUrl) {
+      // importScripts('./rax-api.js');
       importScripts(dependenceUrl);
     }
     for (var prop in global) {
@@ -403,11 +401,13 @@ eventEmitter.on('WxDebug.callJS', function (data) {
       }
     }
     instanceContext = self.createInstanceContext(instanceid, options, instanceData);
+
     for (var prop in instanceContext) {
       if (instanceContext.hasOwnProperty(prop) && prop !== 'callNative') {
         context[prop] = instanceContext[prop];
       }
     }
+
     instanceMap[instanceid] = context;
     if (dependenceUrl) {
       runInContext(instanceid, createApiBundleEntry(instanceid), context)
@@ -441,12 +441,6 @@ eventEmitter.on('WxDebug.callJS', function (data) {
       instanceContext['__WEEX_CALL_JAVASCRIPT__'].apply(null, data.params.args)
     }
   }
-  // else if (method === 'callJS') {
-  //   var instanceContext = instanceMap[data.params.args[0]];
-  //   if (instanceContext && instanceContext['__WEEX_CALL_JAVASCRIPT__']) {
-  //     instanceContext['__WEEX_CALL_JAVASCRIPT__'].apply(null, data.params.args)
-  //   }
-  // }
   else if ((instanceMap[data.params.args[0]] && instanceMap[data.params.args[0]][method]) || self[method]) {
     shouldReturnResult = false;
     if (isSandbox) {
