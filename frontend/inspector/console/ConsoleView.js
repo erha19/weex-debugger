@@ -1132,9 +1132,6 @@ Console.ConsoleViewFilter = class extends Common.Object {
     // add native log filter
     if (!Common.moduleSetting('showNativeConsoleLog').get()) {
       var target = message.target();
-      if (target._name !== 'Runtime.js') {
-        return false;
-      }
     }
     if (!this._view._showAllMessagesCheckbox.checked() && executionContext) {
       if (message.target() !== executionContext.target())
