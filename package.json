@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.19",
+  "version": "1.0.20-beta.1",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -80,7 +80,7 @@
   },
   "changelog": {
     "messages": [
-      "[bugfix] protect the parameters passed to native."
+      "[bugfix] fix the socket connect issue on android devtool, should use weex_inspector > 0.16.7."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }
