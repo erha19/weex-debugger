@@ -7,3 +7,5 @@ coverage/
 lib/
 dest/
 frontend/weex
+
+!frontend/lib/
