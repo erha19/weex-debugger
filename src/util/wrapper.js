@@ -65,7 +65,38 @@ const transformUrlToLocalUrl = (sourceURl) => {
 
 const generateWorkerEntry = (env) => {
   const worker = fse.readFileSync(path.join(__dirname, 'worker.js'));
-  let environment = `// mock timer
+  let environment = `// mock console
+var __origConsole__ = this.console;
+var __rewriteLog__ = function () {
+  var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
+  var backupConsole = {
+    error: __origConsole__.error,
+    warn: __origConsole__.warn,
+    info: __origConsole__.info,
+    log: __origConsole__.log,
+    debug: __origConsole__.debug
+  };
+  
+  function resetConsole() {
+    self.console.error = backupConsole.error;
+    self.console.warn = backupConsole.warn;
+    self.console.info = backupConsole.info;
+    self.console.log = backupConsole.log;
+    self.console.debug = backupConsole.debug;
+    self.console.time = __origConsole__.time;
+    self.console.timeEnd = __origConsole__.timeEnd;
+  }
+  
+  function noop() {}
+  return function (logLevel) {
+    resetConsole();
+    LEVELS.slice(LEVELS.indexOf(logLevel) + 1).forEach(function (level) {
+      self.console[level] = noop;
+    })
+  }
+}();
+
+// mock timer
 var __cachedSetTimeout__ = this.setTimeout;
 Object.defineProperty(this, 'setTimeout', {
   get: function () {

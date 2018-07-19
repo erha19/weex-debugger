@@ -3,9 +3,7 @@ importScripts('/lib/constructors/_EventEmitter.js');
 var __channelId__;
 var ___shouldReturnResult__ = false;
 var __requestId__;
-var __origConsole__ = self.console;
 var __eventEmitter__ = new __EventEmitter__();
-
 
 // The argument maybe an undefine value
 var __protectedAragument__ = function (arg) {
@@ -33,34 +31,7 @@ var __postData__ = function (payload) {
   }
 }
 
-var __rewriteLog__ = function () {
-  var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
-  var backupConsole = {
-    error: __origConsole__.error,
-    warn: __origConsole__.warn,
-    info: __origConsole__.info,
-    log: __origConsole__.log,
-    debug: __origConsole__.debug
-  };
 
-  function resetConsole() {
-    self.console.error = backupConsole.error;
-    self.console.warn = backupConsole.warn;
-    self.console.info = backupConsole.info;
-    self.console.log = backupConsole.log;
-    self.console.debug = backupConsole.debug;
-    self.console.time = __origConsole__.time;
-    self.console.timeEnd = __origConsole__.timeEnd;
-  }
-
-  function noop() {}
-  return function (logLevel) {
-    resetConsole();
-    LEVELS.slice(LEVELS.indexOf(logLevel) + 1).forEach(function (level) {
-      self.console[level] = noop;
-    })
-  }
-}();
 
 var __syncRequest__ = function (data) {
   var request = new XMLHttpRequest();
