@@ -6,14 +6,6 @@ const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');
-// const LOGLEVEL = {
-//   debug: 0,
-//   log: 1,
-//   info: 2,
-//   error: 3,
-//   warning: 4,
-//   warn: 4
-// };
 
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
@@ -39,26 +31,13 @@ debuggerRouter.registerHandler(function (message) {
     payload.params.sourceUrl = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') {
-    if (device.platform === 'iOS') {
-      if (payload.params.args.length < 5) {
-        payload.params.args.splice(1, 0, '');
-      }
-    }
-    const code = payload.params.args[1];
-    const options = payload.params.args[2];
-    const dependenceCode = payload.params.args[4];
+    const options = payload.params.args[1];
+    const dependenceCode = payload.params.args[3];
     if (dependenceCode) {
       payload.params.dependenceUrl = new MemoryFile(`${path.dirname(options.bundleUrl)}/imported_${crypto.md5(dependenceCode)}.js`, apiWrapper(dependenceCode)).getUrl();
     }
     else {
       payload.params.dependenceUrl = '';
-    }
-    if (code) {
-      const bundleUrl = options.bundleUrl || (crypto.md5(code) + '.js');
-      payload.params.sourceUrl = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
-    }
-    else {
-      payload.params.sourceUrl = '';
     }
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') {
