@@ -322,33 +322,3 @@ __eventEmitter__.on('WxDebug.initSandbox', function (message) {
   }
   __rewriteLog__(message.params.env.WXEnvironment.logLevel);
 });
-
-__eventEmitter__.on('WxDebug.initContext', function (message) {
-  var createWeexBundleEntry = function (sourceUrl) {
-    var code = '';
-    if (self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@']) {
-      code += `// { "framework": "${(self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@'])}" }\n`;
-    }
-    code += '__weex_bundle_entry__(';
-    injectedGlobals.forEach(function (g, i) {
-      code += 'typeof ' + g + '==="undefined"?undefined:' + g;
-      if (i < injectedGlobals.length - 1) {
-        code += ',';
-      }
-    });
-    // Avoiding the structure of comments in the last line causes `}` to be annotated
-    code += '\n);';
-    return code;
-  }
-  var injectedGlobals = ['Promise',
-    // W3C
-    'window', 'weex', 'service', 'Rax', 'services', 'global', 'screen', 'document', 'navigator', 'location', 'fetch', 'Headers', 'Response', 'Request', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'alert',
-    // ModuleJS
-    'define', 'require',
-    // Weex
-    'bootstrap', 'register', 'render', '__d', '__r', '__DEV__', '__weex_define__', '__weex_require__', '__weex_viewmodel__', '__weex_document__', '__weex_bootstrap__', '__weex_options__', '__weex_data__', '__weex_downgrade__', '__weex_require_module__', 'Vue'
-  ];
-  var url = data.params.sourceUrl;
-  importScripts(url);
-  self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
-})

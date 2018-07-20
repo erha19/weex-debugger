@@ -1,7 +1,7 @@
 const mlink = require('../midware');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const { bundleWrapper, apiWrapper, transformUrlToLocalUrl, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
+const { bundleWrapper, apiWrapper, transformUrlToLocalUrl, generateSandboxWorkerEntry, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
@@ -25,21 +25,28 @@ debuggerRouter.registerHandler(function (message) {
     if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
       code = crypto.obfuscate(code);
     }
+    env[message.channelId]['sourceUrl'] = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
       params: {
         bundleUrl: payload.params.args[2].bundleUrl
       }
     });
-    payload.params.sourceUrl = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') {
     const options = payload.params.args[1];
     const dependenceCode = payload.params.args[3];
     if (dependenceCode) {
-      payload.params.dependenceUrl = new MemoryFile(`${pickDomain(options.bundleUrl)}/dependence.js`, dependenceCode).getUrl()
+      payload.params.dependenceUrl = new MemoryFile(`${pickDomain(options.bundleUrl)}/rax-api.js`, dependenceCode).getUrl()
     }
-    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateSandboxWorkerEntry(env[message.channelId])).getUrl()
+    debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+      method: 'WxDebug.bundleRendered',
+      params: {
+        bundleUrl: payload.params.args[2].bundleUrl
+      }
+    });
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') {
     const code = payload.params.args[1];
