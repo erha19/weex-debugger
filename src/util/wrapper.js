@@ -30,16 +30,6 @@ const bundleWrapper = (code, sourceUrl) => {
   }
   return anno + bundlewrapper + code.replace(rearRegexp, '}\n$&');
 };
-const apiWrapper = (code) => {
-  const apiWrapper = `function __weex_api_entry__(global){
-  for(var prop in global) {
-    if (global.hasOwnProperty(prop))
-    this[prop] = global[prop]
-  }
-  ${code}
-}`;
-  return apiWrapper;
-};
 const transformUrlToLocalUrl = (sourceURl) => {
   const rHttpHeader = /^(https?|taobao|qap):\/\/(?!.*your_current_ip)/i;
   let bundleUrl;
@@ -47,10 +37,12 @@ const transformUrlToLocalUrl = (sourceURl) => {
     const query = queryParser.parse(url.parse(sourceURl).query);
     if (query['_wx_tpl']) {
       bundleUrl = normalize(query['_wx_tpl']).replace(rHttpHeader, '');
-    } else {
+    }
+    else {
       bundleUrl = normalize(sourceURl).replace(rHttpHeader, '');
     }
-  } else {
+  }
+  else {
     bundleUrl = sourceURl.replace(/^(https?|taobao|qap):\/\/(.*your_current_ip):(\d+)\//i, 'file://');
   }
   if (bundleUrl.charAt(bundleUrl.length - 1) === '?') {
@@ -63,8 +55,8 @@ const transformUrlToLocalUrl = (sourceURl) => {
 };
 
 const generateSandboxWorkerEntry = (env) => {
-  const worker = fse.readFileSync(path.join(__dirname, 'sandbox_worker.js'));
-  let androidMockApi = env.isLayoutAndSandbox?`self.callCreateBody = function (instance, domStr) {
+  const worker = fse.readFileSync(path.join(__dirname, '../worker/sandbox_worker.js'));
+  const androidMockApi = env.isLayoutAndSandbox ? `self.callCreateBody = function (instance, domStr) {
   if (!domStr) return;
   var payload = {
     method: 'WxDebug.callCreateBody',
@@ -180,8 +172,8 @@ self.callRemoveEvent = function (instance, ref, event) {
     }
   };
   __postData__(payload);
-}`:'';
-let environment = `// mock console
+}` : '';
+  let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
   var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
@@ -334,22 +326,22 @@ ${androidMockApi}
 
 // weex environment
 `;
-  if(env.jsframework) {
-    environment += `importScripts('${env.jsframework}');\n`
+  if (env.jsframework) {
+    environment += `importScripts('${env.jsframework}');\n`;
     // environment += `importScripts('/lib/runtime/js-framework.js');\n`
   }
-  if(env.importScripts && env.importScripts.length > 0) {
+  if (env.importScripts && env.importScripts.length > 0) {
     env.importScripts.forEach(script => {
-      environment += `importScripts('${script}');\n`
-    })
+      environment += `importScripts('${script}');\n`;
+    });
   }
-  return  `${environment}
+  return `${environment}
 ${worker}
-  `
-}
+  `;
+};
 
 const generateWorkerEntry = (env) => {
-  const worker = fse.readFileSync(path.join(__dirname, 'worker.js'));
+  const worker = fse.readFileSync(path.join(__dirname, '../worker/worker.js'));
   let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
@@ -503,36 +495,35 @@ self.nativeLog = function (args) {
 self.$$frameworkFlag = {};
 // weex environment
 `;
-  if(env.jsframework) {
-    environment += `importScripts('${env.jsframework}');\n`
+  if (env.jsframework) {
+    environment += `importScripts('${env.jsframework}');\n`;
     // environment += `importScripts('/lib/runtime/js-framework.js');\n`
   }
-  if(env.importScripts && env.importScripts.length > 0) {
+  if (env.importScripts && env.importScripts.length > 0) {
     env.importScripts.forEach(script => {
-      environment += `importScripts('${script}');\n`
-    })
+      environment += `importScripts('${script}');\n`;
+    });
   }
-  if(env.sourceUrl) {
-    environment += `importScripts('${env.sourceUrl}');\n`
+  if (env.sourceUrl) {
+    environment += `importScripts('${env.sourceUrl}');\n`;
   }
-  return  `
+  return `
 ${environment}
 ${worker}
-  `
-}
+  `;
+};
 
 const pickDomain = (str) => {
   if (/file:\/\/\//.test(str)) {
-    return 'local'
-  } 
-  if (/http(s)?/.test(str)) {
-    return url.parse(str).hostname
+    return 'local';
   }
-}
+  if (/http(s)?/.test(str)) {
+    return url.parse(str).hostname;
+  }
+};
 
 module.exports = {
   bundleWrapper,
-  apiWrapper,
   transformUrlToLocalUrl,
   generateSandboxWorkerEntry,
   generateWorkerEntry,

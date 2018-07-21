@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.20
+### Changed
+  - Improve the debugging logic of weex in the sandbox debugging environment.
+
 ### 1.0.20-beta.1
 ### Changed
   - Update tool version on frontend.

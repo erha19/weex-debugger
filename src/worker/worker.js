@@ -14,7 +14,7 @@ var __protectedAragument__ = function (arg) {
     }
   }
   return args;
-}
+};
 
 var __postData__ = function (payload) {
   if (payload.method === 'WxDebug.callCreateBody' && !payload.params.domStr) {
@@ -28,12 +28,12 @@ var __postData__ = function (payload) {
     payload = JSON.parse(JSON.stringify(payload));
     postMessage(payload);
   }
-}
+};
 
 var __syncRequest__ = function (data) {
   var request = new XMLHttpRequest();
   request.open('POST', '/syncApi', false); // `false` makes the request synchronous
-  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
   request.send(JSON.stringify(data));
   if (request.status === 200) {
     return JSON.parse(request.responseText);
@@ -42,7 +42,7 @@ var __syncRequest__ = function (data) {
       error: request.responseText
     };
   }
-}
+};
 
 self.__WEEX_DEVTOOL__ = true;
 
@@ -54,7 +54,7 @@ self.callNativeModule = function () {
       args: __protectedAragument__(arguments)
     },
     channelId: __channelId__
-  }
+  };
   var result = __syncRequest__(message);
   if (___shouldReturnResult__ && __requestId__) {
     __postData__({
@@ -69,13 +69,13 @@ self.callNativeModule = function () {
     self.console.error(result.error);
     // throw new Error(result.error);
   } else return result && result.ret;
-}
+};
 
 self.callNativeComponent = function () {
   var args = Array.prototype.slice.call(arguments);
   for (var i = 0; i < args.length; i++) {
     if (!args[i]) {
-      args[i] = ''
+      args[i] = '';
     }
   }
   var message = {
@@ -85,7 +85,7 @@ self.callNativeComponent = function () {
       args: args
     },
     channelId: __channelId__
-  }
+  };
   var result = __syncRequest__(message);
   if (result.error) {
     self.console.error(result.error);
@@ -131,24 +131,24 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
 
 self.nativeLog = function (args) {
   __rewriteLog__(self.WXEnvironment.logLevel);
-  self.console.log(args)
-}
+  self.console.log(args);
+};
 
 self.onmessage = function (message) {
-  __eventEmitter__.emit(message.data && message.data.method, message.data)
+  __eventEmitter__.emit(message.data && message.data.method, message.data);
 };
 
 __eventEmitter__.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
   if (method === 'importScript') {
-    importScripts(data.params.sourceUrl)
+    importScripts(data.params.sourceUrl);
   } else if (method === 'destroyInstance') {
     // close worker
     self.destroyInstance(data.params.args[0]);
-    self.console.log('destroy')
+    self.console.log('destroy');
   }
   else if (self[method]) {
-    self[method].apply(null, data.params.args)
+    self[method].apply(null, data.params.args);
   } else {
     self.console.warn('call [' + method + '] error: jsframework has no such api');
   }
@@ -168,7 +168,7 @@ __eventEmitter__.on('WxDebug.importScript', function (message) {
   } else {
     new Function('', message.params.source)();
   }
-})
+});
 
 __eventEmitter__.on('WxDebug.initWorker', function (message) {
   var createWeexBundleEntry = function (sourceUrl) {
@@ -186,7 +186,7 @@ __eventEmitter__.on('WxDebug.initWorker', function (message) {
     // Avoiding the structure of comments in the last line causes `}` to be annotated
     code += '\n);';
     return code;
-  }
+  };
   var injectedGlobals = ['Promise',
     // W3C
     'window', 'weex', 'service', 'Rax', 'services', 'global', 'screen', 'document', 'navigator', 'location', 'fetch', 'Headers', 'Response', 'Request', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'alert',
@@ -204,4 +204,4 @@ __eventEmitter__.on('WxDebug.initWorker', function (message) {
   }
   __rewriteLog__(message.params.env.WXEnvironment.logLevel);
   self.createInstance(message.params.args[0], createWeexBundleEntry(url), message.params.args[2], message.params.args[3]);
-})
+});

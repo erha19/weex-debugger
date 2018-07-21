@@ -14,7 +14,7 @@ var __protectedAragument__ = function (arg) {
     }
   }
   return args;
-}
+};
 
 var __postData__ = function (payload) {
   if (payload.method === 'WxDebug.callCreateBody' && !payload.params.domStr) {
@@ -28,12 +28,12 @@ var __postData__ = function (payload) {
     payload = JSON.parse(JSON.stringify(payload));
     postMessage(payload);
   }
-}
+};
 
 var __syncRequest__ = function (data) {
   var request = new XMLHttpRequest();
   request.open('POST', '/syncApi', false); // `false` makes the request synchronous
-  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
   request.send(JSON.stringify(data));
   if (request.status === 200) {
     return JSON.parse(request.responseText);
@@ -42,23 +42,23 @@ var __syncRequest__ = function (data) {
       error: request.responseText
     };
   }
-}
+};
 
 self.__WEEX_DEVTOOL__ = true;
 
 self.onmessage = function (message) {
-  __eventEmitter__.emit(message.data && message.data.method, message.data)
+  __eventEmitter__.emit(message.data && message.data.method, message.data);
 };
 __eventEmitter__.on('WxDebug.callJS', function (data) {
   var method = data.params.method;
   if (method === 'importScript') {
-    importScripts(data.params.sourceUrl)
+    importScripts(data.params.sourceUrl);
   } else if (method === 'destroyInstance') {
     // close worker
     self.destroyInstance(data.params.args[0]);
   }
   else if (self[method]) {
-    self[method].apply(null, data.params.args)
+    self[method].apply(null, data.params.args);
   } else {
     self.console.warn('call [' + method + '] error: jsframework has no such api');
   }
@@ -78,7 +78,7 @@ __eventEmitter__.on('WxDebug.importScript', function (message) {
   } else {
     new Function('', message.params.source)();
   }
-})
+});
 
 __eventEmitter__.on('WxDebug.initSandboxWorker', function (message) {
   var instanceid = message.params.args[0];

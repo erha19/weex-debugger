@@ -1,12 +1,12 @@
 const mlink = require('../midware');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const { bundleWrapper, apiWrapper, transformUrlToLocalUrl, generateSandboxWorkerEntry, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
+const { bundleWrapper, transformUrlToLocalUrl, generateSandboxWorkerEntry, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');
-const env = {}
+const env = {};
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
   const device = DeviceManager.getDevice(message.channelId);
@@ -28,7 +28,7 @@ debuggerRouter.registerHandler(function (message) {
     }
     env[message.channelId]['sourceUrl'] = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
     payload.params.sourceUrl = env[message.channelId]['sourceUrl'];
-    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl();
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
       params: {
@@ -40,9 +40,9 @@ debuggerRouter.registerHandler(function (message) {
     const options = payload.params.args[1];
     const dependenceCode = payload.params.args[3];
     if (dependenceCode) {
-      payload.params.dependenceUrl = new MemoryFile(`${pickDomain(options.bundleUrl)}/rax-api.js`, dependenceCode).getUrl()
+      payload.params.dependenceUrl = new MemoryFile(`${pickDomain(options.bundleUrl)}/rax-api.js`, dependenceCode).getUrl();
     }
-    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateSandboxWorkerEntry(env[message.channelId])).getUrl()
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateSandboxWorkerEntry(env[message.channelId])).getUrl();
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
       params: {
@@ -56,8 +56,8 @@ debuggerRouter.registerHandler(function (message) {
     payload.params.sourceUrl = new MemoryFile(bundleUrl, code).getUrl();
   }
   else if (payload.method === 'WxDebug.importScript') {
-    var code = payload.params.source;
-    var url = new MemoryFile(`import_${crypto.md5(code)}.js`, payload.params.source).getUrl();
+    const code = payload.params.source;
+    const url = new MemoryFile(`import_${crypto.md5(code)}.js`, payload.params.source).getUrl();
     if (!env[message.channelId]['importScripts']) {
       env[message.channelId]['importScripts'] = [];
     }
