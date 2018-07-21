@@ -1,20 +1,24 @@
 const mlink = require('../midware');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const { bundleWrapper, apiWrapper, transformUrlToLocalUrl } = require('../../util/wrapper');
+const { bundleWrapper, apiWrapper, transformUrlToLocalUrl, generateSandboxWorkerEntry, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
 const MemoryFile = require('../../lib/memory_file');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');
-
+const env = {}
 debuggerRouter.registerHandler(function (message) {
   const payload = message.payload;
   const device = DeviceManager.getDevice(message.channelId);
   if (payload.method === 'WxDebug.initJSRuntime') {
-    payload.params.url = new MemoryFile('js-framework.js', payload.params.source).getUrl();
+    if (!env[message.channelId]) {
+      env[message.channelId] = {};
+    }
+    env[message.channelId]['jsframework'] = new MemoryFile('js-framework.js', payload.params.source).getUrl();
     if (device && device.logLevel) {
       payload.params.env.WXEnvironment.logLevel = device.logLevel;
     }
+    env[message.channelId]['isLayoutAndSandbox'] = payload.params.isLayoutAndSandbox;
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstance') {
     let code = payload.params.args[1];
@@ -22,31 +26,44 @@ debuggerRouter.registerHandler(function (message) {
     if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
       code = crypto.obfuscate(code);
     }
+    env[message.channelId]['sourceUrl'] = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
+    payload.params.sourceUrl = env[message.channelId]['sourceUrl'];
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
       params: {
         bundleUrl: payload.params.args[2].bundleUrl
       }
     });
-    payload.params.sourceUrl = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstanceContext') {
     const options = payload.params.args[1];
     const dependenceCode = payload.params.args[3];
     if (dependenceCode) {
-      payload.params.dependenceUrl = new MemoryFile(`${path.dirname(options.bundleUrl)}/imported_${crypto.md5(dependenceCode)}.js`, apiWrapper(dependenceCode)).getUrl();
+      payload.params.dependenceUrl = new MemoryFile(`${pickDomain(options.bundleUrl)}/rax-api.js`, dependenceCode).getUrl()
     }
-    else {
-      payload.params.dependenceUrl = '';
-    }
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateSandboxWorkerEntry(env[message.channelId])).getUrl()
+    debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+      method: 'WxDebug.bundleRendered',
+      params: {
+        bundleUrl: payload.params.args[2].bundleUrl
+      }
+    });
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'importScript') {
     const code = payload.params.args[1];
     const bundleUrl = (payload.params.args[2] && payload.params.args[2].bundleUrl) || crypto.md5(code) + '.js';
-    payload.params.sourceUrl = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
+    payload.params.sourceUrl = new MemoryFile(bundleUrl, code).getUrl();
   }
   else if (payload.method === 'WxDebug.importScript') {
-    payload.params.sourceUrl = new MemoryFile('imported_' + crypto.md5(payload.params.source) + '.js', payload.params.source).getUrl();
+    var code = payload.params.source;
+    var url = new MemoryFile(`import_${crypto.md5(code)}.js`, payload.params.source).getUrl();
+    if (!env[message.channelId]['importScripts']) {
+      env[message.channelId]['importScripts'] = [];
+    }
+    if (env[message.channelId]['importScripts'].indexOf(url) === -1) {
+      env[message.channelId]['importScripts'].push(url);
+    }
   }
   else if (payload.method === 'syncReturn') {
     message.payload = {
