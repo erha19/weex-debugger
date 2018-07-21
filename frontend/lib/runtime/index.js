@@ -52,7 +52,14 @@ function connect(channelId) {
     if (message.params.method === 'createInstanceContext') {
       destroyJSRuntime(message)
       message.channelId = BrowserChannelId;
-      message.method = 'WxDebug.initSandbox';
+      message.method = 'WxDebug.initSandboxWorker';
+      message.params.env = cacheWeexEnv;
+      initJSRuntime(message)
+    }
+    else if(message.params.method === 'createInstance') {
+      destroyJSRuntime(message)
+      message.channelId = BrowserChannelId;
+      message.method = 'WxDebug.initWorker';
       message.params.env = cacheWeexEnv;
       initJSRuntime(message)
     }
@@ -109,13 +116,13 @@ function initJSRuntime(message) {
     message = message.data;
     RuntimeSocket.send(message);
   };
+  cacheRegisterLoop.forEach(function(message) {
+    workers[instanceId].postMessage(message)
+  })
   workers[instanceId].postMessage(message);
   if (cacheJsbundleImportMessage) {
     workers[instanceId].postMessage(message);
   }
-  cacheRegisterLoop.forEach(function(message) {
-    workers[instanceId].postMessage(message)
-  })
 }
 
 function getPrevWorker(workers) {

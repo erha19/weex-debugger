@@ -18,6 +18,7 @@ debuggerRouter.registerHandler(function (message) {
     if (device && device.logLevel) {
       payload.params.env.WXEnvironment.logLevel = device.logLevel;
     }
+    env[message.channelId]['isLayoutAndSandbox'] = payload.params.isLayoutAndSandbox;
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstance') {
     let code = payload.params.args[1];
@@ -26,7 +27,8 @@ debuggerRouter.registerHandler(function (message) {
       code = crypto.obfuscate(code);
     }
     env[message.channelId]['sourceUrl'] = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
-    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(options.bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
+    payload.params.sourceUrl = env[message.channelId]['sourceUrl'];
+    payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl()
     debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
       method: 'WxDebug.bundleRendered',
       params: {

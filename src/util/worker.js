@@ -44,130 +44,6 @@ var __syncRequest__ = function (data) {
   }
 }
 
-/**
- * init hook function for (layout/sandbox)
- */
-var __initLayoutAndSandboxEnv__ = function () {
-  debugger
-  self.callCreateBody = function (instance, domStr) {
-    if (!domStr) return;
-    var payload = {
-      method: 'WxDebug.callCreateBody',
-      params: {
-        instance: instance,
-        domStr: domStr
-      }
-    };
-    __postData__(payload);
-  };
-
-  self.callUpdateFinish = function (instance, tasks, callback) {
-    var payload = {
-      method: 'WxDebug.callUpdateFinish',
-      params: {
-        instance: instance,
-        tasks: tasks,
-        callback: callback
-      }
-    };
-    __postData__(payload);
-  };
-
-  self.callCreateFinish = function (instance) {
-    var payload = {
-      method: 'WxDebug.callCreateFinish',
-      params: {
-        instance: instance
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callRefreshFinish = function (instance, tasks, callback) {
-    var payload = {
-      method: 'WxDebug.callRefreshFinish',
-      params: {
-        instance: instance,
-        tasks: tasks,
-        callback: callback
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callUpdateAttrs = function (instance, ref, data) {
-    var payload = {
-      method: 'WxDebug.callUpdateAttrs',
-      params: {
-        instance: instance,
-        ref: ref,
-        data: data
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callUpdateStyle = function (instance, ref, data) {
-    var payload = {
-      method: 'WxDebug.callUpdateStyle',
-      params: {
-        instance: instance,
-        ref: ref,
-        data: data
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callRemoveElement = function (instance, ref) {
-    var payload = {
-      method: 'WxDebug.callRemoveElement',
-      params: {
-        instance: instance,
-        ref: ref
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callMoveElement = function (instance, ref, parentRef, index_str) {
-    var payload = {
-      method: 'WxDebug.callMoveElement',
-      params: {
-        instance: instance,
-        ref: ref,
-        parentRef: parentRef,
-        index_str: index_str
-      }
-    };
-    __postData__(payload);;
-  }
-
-  self.callAddEvent = function (instance, ref, event) {
-    var payload = {
-      method: 'WxDebug.callAddEvent',
-      params: {
-        instance: instance,
-        ref: ref,
-        event: event
-      }
-    };
-    __postData__(payload);
-  }
-
-  self.callRemoveEvent = function (instance, ref, event) {
-    var payload = {
-      method: 'WxDebug.callRemoveEvent',
-      params: {
-        instance: instance,
-        ref: ref,
-        event: event
-      }
-    };
-    __postData__(payload);
-  }
-}
-
 self.__WEEX_DEVTOOL__ = true;
 
 self.callNativeModule = function () {
@@ -271,9 +147,6 @@ __eventEmitter__.on('WxDebug.callJS', function (data) {
     self.destroyInstance(data.params.args[0]);
     self.console.log('destroy')
   }
-  // else if (method === '__WEEX_CALL_JAVASCRIPT__') {
-  //   self['__WEEX_CALL_JAVASCRIPT__'].apply(null, data.params.args)
-  // }
   else if (self[method]) {
     self[method].apply(null, data.params.args)
   } else {
@@ -297,33 +170,7 @@ __eventEmitter__.on('WxDebug.importScript', function (message) {
   }
 })
 
-__eventEmitter__.on('WxDebug.initSandbox', function (message) {
-  var instanceid = message.params.args[0];
-  var options = message.params.args[1];
-  var instanceData = message.params.args[2];
-  var instanceContext = self.createInstanceContext(instanceid, options, instanceData);
-
-  __channelId__ = message.channelId;
-  if (message.params.isLayoutAndSandbox !== 'false' && message.params.isLayoutAndSandbox) {
-    __initLayoutAndSandboxEnv__();
-  }
-  for (var prop in instanceContext) {
-    if (instanceContext.hasOwnProperty(prop) && prop !== 'callNative') {
-      self[prop] = instanceContext[prop];
-    }
-  }
-  for (var key in message.params.env) {
-    if (message.params.env.hasOwnProperty(key)) {
-      self[key] = message.params.env[key];
-    }
-  }
-  if (message.params.dependenceUrl) {
-    importScripts(message.params.dependenceUrl);
-  }
-  __rewriteLog__(message.params.env.WXEnvironment.logLevel);
-});
-
-__eventEmitter__.on('WxDebug.initContext', function (message) {
+__eventEmitter__.on('WxDebug.initWorker', function (message) {
   var createWeexBundleEntry = function (sourceUrl) {
     var code = '';
     if (self.$$frameworkFlag[sourceUrl] || self.$$frameworkFlag['@']) {
@@ -348,7 +195,13 @@ __eventEmitter__.on('WxDebug.initContext', function (message) {
     // Weex
     'bootstrap', 'register', 'render', '__d', '__r', '__DEV__', '__weex_define__', '__weex_require__', '__weex_viewmodel__', '__weex_document__', '__weex_bootstrap__', '__weex_options__', '__weex_data__', '__weex_downgrade__', '__weex_require_module__', 'Vue'
   ];
-  var url = data.params.sourceUrl;
-  importScripts(url);
-  self.createInstance(data.params.args[0], createWeexBundleEntry(url), data.params.args[2], data.params.args[3]);
+  var url = message.params.sourceUrl;
+  __channelId__ = message.channelId;
+  for (var key in message.params.env) {
+    if (message.params.env.hasOwnProperty(key)) {
+      self[key] = message.params.env[key];
+    }
+  }
+  __rewriteLog__(message.params.env.WXEnvironment.logLevel);
+  self.createInstance(message.params.args[0], createWeexBundleEntry(url), message.params.args[2], message.params.args[3]);
 })

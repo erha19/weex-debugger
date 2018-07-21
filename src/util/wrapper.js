@@ -44,7 +44,7 @@ const transformUrlToLocalUrl = (sourceURl) => {
   const rHttpHeader = /^(https?|taobao|qap):\/\/(?!.*your_current_ip)/i;
   let bundleUrl;
   if (rHttpHeader.test(sourceURl)) {
-    const query = queryParser.parse(Url.parse(sourceURl).query);
+    const query = queryParser.parse(url.parse(sourceURl).query);
     if (query['_wx_tpl']) {
       bundleUrl = normalize(query['_wx_tpl']).replace(rHttpHeader, '');
     } else {
@@ -62,10 +62,126 @@ const transformUrlToLocalUrl = (sourceURl) => {
   return '/source/' + bundleUrl;
 };
 
-
 const generateSandboxWorkerEntry = (env) => {
   const worker = fse.readFileSync(path.join(__dirname, 'sandbox_worker.js'));
-  let environment = `// mock console
+  let androidMockApi = env.isLayoutAndSandbox?`self.callCreateBody = function (instance, domStr) {
+  if (!domStr) return;
+  var payload = {
+    method: 'WxDebug.callCreateBody',
+    params: {
+      instance: instance,
+      domStr: domStr
+    }
+  };
+  __postData__(payload);
+};
+
+self.callUpdateFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callUpdateFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.callCreateFinish = function (instance) {
+  var payload = {
+    method: 'WxDebug.callCreateFinish',
+    params: {
+      instance: instance
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRefreshFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callRefreshFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+}
+
+self.callUpdateAttrs = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateAttrs',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  __postData__(payload);
+}
+
+self.callUpdateStyle = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateStyle',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRemoveElement = function (instance, ref) {
+  var payload = {
+    method: 'WxDebug.callRemoveElement',
+    params: {
+      instance: instance,
+      ref: ref
+    }
+  };
+  __postData__(payload);
+}
+
+self.callMoveElement = function (instance, ref, parentRef, index_str) {
+  var payload = {
+    method: 'WxDebug.callMoveElement',
+    params: {
+      instance: instance,
+      ref: ref,
+      parentRef: parentRef,
+      index_str: index_str
+    }
+  };
+  __postData__(payload);;
+}
+
+self.callAddEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callAddEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRemoveEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callRemoveEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  __postData__(payload);
+}`:'';
+let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
   var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
@@ -125,6 +241,96 @@ Object.defineProperty(this, 'clearInterval', {
   },
   set: function () {}
 });
+
+// mock context api
+self.callNativeModule = function () {
+  var message = {
+    method: 'WxDebug.syncCall',
+    params: {
+      method: 'callNativeModule',
+      args: __protectedAragument__(arguments)
+    },
+    channelId: __channelId__
+  }
+  var result = __syncRequest__(message);
+  if (___shouldReturnResult__ && __requestId__) {
+    __postData__({
+      id: __requestId__,
+      result: null,
+      error: {
+        errorCode: 0
+      }
+    });
+  }
+  if (result && result.error) {
+    self.console.error(result.error);
+    // throw new Error(result.error);
+  } else return result && result.ret;
+}
+
+self.callNativeComponent = function () {
+  var args = Array.prototype.slice.call(arguments);
+  for (var i = 0; i < args.length; i++) {
+    if (!args[i]) {
+      args[i] = ''
+    }
+  }
+  var message = {
+    method: 'WxDebug.syncCall',
+    params: {
+      method: 'callNativeComponent',
+      args: args
+    },
+    channelId: __channelId__
+  }
+  var result = __syncRequest__(message);
+  if (result.error) {
+    self.console.error(result.error);
+    // throw new Error(result.error);
+  } else return result.ret;
+};
+
+self.callNative = function (instance, tasks, callback) {
+  for (var i = 0; i < tasks.length; i++) {
+    var task = tasks[i];
+    if (task.method == 'addElement') {
+      for (var key in task.args[1].style) {
+        if (Number.isNaN(task.args[1].style[key])) {
+          self.console.error('invalid value [NaN] for style [' + key + ']', task);
+        }
+      }
+    }
+  }
+  var payload = {
+    method: 'WxDebug.callNative',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.callAddElement = function (instance, ref, dom, index, callback) {
+  var payload = {
+    method: 'WxDebug.callAddElement',
+    params: {
+      instance: instance,
+      ref: ref,
+      dom: dom,
+      index: index,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.nativeLog = function (args) {
+  self.console.log(args)
+};
+
+${androidMockApi}
 
 // weex environment
 `;
@@ -137,14 +343,13 @@ Object.defineProperty(this, 'clearInterval', {
       environment += `importScripts('${script}');\n`
     })
   }
-  return  `
-${environment}
+  return  `${environment}
 ${worker}
   `
 }
 
 const generateWorkerEntry = (env) => {
-  const worker = fse.readFileSync(path.join(__dirname, 'sandbox_worker.js'));
+  const worker = fse.readFileSync(path.join(__dirname, 'worker.js'));
   let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
@@ -206,6 +411,96 @@ Object.defineProperty(this, 'clearInterval', {
   set: function () {}
 });
 
+
+// mock context api
+self.callNativeModule = function () {
+  var message = {
+    method: 'WxDebug.syncCall',
+    params: {
+      method: 'callNativeModule',
+      args: __protectedAragument__(arguments)
+    },
+    channelId: __channelId__
+  }
+  var result = __syncRequest__(message);
+  if (___shouldReturnResult__ && __requestId__) {
+    __postData__({
+      id: __requestId__,
+      result: null,
+      error: {
+        errorCode: 0
+      }
+    });
+  }
+  if (result && result.error) {
+    self.console.error(result.error);
+    // throw new Error(result.error);
+  } else return result && result.ret;
+}
+
+self.callNativeComponent = function () {
+  var args = Array.prototype.slice.call(arguments);
+  for (var i = 0; i < args.length; i++) {
+    if (!args[i]) {
+      args[i] = ''
+    }
+  }
+  var message = {
+    method: 'WxDebug.syncCall',
+    params: {
+      method: 'callNativeComponent',
+      args: args
+    },
+    channelId: __channelId__
+  }
+  var result = __syncRequest__(message);
+  if (result.error) {
+    self.console.error(result.error);
+    // throw new Error(result.error);
+  } else return result.ret;
+};
+
+self.callNative = function (instance, tasks, callback) {
+  for (var i = 0; i < tasks.length; i++) {
+    var task = tasks[i];
+    if (task.method == 'addElement') {
+      for (var key in task.args[1].style) {
+        if (Number.isNaN(task.args[1].style[key])) {
+          self.console.error('invalid value [NaN] for style [' + key + ']', task);
+        }
+      }
+    }
+  }
+  var payload = {
+    method: 'WxDebug.callNative',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.callAddElement = function (instance, ref, dom, index, callback) {
+  var payload = {
+    method: 'WxDebug.callAddElement',
+    params: {
+      instance: instance,
+      ref: ref,
+      dom: dom,
+      index: index,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.nativeLog = function (args) {
+  self.console.log(args)
+}
+
+self.$$frameworkFlag = {};
 // weex environment
 `;
   if(env.jsframework) {
