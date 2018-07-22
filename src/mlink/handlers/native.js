@@ -21,11 +21,8 @@ debuggerRouter.registerHandler(function (message) {
     env[message.channelId]['isLayoutAndSandbox'] = payload.params.isLayoutAndSandbox;
   }
   else if (payload.method === 'WxDebug.callJS' && payload.params.method === 'createInstance') {
-    let code = payload.params.args[1];
+    const code = payload.params.args[1];
     const bundleUrl = payload.params.args[2].bundleUrl || (crypto.md5(code) + '.js');
-    if (payload.params.args[2] && (payload.params.args[2]['debuggable'] === 'false' || payload.params.args[2]['debuggable'] === false)) {
-      code = crypto.obfuscate(code);
-    }
     env[message.channelId]['sourceUrl'] = new MemoryFile(bundleUrl, bundleWrapper(code, transformUrlToLocalUrl(bundleUrl))).getUrl();
     payload.params.sourceUrl = env[message.channelId]['sourceUrl'];
     payload.params.workerjs = new MemoryFile(`[Runtime]-${path.basename(bundleUrl)}`, generateWorkerEntry(env[message.channelId])).getUrl();

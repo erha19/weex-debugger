@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -44,7 +44,6 @@
     "invok": "^1.0.2",
     "ip": "^1.1.3",
     "ipromise": "^1.0.2",
-    "javascript-obfuscator": "^0.14.3",
     "koa": "^2.4.1",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^5.4.0",
