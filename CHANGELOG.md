@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.22
+### Fixed
+  - Fix the entry file of debugger command.
+
 ### 1.0.21
 ### Changed
   - Update tool version on frontend.
