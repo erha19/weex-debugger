@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.24
+### Fixed
+  - The worker file should not be compile by babel.
+
 ### 1.0.23
 ### Fixed
   - Fix error of `can not find .xtoolkit/package.json file`.
