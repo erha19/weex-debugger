@@ -3,7 +3,7 @@ let page;
 let browser = null;
 const {
   logger
-} = require('../util/logger');
+} = require('../util');
 
 exports.launchHeadless = async (host, remotePort) => {
   browser = await puppeteer.launch({

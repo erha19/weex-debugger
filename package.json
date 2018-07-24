@@ -47,7 +47,7 @@
     "koa": "^2.4.1",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^5.4.0",
-    "koa-serve-static": "^1.0.0",
+    "koa-static": "^5.0.0",
     "koa-websocket": "^2.1.0",
     "mkdirp": "^0.5.1",
     "node-simctl": "^3.11.1",

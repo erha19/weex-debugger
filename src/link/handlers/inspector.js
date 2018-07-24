@@ -1,11 +1,11 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const debuggerRouter = mlink.Router.get('debugger');
 const DeviceManager = require('../managers/device_manager');
 const redirectMessage = /^(Page.(enable|disable|reload)|Debugger|Target|Worker|Runtime\.runIfWaitingForDebugger)/;
 const ignoredMessage = /^(ServiceWorker)/;
 const {
   logger
-} = require('../../util/logger');
+} = require('../../util');
 
 debuggerRouter.registerHandler(function (message) {
   const device = DeviceManager.getDevice(message.channelId);
@@ -34,7 +34,9 @@ debuggerRouter.registerHandler(function (message) {
     }
   }
   else {
-    logger.error('loss message from "proxy.inspector" device not found in channelId [' + message.channelId + ']');
-    message.to('proxy.native');
+    debuggerRouter.pushMessageByChannelId('page.debugger', message.channelId, {
+      method: 'WxDebug.deviceDisconnect',
+      params: device
+    });
   }
 }).at('proxy.inspector');

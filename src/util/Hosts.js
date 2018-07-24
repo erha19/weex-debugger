@@ -1,6 +1,6 @@
 const HostsParser = require('parse-hosts');
 const os = require('os');
-exports.findRealHost = function (domain) {
+const findRealHost = function (domain) {
   const hosts = HostsParser.get();
   for (const key in hosts) {
     if (hosts.hasOwnProperty(key)) {
@@ -12,7 +12,7 @@ exports.findRealHost = function (domain) {
   }
   return domain;
 };
-exports.isValidLocalHost = function (host) {
+const isValidLocalHost = function (host) {
   const ipMap = os.networkInterfaces();
   let flag = false;
   for (const name in ipMap) {
@@ -28,3 +28,8 @@ exports.isValidLocalHost = function (host) {
   }
   return flag;
 };
+
+module.exports = {
+  findRealHost,
+  isValidLocalHost
+}

@@ -1,31 +1,26 @@
-const hosts = require('../util/hosts');
+const hosts = require('./util/hosts');
 const path = require('path');
 const chalk = require('chalk');
 const config = require('./config');
-const debugServer = require('../server');
-const hook = require('../util/hook');
+const debugServer = require('./server');
+const hook = require('./util/hook');
 const boxen = require('boxen');
 
 const detect = require('detect-port');
-const launcher = require('../util/launcher');
-const headless = require('../server/headless');
-const mlink = require('../mlink/midware');
+const launcher = require('./util/launcher');
+const headless = require('./server/headless');
+const mlink = require('./link');
 const Router = mlink.Router;
 
 const {
   logger
-} = require('../util/logger');
+} = require('./util');
 
-// 1 - start with debugserver only
-// 3 - start with debugserver with headless server
-// 5 - start with debugserver with building
-// 7 - start with debugserver with headless server and building
-let startPath = 1;
 
 const builder = require('weex-builder');
 
 function resolveBundleUrl (bundlePath, ip, port) {
-  return `http://${ip}:${port}/${config.bundleDir}/${bundlePath.replace(/\.(we|vue)$/, '.js')}`;
+  return `http://${ip}:${port}/${config.BUNDLE_DIRECTORY}/${bundlePath.replace(/\.(we|vue)$/, '.js')}`;
 }
 
 function isUrl (str) {
@@ -79,23 +74,21 @@ exports.startServer = function (ip, port) {
 exports.launch = function (ip, port) {
   const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
   logger.info('Launching Dev Tools...');
-  if (config.enableHeadless) {
-    startPath += 2;
+  if (config.ENABLE_HEADLESS) {
     // Check whether the port is occupied
-    detect(config.remoteDebugPort).then(function (open) {
-      if (+config.remoteDebugPort !== open) {
+    detect(config.REMOTE_DEBUG_PORT).then(function (open) {
+      if (+config.REMOTE_DEBUG_PORT !== open) {
         headless.closeHeadless();
-        logger.info(`Starting inspector on port ${open}, because ${config.remoteDebugPort} is already in use`);
+        logger.info(`Starting inspector on port ${open}, because ${config.REMOTE_DEBUG_PORT} is already in use`);
       }
       else {
         logger.info(`Starting inspector on port ${open}`);
       }
-      config.remoteDebugPort = open;
+      config.REMOTE_DEBUG_PORT = open;
       headless.launchHeadless(`${config.ip}:${config.port}`, open);
     });
   }
-  launcher.launchChrome(debuggerURL, config.remoteDebugPort || 9222);
-  hook.record('/weex_tool.weex_debugger.start_debugger', { start_path: startPath });
+  launcher.launchChrome(debuggerURL, config.REMOTE_DEBUG_PORT || 9222);
 };
 
 exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
@@ -125,7 +118,6 @@ exports.start = function (target, config, cb) {
   else if (target) {
     const filePath = path.resolve(target);
     let shouldReloadDebugger = false;
-    startPath += 4;
     builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
       watch: true,
       ext: config.ext,

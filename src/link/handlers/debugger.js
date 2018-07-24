@@ -1,8 +1,8 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const Router = mlink.Router;
 const debuggerRouter = Router.get('debugger');
 const DeviceManager = require('../managers/device_manager');
-const hook = require('../../util/hook');
+const { hook } = require('../../util');
 
 debuggerRouter.registerHandler(function (message, next) {
   const payload = message.payload;

@@ -4,7 +4,7 @@ const Emitter = require('./emitter');
 const Message = require('./message');
 const {
   logger
-} = require('../../../util/logger');
+} = require('../../util');
 
 const _routerInstances = {};
 class Router extends Emitter {

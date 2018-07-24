@@ -3,7 +3,7 @@ const protocols = {
   'https:': require('https')
 };
 const URL = require('url');
-exports.getRemote = function getRemote (url) {
+const getRemote = function getRemote (url) {
   return new Promise(function (resolve, reject) {
     const urlObj = URL.parse(url);
     (protocols[urlObj.protocol] || protocols['http:']).get({
@@ -28,3 +28,7 @@ exports.getRemote = function getRemote (url) {
     });
   });
 };
+
+module.exports = {
+  getRemote
+}

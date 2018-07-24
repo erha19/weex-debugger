@@ -1,7 +1,7 @@
-const config = require('../../lib/config');
-const hook = require('../../util/hook');
-const simrun = require('../../util/simrun');
-exports.connect = function (channelId) {
+const config = require('../config');
+const { hook, simrun } = require('../util');
+
+const connect = function (channelId) {
   let params = '';
   if (config.bundleUrls && config.bundleUrls.length === 1) {
     params += `_wx_tpl=${config.bundleUrls[0]}&`;
@@ -10,3 +10,7 @@ exports.connect = function (channelId) {
   hook.record('/weex_tool.weex_debugger.scenes', { feature: 'simrun', status: 'start' });
   return simrun.ios('weex-devtool', 'iPhone 6', 'https://registry.npm.taobao.org/weex-ios-playground/-/weex-ios-playground-1.2.0.tgz|package/WeexDemo.app', 'wxpage', params);
 };
+
+module.exports = {
+  connect
+}

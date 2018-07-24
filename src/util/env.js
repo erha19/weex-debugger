@@ -75,6 +75,10 @@ function runVersionCommand (command, callback) {
   });
 }
 
-exports.getVersionOf = (name, callback) => {
+const getVersionOf = (name, callback) => {
   PROGRAMS[name].getVersion(callback);
 };
+
+module.exports = {
+  getVersionOf
+}

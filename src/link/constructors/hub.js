@@ -1,7 +1,7 @@
 const Filter = require('./filter');
 const Router = require('./router');
 const Message = require('./message');
-const { logger } = require('../../../util/logger');
+const { logger } = require('../../util');
 const _hubInstances = {};
 class Hub {
   constructor (id) {

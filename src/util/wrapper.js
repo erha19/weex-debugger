@@ -1,15 +1,9 @@
 const queryParser = require('querystring');
-const url = require('url');
+const URL = require('url');
 const path = require('path');
 const fse = require('fs-extra');
-const normalize = (remoteurl) => {
-  const urlObj = url.parse(remoteurl);
-  if (urlObj.query) {
-    urlObj.query = queryParser.stringify(queryParser.parse(urlObj.query));
-    urlObj.search = '?' + urlObj.query;
-  }
-  return urlObj.format();
-};
+const { util } =require('./index');
+
 const bundleWrapper = (code, sourceUrl) => {
   const injectedGlobals = [
     // ES
@@ -34,12 +28,12 @@ const transformUrlToLocalUrl = (sourceURl) => {
   const rHttpHeader = /^(https?|taobao|qap):\/\/(?!.*your_current_ip)/i;
   let bundleUrl;
   if (rHttpHeader.test(sourceURl)) {
-    const query = queryParser.parse(url.parse(sourceURl).query);
+    const query = queryParser.parse(URL.parse(sourceURl).query);
     if (query['_wx_tpl']) {
-      bundleUrl = normalize(query['_wx_tpl']).replace(rHttpHeader, '');
+      bundleUrl = util.normalize(query['_wx_tpl']).replace(rHttpHeader, '');
     }
     else {
-      bundleUrl = normalize(sourceURl).replace(rHttpHeader, '');
+      bundleUrl = util.normalize(sourceURl).replace(rHttpHeader, '');
     }
   }
   else {
@@ -518,7 +512,7 @@ const pickDomain = (str) => {
     return 'local';
   }
   if (/http(s)?/.test(str)) {
-    return url.parse(str).hostname;
+    return URL.parse(str).hostname;
   }
 };
 

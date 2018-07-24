@@ -1,6 +1,6 @@
 const uuid = require('uuid');
 const CHANNEL_MODE = require('./enum').CHANNEL_MODE;
-const util = require('../util');
+const tools = require('../tools');
 class Channel {
   constructor (mode, enableMulticast) {
     this.hubMap = {};
@@ -31,7 +31,7 @@ class Channel {
         // channel中有超过三个hub的时候则默认不支持多播
         return [];
       }
-      return keys.filter(hid => hid !== hubId && (!toHubId || util.matchHubId(toHubId, hid)))
+      return keys.filter(hid => hid !== hubId && (!toHubId || tools.matchHubId(toHubId, hid)))
                 .map(hid => ({ hubId: hid, terminalId: this.hubMap[hid] }));
     }
   }
@@ -49,7 +49,7 @@ class Channel {
     const notHit = [];
     this.cache.forEach(c => {
       if (c._to.length > 0) {
-        if (c._from.hubId !== hubId && (!c._to[0].hubId || util.matchHubId(c._to[0].hubId, hubId))) {
+        if (c._from.hubId !== hubId && (!c._to[0].hubId || tools.matchHubId(c._to[0].hubId, hubId))) {
           hit.push(c);
         }
         else {

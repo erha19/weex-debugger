@@ -103,7 +103,7 @@ const setLevel = (logLevel) => {
   DEFAULT_LOGLEVEL = logLevel;
 };
 
-const logger = {
+module.exports = {
   setLevel,
   subscribe,
   verbose: log('verbose'),
@@ -111,11 +111,7 @@ const logger = {
   info: log('info'),
   warn: log('warn'),
   error: log('error'),
-  success: log('success')
-};
-
-module.exports = {
-  logger,
+  success: log('success'),
   events,
   LOGLEVELS
 };

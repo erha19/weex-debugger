@@ -1,7 +1,8 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
-const config = require('../../lib/config');
+const config = require('../../config');
+const { util } = require('../../util');
 const debuggerRouter = Router.get('debugger');
 
 debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'proxy.native', function (signal) {
@@ -23,8 +24,8 @@ debuggerRouter.on(Router.Event.TERMINAL_JOINED, 'page.debugger', function (signa
     method: 'WxDebug.pushDebuggerInfo',
     params: {
       device,
-      bundles: config.bundleUrls,
-      connectUrl: config.getConnectUrl(signal.channelId)
+      bundles: config.BUNDLE_DIRECTORY,
+      connectUrl: util.getConnectUrl(signal.channelId)
     }
   });
 });
@@ -36,8 +37,8 @@ debuggerRouter.registerHandler(function (message) {
       method: 'WxDebug.pushDebuggerInfo',
       params: {
         device,
-        bundles: config.bundleUrls,
-        connectUrl: config.getConnectUrl(message.channelId)
+        bundles: config.BUNDLE_DIRECTORY,
+        connectUrl: util.getConnectUrl(message.channelId)
       }
     };
     debuggerRouter.pushMessage('page.entry', {

@@ -1,14 +1,13 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
-const url = require('url');
+const URL = require('url');
 const WebSocket = require('ws');
 const os = require('os');
-const request = require('../../util/request');
-const hook = require('../../util/hook');
-const config = require('../../lib/config');
+const { hook, request } = require('../../util');
+const config = require('../../config');
 const {
   logger
-} = require('../../util/logger');
+} = require('../../util');
 
 class RuntimeManager {
   constructor () {
@@ -16,11 +15,11 @@ class RuntimeManager {
   }
   connect (channelId) {
     return new Promise((resolve, reject) => {
-      request.getRemote(`http://127.0.0.1:${config.remoteDebugPort || 9222}/json`).then((data) => {
+      request.getRemote(`http://127.0.0.1:${config.REMOTE_DEBUG_PORT || 9222}/json`).then((data) => {
         const list = JSON.parse(data);
         let found = false;
         for (const target of list) {
-          const urlObj = url.parse(target.url);
+          const urlObj = URL.parse(target.url);
           if (urlObj.pathname === '/runtime.html' && urlObj.port === config.port + '') {
             found = target;
             break;

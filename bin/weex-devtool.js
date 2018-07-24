@@ -10,17 +10,15 @@ const detect = require('detect-port');
 const del = require('del');
 const os = require('os');
 const packageInfo = require('../package.json');
-const debugRun = require('../lib/util/debug_run');
-const config = require('../lib/lib/config');
-const devtool = require('../lib/lib/devtool');
-const hook = require('../lib/util/hook');
-const env = require('../lib/util/env');
-const hosts = require('../lib/util/hosts');
-const headless = require('../lib/server/headless');
+const config = require('../src/config');
+const devtool = require('../src/index');
+const hook = require('../src/util/hook');
+const env = require('../src/util/env');
+const hosts = require('../src/util/hosts');
+const headless = require('../src/server/headless');
 const {
-  LOGLEVELS,
   logger
-} =require('../lib/util/logger')
+} =require('../src/util')
 
 program
 .option('-v, --version', 'display version')
@@ -33,7 +31,7 @@ program
 .option('--telemetry', 'upload usage data to help us improve the toolkit')
 .option('--verbose', 'display all logs of debugger server')
 .option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
-.option('--remotedebugport [remotedebugport]', 'set the remote debug port', config.remoteDebugPort);
+.option('--remotedebugport [remotedebugport]', 'set the remote debug port', config.REMOTE_DEBUG_PORT);
 
 
 // Supporting add the file / directory parameter after the command.
@@ -69,7 +67,7 @@ if (program.telemetry) {
 
 if (program.loglevel) {
   program.loglevel = program.loglevel.toLowercase && program.loglevel.toLowercase()
-  if(LOGLEVELS.indexOf(program.loglevel) > -1) {
+  if(logger.LOGLEVELS.indexOf(program.loglevel) > -1) {
     logger.setLevel(program.loglevel)
   }
 }
@@ -79,7 +77,7 @@ if (program.verbose) {
 }
 
 if (program.remotedebugport) {
-  config.remoteDebugPort = program.remotedebugport;
+  config.REMOTE_DEBUG_PORT = program.remotedebugport;
 }
 
 // Get the local environment
@@ -152,16 +150,10 @@ detect(program.port).then( (open) => {
   } else {
     config.port = program.port;
   }
-  if (program.debug) {
-    debugRun(__filename, config);
-  }
-  else {
-    // Clear files on bundleDir
-    try {
-      del.sync(path.join(__dirname, '../frontend/', config.bundleDir, '/*'), {
-        force: true
-      });
-    } catch (e) {}
-    devtool.start(program.target, config);
-  }
+  try {
+    del.sync(path.join(__dirname, '../frontend/', config.BUNDLE_DIRECTORY, '/*'), {
+      force: true
+    });
+  } catch (e) {}
+  devtool.start(program.target, config);
 });

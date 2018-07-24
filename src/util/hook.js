@@ -6,7 +6,7 @@ const {
 } = require('./logger');
 let shouldBeTelemetry = false;
 
-exports.record = (logkey, gokey) => {
+const record = (logkey, gokey) => {
   if (!shouldBeTelemetry) {
     return;
   }
@@ -29,6 +29,11 @@ exports.record = (logkey, gokey) => {
   }
 };
 
-exports.allowTarck = () => {
+const allowTarck = () => {
   shouldBeTelemetry = true;
 };
+
+module.exports = {
+  record,
+  allowTarck
+}

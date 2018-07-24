@@ -1,4 +1,4 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const Router = mlink.Router;
 const debuggerRouter = Router.get('debugger');
 debuggerRouter.registerHandler(function (message) {

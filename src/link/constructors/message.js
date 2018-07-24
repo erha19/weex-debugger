@@ -1,7 +1,7 @@
 let _uuid = 0;
 let _messageBuffer = [];
-const util = require('../util');
-const { logger } = require('../../../util/logger');
+const tools = require('../tools');
+const { logger } = require('../../util');
 
 class Message {
   constructor (payload, hubId, terminalId, channelId) {
@@ -31,7 +31,7 @@ class Message {
   }
 
   match (fromString) {
-    return !fromString || util.matchHubId(fromString, this._from.hubId + '.' + this._from.terminalId);
+    return !fromString || tools.matchHubId(fromString, this._from.hubId + '.' + this._from.terminalId);
   }
 
   to (hubId, terminalId) {

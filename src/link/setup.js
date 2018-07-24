@@ -1,4 +1,4 @@
-const mlink = require('./midware/index');
+const mlink = require('./index');
 const Router = mlink.Router;
 const Hub = mlink.Hub;
 const debuggerRouter = new Router('debugger');
@@ -10,7 +10,7 @@ const entryHub = new Hub('page.entry');
 const runtimeProxyHub = new Hub('runtime.proxy');
 const syncHub = new Hub('sync');
 
-const init = () => {
+const setup = () => {
   debuggerRouter.link(nativeProxyHub);
   debuggerRouter.link(debuggerHub);
   debuggerRouter.link(inspectorHub);
@@ -21,5 +21,5 @@ const init = () => {
   mlink.load(__dirname);
 };
 module.exports = {
-  init
+  setup
 };

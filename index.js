@@ -15,8 +15,8 @@ const IP = require('ip');
 const startServerAndLaunchDevtool = (entry, config, cb) => {
   Config.ip = config.ip || IP.address();
   Config.port = config.port || 8088;
-  Config.remoteDebugPort = config.remoteDebugPort || 9222;
-  Config.enableHeadless = !(config.enableHeadless === false);
+  config.REMOTE_DEBUG_PORT = config.REMOTE_DEBUG_PORT || 9222;
+  config.ENABLE_HEADLESS = !(config.ENABLE_HEADLESS === false);
   Config.manual = config.manual || false;
   Devtool.start(entry, Config, cb);
 };

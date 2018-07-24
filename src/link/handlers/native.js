@@ -1,8 +1,8 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const Router = mlink.Router;
 const DeviceManager = require('../managers/device_manager');
 const { bundleWrapper, transformUrlToLocalUrl, generateSandboxWorkerEntry, generateWorkerEntry, pickDomain } = require('../../util/wrapper');
-const MemoryFile = require('../../lib/memory_file');
+const MemoryFile = require('../../MemoryFile');
 const debuggerRouter = Router.get('debugger');
 const crypto = require('../../util/crypto');
 const path = require('path');

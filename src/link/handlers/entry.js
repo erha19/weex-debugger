@@ -1,8 +1,6 @@
-const mlink = require('../midware');
+const mlink = require('../index');
 const Router = mlink.Router;
-const simulatorManager = require('../managers/simulator_manager');
-const config = require('../../lib/config');
-const hook = require('../../util/hook');
+const { hook,simulator, util } = require('../../util');
 const debuggerRouter = Router.get('debugger');
 
 debuggerRouter.registerHandler((message) => {
@@ -12,13 +10,13 @@ debuggerRouter.registerHandler((message) => {
       method: 'WxDebug.pushChannelId',
       params: {
         channelId,
-        connectUrl: config.getConnectUrl(channelId)
+        connectUrl: util.getConnectUrl(channelId)
       }
     };
     message.reply();
   }
   else if (message.payload.method === 'WxDebug.simrun') {
-    simulatorManager.connect(message.payload.params).catch((e) => {
+    simulator.connect(message.payload.params).catch((e) => {
       hook.record('/weex_tool.weex_debugger.scenes', { feature: 'simrun', status: 'fail' });
       debuggerRouter.pushMessage('page.entry', {
         method: 'WxDebug.prompt',

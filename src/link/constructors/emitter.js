@@ -1,4 +1,4 @@
-const util = require('../util');
+const tools = require('../tools');
 class Emitter {
   constructor () {
     this._eventHandler = {};
@@ -13,7 +13,7 @@ class Emitter {
       this._eventHandler[event] = {};
     }
 
-    const target = util.objectLocate(this._eventHandler[event], namespace);
+    const target = tools.objectLocate(this._eventHandler[event], namespace);
 
     if (target.__handlers__) {
       target.__handlers__.push(handler);
@@ -29,7 +29,7 @@ class Emitter {
         this._eventHandler[event] = {};
       }
       else {
-        util.clearObjectAt(this._eventHandler[event], namespace);
+        tools.clearObjectAt(this._eventHandler[event], namespace);
       }
     }
   }
@@ -54,7 +54,7 @@ class Emitter {
 
   _emit (prevTarget, namespace, context, data) {
     context.path = namespace;
-    const target = util.objectGet(prevTarget, namespace);
+    const target = tools.objectGet(prevTarget, namespace);
     if (target && target.__handlers__) {
       target.__handlers__.forEach(h => h.call(context, data));
     }
@@ -75,7 +75,7 @@ class Emitter {
       namespace = '';
     }
     if (this._eventHandler[event]) {
-      const target = util.objectGet(this._eventHandler[event], namespace);
+      const target = tools.objectGet(this._eventHandler[event], namespace);
       if (target) {
         const context = { event, namespace, path: namespace };
         this._broadcast(target, context, data);

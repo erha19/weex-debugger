@@ -12,7 +12,7 @@ function getChromeAppName () {
 }
 const pendingList = [];
 let pending = false;
-exports.launchChrome = function (url, remoteDebugPort, wait, callback) {
+const launchChrome = function (url, remoteDebugPort, wait, callback) {
   if (!pending) {
     pending = true;
     url = url.replace(/[&*]/g, '\\&');
@@ -39,8 +39,13 @@ exports.launchChrome = function (url, remoteDebugPort, wait, callback) {
   }
   else {
     pendingList.push(function () {
-      exports.launchChrome(url, remoteDebugPort, wait, callback);
+      launchChrome(url, remoteDebugPort, wait, callback);
     });
   }
 };
-exports.launchNewChrome = function (url, args) {};
+const launchNewChrome = function (url, args) {};
+
+module.exports = {
+  launchNewChrome,
+  launchChrome
+}

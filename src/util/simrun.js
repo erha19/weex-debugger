@@ -5,7 +5,7 @@ const ora = require('ora');
 const download = require('download');
 const fs = require('fs');
 
-exports.ios = function (prefix, deviceType, appUrl, schema, params) {
+const ios = function (prefix, deviceType, appUrl, schema, params) {
   const result = {};
   return findDevice(prefix, deviceType, result).then((udid) => {
     return openIosSimulator(udid).then(function () {
@@ -120,4 +120,8 @@ function loadApp (appUrl) {
       resolve(appUrl);
     }
   });
+}
+
+module.exports = {
+  ios
 }
