@@ -9,6 +9,7 @@ const request = require("./request");
 const simrun = require("./simrun");
 const wrapper = require("./wrapper");
 const simulator = require("./simulator");
+let connectUrl;
 
 const normalize = remoteurl => {
   const urlObj = URL.parse(remoteurl);
@@ -20,12 +21,17 @@ const normalize = remoteurl => {
 };
 
 const getConnectUrl = channelId => {
-  return this.connectUrl && this.connectUrl.replace("{channelId}", channelId);
+  return connectUrl.replace("{channelId}", channelId);
 };
+
+const setConnectUrl = url => {
+  connectUrl = url;
+}
 
 const util = {
   normalize,
-  getConnectUrl
+  getConnectUrl,
+  setConnectUrl
 };
 
 module.exports = {

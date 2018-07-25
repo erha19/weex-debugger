@@ -10,7 +10,7 @@ const debugServer = require("./server");
 const mlink = require("./link");
 const Router = mlink.Router;
 
-const { logger, hosts } = require("./util");
+const { logger, hosts, util } = require("./util");
 
 const builder = require("weex-builder");
 
@@ -37,9 +37,8 @@ function resolveRealUrl(url) {
 
 function resolveConnectUrl(config) {
   const host = config.ip + ":" + config.port;
-  config.connectUrl =
-    config.connectUrl ||
-    `http://${host}/devtool_fake.html?_wx_devtool=ws://${host}/debugProxy/native/{channelId}`;
+  util.setConnectUrl(config.connectUrl ||
+    `http://${host}/devtool_fake.html?_wx_devtool=ws://${host}/debugProxy/native/{channelId}`)
 }
 
 exports.startServerAndLaunch = function(ip, port, manual, cb) {
