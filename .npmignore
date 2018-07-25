@@ -5,8 +5,8 @@ inspector_5.2
 inspector_5.4
 frontend/devtools
 
-.git
-.vscode
+.git/
+.vscode/
 
 src/
 
