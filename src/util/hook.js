@@ -1,9 +1,6 @@
-
-const request = require('request');
-const dns = require('dns');
-const {
-  logger
-} = require('./logger');
+const request = require("request");
+const dns = require("dns");
+const { logger } = require("./logger");
 let shouldBeTelemetry = false;
 
 const record = (logkey, gokey) => {
@@ -16,15 +13,14 @@ const record = (logkey, gokey) => {
       url += `${i}=${gokey[i]}&`;
     }
   }
-  url += `t=${(new Date()).getTime()}`;
+  url += `t=${new Date().getTime()}`;
   try {
-    dns.resolve('gm.mmstat.com', function (err) {
+    dns.resolve("gm.mmstat.com", function(err) {
       if (!err) {
         request.get(url);
       }
     });
-  }
-  catch (e) {
+  } catch (e) {
     logger.error(e);
   }
 };
@@ -36,4 +32,4 @@ const allowTarck = () => {
 module.exports = {
   record,
   allowTarck
-}
+};

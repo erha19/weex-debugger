@@ -1,87 +1,112 @@
-const hosts = require('./util/hosts');
-const path = require('path');
-const chalk = require('chalk');
-const config = require('./config');
-const debugServer = require('./server');
-const hook = require('./util/hook');
-const boxen = require('boxen');
+const path = require("path");
+const chalk = require("chalk");
+const boxen = require("boxen");
 
-const detect = require('detect-port');
-const launcher = require('./util/launcher');
-const headless = require('./server/headless');
-const mlink = require('./link');
+const detect = require("detect-port");
+const launcher = require("./util/launcher");
+const headless = require("./server/headless");
+const config = require("./config");
+const debugServer = require("./server");
+const mlink = require("./link");
 const Router = mlink.Router;
 
-const {
-  logger
-} = require('./util');
+const { logger, hosts } = require("./util");
 
+const builder = require("weex-builder");
 
-const builder = require('weex-builder');
-
-function resolveBundleUrl (bundlePath, ip, port) {
-  return `http://${ip}:${port}/${config.BUNDLE_DIRECTORY}/${bundlePath.replace(/\.(we|vue)$/, '.js')}`;
+function resolveBundleUrl(bundlePath, ip, port) {
+  return `http://${ip}:${port}/${config.BUNDLE_DIRECTORY}/${bundlePath.replace(
+    /\.(we|vue)$/,
+    ".js"
+  )}`;
 }
 
-function isUrl (str) {
+function isUrl(str) {
   return /^https?:\/\//.test(str);
 }
 
-function resolveRealUrl (url) {
-  return url.replace(/^(https?:\/\/)([^/:]+)(?=:\d+|\/)/, function (m, a, b) {
+function resolveRealUrl(url) {
+  return url.replace(/^(https?:\/\/)([^/:]+)(?=:\d+|\/)/, function(m, a, b) {
     if (!/\d+\.\d+\.\d+\.\d+/.test(a)) {
       return a + hosts.findRealHost(b);
-    }
-    else {
+    } else {
       return m;
     }
   });
 }
 
-function resolveConnectUrl (config) {
-  const host = config.ip + ':' + config.port;
-  config.connectUrl = config.connectUrl || `http:\/\/${host}/devtool_fake.html?_wx_devtool=ws:\/\/${host}/debugProxy/native/{channelId}`;
+function resolveConnectUrl(config) {
+  const host = config.ip + ":" + config.port;
+  config.connectUrl =
+    config.connectUrl ||
+    `http://${host}/devtool_fake.html?_wx_devtool=ws://${host}/debugProxy/native/{channelId}`;
 }
 
-exports.startServerAndLaunch = function (ip, port, manual, cb) {
+exports.startServerAndLaunch = function(ip, port, manual, cb) {
   this.startServer(ip, port).then(() => {
     cb && cb();
     if (!manual) this.launch(ip, port);
   });
 };
 
-exports.startServer = function (ip, port) {
+exports.startServer = function(ip, port) {
   return new Promise((resolve, reject) => {
     const inUse = config.inUse;
-    let message = chalk.green('Start debugger server!');
+    let message = chalk.green("Start debugger server!");
     if (inUse) {
-      message += ' ' + chalk.red('(on port ' + inUse.open + ',' + (' because ' + inUse.old + ' is already in use)'));
+      message +=
+        " " +
+        chalk.red(
+          "(on port " +
+            inUse.open +
+            "," +
+            (" because " + inUse.old + " is already in use)")
+        );
     }
-    message += '\n\n';
-    message += '- ' + chalk.bold('Websocket Address For Native: ') + ' ws://' + ip + ':' + port + '/debugProxy/native\n';
-    message += '- ' + chalk.bold('Debug Server:                 ') + ' http://' + ip + ':' + port + '\n';
-    debugServer.start(port, function () {
-      logger.log(boxen(message, {
-        padding: 1,
-        borderColor: 'green',
-        margin: 1
-      }));
+    message += "\n\n";
+    message +=
+      "- " +
+      chalk.bold("Websocket Address For Native: ") +
+      " ws://" +
+      ip +
+      ":" +
+      port +
+      "/debugProxy/native\n";
+    message +=
+      "- " +
+      chalk.bold("Debug Server:                 ") +
+      " http://" +
+      ip +
+      ":" +
+      port +
+      "\n";
+    debugServer.start(port, function() {
+      logger.log(
+        boxen(message, {
+          padding: 1,
+          borderColor: "green",
+          margin: 1
+        })
+      );
       resolve();
     });
   });
 };
 
-exports.launch = function (ip, port) {
-  const debuggerURL = 'http://' + (ip || 'localhost') + ':' + port + '/';
-  logger.info('Launching Dev Tools...');
+exports.launch = function(ip, port) {
+  const debuggerURL = "http://" + (ip || "localhost") + ":" + port + "/";
+  logger.info("Launching Dev Tools...");
   if (config.ENABLE_HEADLESS) {
     // Check whether the port is occupied
-    detect(config.REMOTE_DEBUG_PORT).then(function (open) {
+    detect(config.REMOTE_DEBUG_PORT).then(function(open) {
       if (+config.REMOTE_DEBUG_PORT !== open) {
         headless.closeHeadless();
-        logger.info(`Starting inspector on port ${open}, because ${config.REMOTE_DEBUG_PORT} is already in use`);
-      }
-      else {
+        logger.info(
+          `Starting inspector on port ${open}, because ${
+            config.REMOTE_DEBUG_PORT
+          } is already in use`
+        );
+      } else {
         logger.info(`Starting inspector on port ${open}`);
       }
       config.REMOTE_DEBUG_PORT = open;
@@ -91,7 +116,7 @@ exports.launch = function (ip, port) {
   launcher.launchChrome(debuggerURL, config.REMOTE_DEBUG_PORT || 9222);
 };
 
-exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
+exports.resolveBundlesAndEntry = function(entry, bundles, ip, port) {
   let entryUrl;
   const bundleUrls = bundles.map(b => resolveBundleUrl(b, ip, port));
   if (isUrl(entry)) {
@@ -102,48 +127,64 @@ exports.resolveBundlesAndEntry = function (entry, bundles, ip, port) {
   return bundleUrls;
 };
 
-exports.reload = function () {
-  Router.get('debugger').pushMessage('proxy.native', {
-    method: 'WxDebug.reload'
+exports.reload = function() {
+  Router.get("debugger").pushMessage("proxy.native", {
+    method: "WxDebug.reload"
   });
 };
 
-exports.start = function (target, config, cb) {
+exports.start = function(target, config, cb) {
   resolveConnectUrl(config);
   if (isUrl(target)) {
-    const bundleUrls = this.resolveBundlesAndEntry(target, [], config.ip, config.port);
+    const bundleUrls = this.resolveBundlesAndEntry(
+      target,
+      [],
+      config.ip,
+      config.port
+    );
     config.bundleUrls = bundleUrls;
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
-  }
-  else if (target) {
+  } else if (target) {
     const filePath = path.resolve(target);
     let shouldReloadDebugger = false;
-    builder.build(filePath, path.join(__dirname, '../../frontend/weex'), {
-      watch: true,
-      ext: config.ext,
-      min: config.min,
-      devtool: 'inline-source-map'
-    }, (err, output, json) => {
-      if (err) {
-        logger.error(err);
-      }
-      else {
-        logger.info('Build completed!\nChild');
-        logger.log(output.toString());
-        if (!shouldReloadDebugger) {
-          shouldReloadDebugger = true;
-          const bundles = json.assets.map((o) => o.name.replace('\\', '/'));
-          const bundleUrls = this.resolveBundlesAndEntry(config.entry, bundles, config.ip, config.port);
-          config.bundleUrls = bundleUrls;
-          this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
+    builder.build(
+      filePath,
+      path.join(__dirname, "../../frontend/weex"),
+      {
+        watch: true,
+        ext: config.ext,
+        min: config.min,
+        devtool: "inline-source-map"
+      },
+      (err, output, json) => {
+        if (err) {
+          logger.error(err);
+        } else {
+          logger.info("Build completed!\nChild");
+          logger.log(output.toString());
+          if (!shouldReloadDebugger) {
+            shouldReloadDebugger = true;
+            const bundles = json.assets.map(o => o.name.replace("\\", "/"));
+            const bundleUrls = this.resolveBundlesAndEntry(
+              config.entry,
+              bundles,
+              config.ip,
+              config.port
+            );
+            config.bundleUrls = bundleUrls;
+            this.startServerAndLaunch(
+              config.ip,
+              config.port,
+              config.manual,
+              cb
+            );
+          } else {
+            exports.reload();
+          }
         }
-        else {
-          exports.reload();
-        }
       }
-    });
-  }
-  else {
+    );
+  } else {
     this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
   }
 };

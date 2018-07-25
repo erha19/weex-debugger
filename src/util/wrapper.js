@@ -1,56 +1,99 @@
-const queryParser = require('querystring');
-const URL = require('url');
-const path = require('path');
-const fse = require('fs-extra');
-const { util } =require('./index');
+const queryParser = require("querystring");
+const URL = require("url");
+const path = require("path");
+const fse = require("fs-extra");
+const { util } = require("./index");
 
 const bundleWrapper = (code, sourceUrl) => {
   const injectedGlobals = [
     // ES
-    'Promise',
+    "Promise",
     // W3C
-    'window', 'weex', 'service', 'Rax', 'services', 'global', 'screen', 'document', 'navigator', 'location', 'fetch', 'Headers', 'Response', 'Request', 'URL', 'URLSearchParams', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'alert',
+    "window",
+    "weex",
+    "service",
+    "Rax",
+    "services",
+    "global",
+    "screen",
+    "document",
+    "navigator",
+    "location",
+    "fetch",
+    "Headers",
+    "Response",
+    "Request",
+    "URL",
+    "URLSearchParams",
+    "setTimeout",
+    "clearTimeout",
+    "setInterval",
+    "clearInterval",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
+    "alert",
     // ModuleJS
-    'define', 'require',
+    "define",
+    "require",
     // Weex
-    'bootstrap', 'register', 'render', '__d', '__r', '__DEV__', '__weex_define__', '__weex_require__', '__weex_viewmodel__', '__weex_document__', '__weex_bootstrap__', '__weex_options__', '__weex_data__', '__weex_downgrade__', '__weex_require_module__', 'Vue'
+    "bootstrap",
+    "register",
+    "render",
+    "__d",
+    "__r",
+    "__DEV__",
+    "__weex_define__",
+    "__weex_require__",
+    "__weex_viewmodel__",
+    "__weex_document__",
+    "__weex_bootstrap__",
+    "__weex_options__",
+    "__weex_data__",
+    "__weex_downgrade__",
+    "__weex_require_module__",
+    "Vue"
   ];
-  const bundlewrapper = 'function __weex_bundle_entry__(' + injectedGlobals.join(',') + '){';
+  const bundlewrapper =
+    "function __weex_bundle_entry__(" + injectedGlobals.join(",") + "){";
   const rearRegexp = /\/\/#\s*sourceMappingURL(?!.*?\s+.)|$/;
   const match = /^\/\/\s?{\s?"framework"\s?:\s?"(\w+)"\s?}/.exec(code);
-  let anno = '';
+  let anno = "";
   if (match) {
-    anno = '$$frameworkFlag["' + (sourceUrl || '@') + '"]="' + match[1] + '"\n';
+    anno = '$$frameworkFlag["' + (sourceUrl || "@") + '"]="' + match[1] + '"\n';
   }
-  return anno + bundlewrapper + code.replace(rearRegexp, '}\n$&');
+  return anno + bundlewrapper + code.replace(rearRegexp, "}\n$&");
 };
-const transformUrlToLocalUrl = (sourceURl) => {
+const transformUrlToLocalUrl = sourceURl => {
   const rHttpHeader = /^(https?|taobao|qap):\/\/(?!.*your_current_ip)/i;
   let bundleUrl;
   if (rHttpHeader.test(sourceURl)) {
     const query = queryParser.parse(URL.parse(sourceURl).query);
-    if (query['_wx_tpl']) {
-      bundleUrl = util.normalize(query['_wx_tpl']).replace(rHttpHeader, '');
+    if (query["_wx_tpl"]) {
+      bundleUrl = util.normalize(query["_wx_tpl"]).replace(rHttpHeader, "");
+    } else {
+      bundleUrl = util.normalize(sourceURl).replace(rHttpHeader, "");
     }
-    else {
-      bundleUrl = util.normalize(sourceURl).replace(rHttpHeader, '');
-    }
+  } else {
+    bundleUrl = sourceURl.replace(
+      /^(https?|taobao|qap):\/\/(.*your_current_ip):(\d+)\//i,
+      "file://"
+    );
   }
-  else {
-    bundleUrl = sourceURl.replace(/^(https?|taobao|qap):\/\/(.*your_current_ip):(\d+)\//i, 'file://');
-  }
-  if (bundleUrl.charAt(bundleUrl.length - 1) === '?') {
+  if (bundleUrl.charAt(bundleUrl.length - 1) === "?") {
     bundleUrl = bundleUrl.substring(0, bundleUrl.length - 1);
   }
-  if (bundleUrl.charAt(bundleUrl.length - 1) === '?') {
+  if (bundleUrl.charAt(bundleUrl.length - 1) === "?") {
     bundleUrl = bundleUrl.substring(0, bundleUrl.length - 1);
   }
-  return '/source/' + bundleUrl;
+  return "/source/" + bundleUrl;
 };
 
-const generateSandboxWorkerEntry = (env) => {
-  const worker = fse.readFileSync(path.join(__dirname, '../worker/sandbox_worker.js'));
-  const androidMockApi = env.isLayoutAndSandbox ? `self.callCreateBody = function (instance, domStr) {
+const generateSandboxWorkerEntry = env => {
+  const worker = fse.readFileSync(
+    path.join(__dirname, "../worker/sandbox_worker.js")
+  );
+  const androidMockApi = env.isLayoutAndSandbox
+    ? `self.callCreateBody = function (instance, domStr) {
   if (!domStr) return;
   var payload = {
     method: 'WxDebug.callCreateBody',
@@ -166,7 +209,8 @@ self.callRemoveEvent = function (instance, ref, event) {
     }
   };
   __postData__(payload);
-}` : '';
+}`
+    : "";
   let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
@@ -334,8 +378,8 @@ ${worker}
   `;
 };
 
-const generateWorkerEntry = (env) => {
-  const worker = fse.readFileSync(path.join(__dirname, '../worker/worker.js'));
+const generateWorkerEntry = env => {
+  const worker = fse.readFileSync(path.join(__dirname, "../worker/worker.js"));
   let environment = `// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
@@ -507,9 +551,9 @@ ${worker}
   `;
 };
 
-const pickDomain = (str) => {
+const pickDomain = str => {
   if (/file:\/\/\//.test(str)) {
-    return 'local';
+    return "local";
   }
   if (/http(s)?/.test(str)) {
     return URL.parse(str).hostname;

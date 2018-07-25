@@ -1,10 +1,10 @@
-const Filter = require('./filter');
-const Router = require('./router');
-const Message = require('./message');
-const { logger } = require('../../util');
+const Filter = require("./filter");
+const Router = require("./router");
+const Message = require("./message");
+const { logger } = require("../../util");
 const _hubInstances = {};
 class Hub {
-  constructor (id) {
+  constructor(id) {
     const self = this;
     if (_hubInstances[id]) {
       return _hubInstances[id];
@@ -13,50 +13,54 @@ class Hub {
     this.id = id;
     this.terminalMap = {};
     this.filterChain = [];
-    this._pushToRouter = new Filter(function * (message) {
+    this._pushToRouter = new Filter(function*(message) {
       const responseMessage = yield self.router._fetchMessage(message);
       self.response = responseMessage;
       return responseMessage;
     });
   }
 
-  static get (id) {
+  static get(id) {
     return _hubInstances[id] || new Hub(id);
   }
 
-  static check () {
-    Object.keys(_hubInstances).forEach((id) => {
+  static check() {
+    Object.keys(_hubInstances).forEach(id => {
       if (!_hubInstances[id].router) {
-        console.warn('mlink warning: Hub[' + id + '] not join in any router.make sure your id is correct');
+        console.warn(
+          "mlink warning: Hub[" +
+            id +
+            "] not join in any router.make sure your id is correct"
+        );
       }
     });
   }
 
-  join (terminal, forced) {
+  join(terminal, forced) {
     if (!this.router) {
-      throw new Error('A Hub must be linked with a Router before join terminals');
+      throw new Error(
+        "A Hub must be linked with a Router before join terminals"
+      );
     }
     if (!this.terminalMap[terminal.id]) {
       terminal.hub = this.id;
       this.terminalMap[terminal.id] = terminal;
       this._setupTerminal(terminal, forced);
-    }
-    else {
-      throw new Error('can not add the same port');
+    } else {
+      throw new Error("can not add the same port");
     }
   }
 
-  setChannel (terminalId, channelId) {
+  setChannel(terminalId, channelId) {
     if (this.terminalMap[terminalId]) {
       this.terminalMap[terminalId].channelId = channelId;
-    }
-    else {
-      throw new Error('can not find terminal[' + terminalId + ']');
+    } else {
+      throw new Error("can not find terminal[" + terminalId + "]");
     }
   }
 
-  _setupTerminal (terminal, forced) {
-    terminal.on('destroy', () => {
+  _setupTerminal(terminal, forced) {
+    terminal.on("destroy", () => {
       if (this.terminalMap[terminal.id]) {
         delete this.terminalMap[terminal.id];
         this.router._event({
@@ -66,12 +70,11 @@ class Hub {
           channelId: terminal.channelId
         });
         terminal = null;
-      }
-      else {
-        logger.warn('try to delete a non-exist terminal');
+      } else {
+        logger.warn("try to delete a non-exist terminal");
       }
     });
-    terminal.on('message', (message) => {
+    terminal.on("message", message => {
       this.send(new Message(message, this.id, terminal.id, terminal.channelId));
     });
     this.router._event({
@@ -83,7 +86,7 @@ class Hub {
     });
   }
 
-  broadcast (message) {
+  broadcast(message) {
     for (const id in this.terminalMap) {
       if (this.terminalMap.hasOwnProperty(id)) {
         this.terminalMap[id].read(message.payload);
@@ -92,24 +95,27 @@ class Hub {
     message.destroy();
   }
 
-  pushToTerminal (terminalId, message) {
+  pushToTerminal(terminalId, message) {
     if (this.terminalMap[terminalId]) {
       this.terminalMap[terminalId].read(message.payload);
-    }
-    else {
-      throw new Error('Terminal [' + terminalId + '] not found! @' + this.id);
+    } else {
+      throw new Error("Terminal [" + terminalId + "] not found! @" + this.id);
     }
   }
 
-  send (message) {
+  send(message) {
     if (!this.router) {
-      throw new Error('this hub not linked with a router,message send failed!');
+      throw new Error("this hub not linked with a router,message send failed!");
     }
-    Filter.resolveFilterChain(message, this.filterChain.concat(this._pushToRouter)).then(() => {
-    }).catch(e => logger.error(e));
+    Filter.resolveFilterChain(
+      message,
+      this.filterChain.concat(this._pushToRouter)
+    )
+      .then(() => {})
+      .catch(e => logger.error(e));
   }
 
-  filter (filter, condition) {
+  filter(filter, condition) {
     this.filterChain.push(new Filter(filter, condition));
   }
 }

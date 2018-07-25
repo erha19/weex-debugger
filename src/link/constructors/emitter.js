@@ -1,13 +1,13 @@
-const tools = require('../tools');
+const tools = require("../tools");
 class Emitter {
-  constructor () {
+  constructor() {
     this._eventHandler = {};
   }
 
-  on (event, namespace, handler) {
+  on(event, namespace, handler) {
     if (arguments.length === 2) {
       handler = namespace;
-      namespace = '';
+      namespace = "";
     }
     if (!this._eventHandler[event]) {
       this._eventHandler[event] = {};
@@ -17,27 +17,25 @@ class Emitter {
 
     if (target.__handlers__) {
       target.__handlers__.push(handler);
-    }
-    else {
+    } else {
       target.__handlers__ = [handler];
     }
   }
 
-  off (event, namespace) {
+  off(event, namespace) {
     if (this._eventHandler[event]) {
       if (!namespace) {
         this._eventHandler[event] = {};
-      }
-      else {
+      } else {
         tools.clearObjectAt(this._eventHandler[event], namespace);
       }
     }
   }
 
-  emit (event, namespace, data) {
+  emit(event, namespace, data) {
     if (arguments.length === 2) {
       data = namespace;
-      namespace = '';
+      namespace = "";
     }
     if (this._eventHandler[event]) {
       const context = {
@@ -46,33 +44,30 @@ class Emitter {
         path: namespace
       };
       return this._emit(this._eventHandler[event], namespace, context, data);
-    }
-    else {
+    } else {
       return false;
     }
   }
 
-  _emit (prevTarget, namespace, context, data) {
+  _emit(prevTarget, namespace, context, data) {
     context.path = namespace;
     const target = tools.objectGet(prevTarget, namespace);
     if (target && target.__handlers__) {
       target.__handlers__.forEach(h => h.call(context, data));
-    }
-    else {
+    } else {
       if (namespace) {
-        const ns = namespace.substr(0, namespace.lastIndexOf('.'));
+        const ns = namespace.substr(0, namespace.lastIndexOf("."));
         return this._emit(prevTarget, ns, context, data);
-      }
-      else {
+      } else {
         return false;
       }
     }
   }
 
-  broadcast (event, namespace, data) {
+  broadcast(event, namespace, data) {
     if (arguments.length === 2) {
       data = namespace;
-      namespace = '';
+      namespace = "";
     }
     if (this._eventHandler[event]) {
       const target = tools.objectGet(this._eventHandler[event], namespace);
@@ -80,20 +75,23 @@ class Emitter {
         const context = { event, namespace, path: namespace };
         this._broadcast(target, context, data);
         return true;
-      }
-      else return false;
-    }
-    else {
+      } else return false;
+    } else {
       return false;
     }
   }
 
-  _broadcast (target, context, data) {
-    target.__handlers__ && target.__handlers__.forEach(h => h.call(context, data));
-    const keys = Object.keys(target).filter(k => k !== '__handlers__');
+  _broadcast(target, context, data) {
+    target.__handlers__ &&
+      target.__handlers__.forEach(h => h.call(context, data));
+    const keys = Object.keys(target).filter(k => k !== "__handlers__");
 
-    keys.forEach((k) => {
-      const ctx = { event: context.event, namespace: context.namespace, path: context.namespace + '.' + k };
+    keys.forEach(k => {
+      const ctx = {
+        event: context.event,
+        namespace: context.namespace,
+        path: context.namespace + "." + k
+      };
       this._broadcast(target[k], ctx, data);
     });
   }

@@ -1,9 +1,7 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require("puppeteer");
 let page;
 let browser = null;
-const {
-  logger
-} = require('../util');
+const { logger } = require("../util");
 
 exports.launchHeadless = async (host, remotePort) => {
   browser = await puppeteer.launch({
