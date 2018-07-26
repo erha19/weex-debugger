@@ -1,6 +1,18 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.27
+### Changed
+  - Mock window.navigator for some environment judgement.
+
+### 1.0.26
+### Changed
+  - Refactoring the server system.
+
+### 1.0.25
+  ### Changed
+  - Formate source code.
+
 ### 1.0.24
 ### Fixed
   - The worker file should not be compile by babel.
