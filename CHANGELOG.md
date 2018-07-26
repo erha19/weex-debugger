@@ -2,38 +2,38 @@
 All notable changes to this project will be documented in this file.
 
 ### 1.1.0
-### Changed
+##### Changed
   - Upgrade chrome devtool to version 70.
   - Fix entry error of version 1.0.28.
 
 ### 1.0.28
-### Changed
+#### Changed
   - Upgrade koa-router to 7.4.0, koa-websocket to 5.0.1, weex-builder to 0.4.0.
-### Fixed
+#### Fixed
   - Fix builder logic on debugger.
 
 ### 1.0.27
-### Changed
+#### Changed
   - Mock window.navigator for some environment judgement.
 
 ### 1.0.26
-### Changed
+#### Changed
   - Refactoring the server system.
 
 ### 1.0.25
-  ### Changed
+#### Changed
   - Formate source code.
 
 ### 1.0.24
-### Fixed
+#### Fixed
   - The worker file should not be compile by babel.
 
 ### 1.0.23
-### Fixed
+#### Fixed
   - Fix error of `can not find .xtoolkit/package.json file`.
 
 ### 1.0.22
-### Fixed
+#### Fixed
   - Fix the entry file of debugger command.
 
 ### 1.0.21
@@ -41,7 +41,7 @@ All notable changes to this project will be documented in this file.
   - Update tool version on frontend.
 
 ### 1.0.20
-### Changed
+#### Changed
   - Improve the debugging logic of weex in the sandbox debugging environment.
 
 ### 1.0.19
