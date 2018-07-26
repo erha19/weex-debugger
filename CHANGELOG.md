@@ -1,6 +1,11 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.0
+### Changed
+  - Upgrade chrome devtool to version 70.
+  - Fix entry error of version 1.0.28.
+
 ### 1.0.28
 ### Changed
   - Upgrade koa-router to 7.4.0, koa-websocket to 5.0.1, weex-builder to 0.4.0.

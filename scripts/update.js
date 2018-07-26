@@ -10,3 +10,9 @@ const versionReg = /\"VERSION\":\".+\"/ig;
 fse.writeFileSync(localFilePath, localFileContent.replace(versionReg, `"VERSION":"weex devtool ${package.version}"`));
 
 fse.copySync(path.resolve('src/worker/'), path.resolve('lib/worker/'))
+
+const binFilePath = path.join(__dirname, '../bin/weex-devtool.js');
+const binFileContent = fse.readFileSync(binFilePath).toString();
+const sourceReg = /\.\.\/src/ig;
+
+fse.writeFileSync(binFilePath, binFileContent.replace(sourceReg, '../lib'));

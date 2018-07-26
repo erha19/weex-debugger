@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.28",
+  "version": "1.1.0",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -87,6 +87,7 @@
   },
   "changelog": {
     "messages": [
+      "[Change] upgrade chrome devtool to version 70.",
       "[Feature] Improve the debugging logic of weex in the sandbox debugging environment."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
