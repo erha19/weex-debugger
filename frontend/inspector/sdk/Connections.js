@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 /**
- * @implements {InspectorBackendClass.Connection}
+ * @implements {Protocol.InspectorBackend.Connection}
  * @unrestricted
  */
 SDK.MainConnection = class {
   /**
-   * @param {!InspectorBackendClass.Connection.Params} params
+   * @param {!Protocol.InspectorBackend.Connection.Params} params
    */
   constructor(params) {
     this._onMessage = params.onMessage;
@@ -18,8 +18,6 @@ SDK.MainConnection = class {
           InspectorFrontendHostAPI.Events.DispatchMessage, this._dispatchMessage, this),
       InspectorFrontendHost.events.addEventListener(
           InspectorFrontendHostAPI.Events.DispatchMessageChunk, this._dispatchMessageChunk, this),
-      InspectorFrontendHost.events.addEventListener(
-          InspectorFrontendHostAPI.Events.EvaluateForTestInFrontend, this._evaluateForTestInFrontend, this),
     ];
   }
 
@@ -43,8 +41,8 @@ SDK.MainConnection = class {
    * @param {!Common.Event} event
    */
   _dispatchMessageChunk(event) {
-    var messageChunk = /** @type {string} */ (event.data['messageChunk']);
-    var messageSize = /** @type {number} */ (event.data['messageSize']);
+    const messageChunk = /** @type {string} */ (event.data['messageChunk']);
+    const messageSize = /** @type {number} */ (event.data['messageSize']);
     if (messageSize) {
       this._messageBuffer = '';
       this._messageSize = messageSize;
@@ -58,43 +56,18 @@ SDK.MainConnection = class {
   }
 
   /**
-   * @param {!Common.Event} event
-   */
-  _evaluateForTestInFrontend(event) {
-    if (!InspectorFrontendHost.isUnderTest())
-      return;
-
-    var callId = /** @type {number} */ (event.data['callId']);
-    var script = /** @type {number} */ (event.data['script']);
-
-    /**
-     * @suppressGlobalPropertiesCheck
-     */
-    function invokeMethod() {
-      try {
-        script = script + '//# sourceURL=evaluateInWebInspector' + callId + '.js';
-        window.eval(script);
-      } catch (e) {
-        console.error(e.stack);
-      }
-    }
-
-    InspectorBackendClass.deprecatedRunAfterPendingDispatches(invokeMethod);
-  }
-
-  /**
    * @override
    * @return {!Promise}
    */
   disconnect() {
-    var onDisconnect = this._onDisconnect;
+    const onDisconnect = this._onDisconnect;
     Common.EventTarget.removeEventListeners(this._eventListeners);
     this._onDisconnect = null;
     this._onMessage = null;
     this._disconnected = true;
 
-    var fulfill;
-    var promise = new Promise(f => fulfill = f);
+    let fulfill;
+    const promise = new Promise(f => fulfill = f);
     InspectorFrontendHost.reattach(() => {
       onDisconnect.call(null, 'force disconnect');
       fulfill();
@@ -104,20 +77,20 @@ SDK.MainConnection = class {
 };
 
 /**
- * @implements {InspectorBackendClass.Connection}
+ * @implements {Protocol.InspectorBackend.Connection}
  * @unrestricted
  */
 SDK.WebSocketConnection = class {
   /**
    * @param {string} url
    * @param {function()} onWebSocketDisconnect
-   * @param {!InspectorBackendClass.Connection.Params} params
+   * @param {!Protocol.InspectorBackend.Connection.Params} params
    */
   constructor(url, onWebSocketDisconnect, params) {
     this._socket = new WebSocket(url);
     this._socket.onerror = this._onError.bind(this);
     this._socket.onopen = this._onOpen.bind(this);
-    this._socket.onmessage = (messageEvent) => params.onMessage.call(null, /** @type {string} */ (messageEvent.data));
+    this._socket.onmessage = messageEvent => params.onMessage.call(null, /** @type {string} */ (messageEvent.data));
     this._socket.onclose = this._onClose.bind(this);
 
     this._onDisconnect = params.onDisconnect;
@@ -136,7 +109,7 @@ SDK.WebSocketConnection = class {
   _onOpen() {
     this._socket.onerror = console.error;
     this._connected = true;
-    for (var message of this._messages)
+    for (const message of this._messages)
       this._socket.send(message);
     this._messages = [];
   }
@@ -176,8 +149,8 @@ SDK.WebSocketConnection = class {
    * @return {!Promise}
    */
   disconnect() {
-    var fulfill;
-    var promise = new Promise(f => fulfill = f);
+    let fulfill;
+    const promise = new Promise(f => fulfill = f);
     this._close(() => {
       this._onDisconnect.call(null, 'force disconnect');
       fulfill();
@@ -187,12 +160,12 @@ SDK.WebSocketConnection = class {
 };
 
 /**
- * @implements {InspectorBackendClass.Connection}
+ * @implements {Protocol.InspectorBackend.Connection}
  * @unrestricted
  */
 SDK.StubConnection = class {
   /**
-   * @param {!InspectorBackendClass.Connection.Params} params
+   * @param {!Protocol.InspectorBackend.Connection.Params} params
    */
   constructor(params) {
     this._onMessage = params.onMessage;
@@ -211,10 +184,10 @@ SDK.StubConnection = class {
    * @param {string} message
    */
   _respondWithError(message) {
-    var messageObject = JSON.parse(message);
-    var error = {
+    const messageObject = JSON.parse(message);
+    const error = {
       message: 'This is a stub connection, can\'t dispatch message.',
-      code: InspectorBackendClass.DevToolsStubErrorCode,
+      code: Protocol.InspectorBackend.DevToolsStubErrorCode,
       data: messageObject
     };
     this._onMessage.call(null, {id: messageObject.id, error: error});
@@ -230,4 +203,56 @@ SDK.StubConnection = class {
     this._onMessage = null;
     return Promise.resolve();
   }
+};
+
+/**
+ * @implements {Protocol.InspectorBackend.Connection}
+ */
+SDK.ChildConnection = class {
+  /**
+   * @param {!Protocol.TargetAgent} agent
+   * @param {string} sessionId
+   * @param {!Protocol.InspectorBackend.Connection.Params} params
+   */
+  constructor(agent, sessionId, params) {
+    this._agent = agent;
+    this._sessionId = sessionId;
+    this.onMessage = params.onMessage;
+    this.onDisconnect = params.onDisconnect;
+  }
+
+  /**
+   * @override
+   * @param {string} message
+   */
+  sendMessage(message) {
+    this._agent.sendMessageToTarget(message, this._sessionId);
+  }
+
+  /**
+   * @override
+   * @return {!Promise}
+   */
+  disconnect() {
+    throw 'Not implemented';
+  }
+};
+
+/**
+ * @param {!Protocol.InspectorBackend.Connection.Params} params
+ * @param {function()} connectionLostCallback
+ * @return {!Protocol.InspectorBackend.Connection}
+ */
+SDK.createMainConnection = function(params, connectionLostCallback) {
+  const wsParam = Runtime.queryParam('ws');
+  const wssParam = Runtime.queryParam('wss');
+
+  if (wsParam || wssParam) {
+    const ws = wsParam ? `ws://${wsParam}` : `wss://${wssParam}`;
+    return new SDK.WebSocketConnection(ws, connectionLostCallback, params);
+  }
+
+  if (InspectorFrontendHost.isHostedMode())
+    return new SDK.StubConnection(params);
+  return new SDK.MainConnection(params);
 };

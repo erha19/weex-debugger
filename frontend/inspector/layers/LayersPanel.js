@@ -81,7 +81,6 @@ Layers.LayersPanel = class extends UI.PanelWithSidebar {
     super.wasShown();
     if (this._model)
       this._model.enable();
-    this._layerTreeOutline.focus();
   }
 
   /**
@@ -100,7 +99,7 @@ Layers.LayersPanel = class extends UI.PanelWithSidebar {
   targetAdded(target) {
     if (this._model)
       return;
-    this._model = Layers.LayerTreeModel.fromTarget(target);
+    this._model = target.model(Layers.LayerTreeModel);
     if (!this._model)
       return;
     this._model.addEventListener(Layers.LayerTreeModel.Events.LayerTreeChanged, this._onLayerTreeUpdated, this);
@@ -141,7 +140,7 @@ Layers.LayersPanel = class extends UI.PanelWithSidebar {
   _onLayerPainted(event) {
     if (!this._model)
       return;
-    var layer = /** @type {!SDK.Layer} */ (event.data);
+    const layer = /** @type {!SDK.Layer} */ (event.data);
     if (this._layerViewHost.selection() && this._layerViewHost.selection().layer() === layer)
       this._layerDetailsView.update();
     this._layers3DView.updateLayerSnapshot(layer);
@@ -151,14 +150,16 @@ Layers.LayersPanel = class extends UI.PanelWithSidebar {
    * @param {!Common.Event} event
    */
   _onPaintProfileRequested(event) {
-    var selection = /** @type {!LayerViewer.LayerView.Selection} */ (event.data);
+    const selection = /** @type {!LayerViewer.LayerView.Selection} */ (event.data);
     this._layers3DView.snapshotForSelection(selection).then(snapshotWithRect => {
       if (!snapshotWithRect)
         return;
       this._layerBeingProfiled = selection.layer();
-      this._tabbedPane.appendTab(
-          Layers.LayersPanel.DetailsViewTabs.Profiler, Common.UIString('Profiler'), this._paintProfilerView, undefined,
-          true, true);
+      if (!this._tabbedPane.hasTab(Layers.LayersPanel.DetailsViewTabs.Profiler)) {
+        this._tabbedPane.appendTab(
+            Layers.LayersPanel.DetailsViewTabs.Profiler, Common.UIString('Profiler'), this._paintProfilerView,
+            undefined, true, true);
+      }
       this._tabbedPane.selectTab(Layers.LayersPanel.DetailsViewTabs.Profiler);
       this._paintProfilerView.profile(snapshotWithRect.snapshot);
     });

@@ -31,12 +31,11 @@
 /**
  * @unrestricted
  */
-SDK.ServiceWorkerManager = class extends SDK.SDKObject {
+SDK.ServiceWorkerManager = class extends SDK.SDKModel {
   /**
    * @param {!SDK.Target} target
-   * @param {!SDK.SubTargetsManager} subTargetsManager
    */
-  constructor(target, subTargetsManager) {
+  constructor(target) {
     super(target);
     target.registerServiceWorkerDispatcher(new SDK.ServiceWorkerDispatcher(this));
     this._lastAnonymousTargetId = 0;
@@ -48,7 +47,7 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
     if (this._forceUpdateSetting.get())
       this._forceUpdateSettingChanged();
     this._forceUpdateSetting.addChangeListener(this._forceUpdateSettingChanged, this);
-    new SDK.ServiceWorkerContextNamer(target, this, subTargetsManager);
+    new SDK.ServiceWorkerContextNamer(target, this);
   }
 
   enable() {
@@ -78,8 +77,8 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @return {?SDK.ServiceWorkerVersion}
    */
   findVersion(versionId) {
-    for (var registration of this.registrations().values()) {
-      var version = registration.versions.get(versionId);
+    for (const registration of this.registrations().values()) {
+      const version = registration.versions.get(versionId);
       if (version)
         return version;
     }
@@ -90,7 +89,7 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {string} registrationId
    */
   deleteRegistration(registrationId) {
-    var registration = this._registrations.get(registrationId);
+    const registration = this._registrations.get(registrationId);
     if (!registration)
       return;
     if (registration._isRedundant()) {
@@ -99,7 +98,7 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
       return;
     }
     registration._deleting = true;
-    for (var version of registration.versions.values())
+    for (const version of registration.versions.values())
       this.stopWorker(version.id);
     this._unregister(registration.scopeURL);
   }
@@ -108,7 +107,7 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {string} registrationId
    */
   updateRegistration(registrationId) {
-    var registration = this._registrations.get(registrationId);
+    const registration = this._registrations.get(registrationId);
     if (!registration)
       return;
     this._agent.updateRegistration(registration.scopeURL);
@@ -119,10 +118,10 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {string} data
    */
   deliverPushMessage(registrationId, data) {
-    var registration = this._registrations.get(registrationId);
+    const registration = this._registrations.get(registrationId);
     if (!registration)
       return;
-    var origin = Common.ParsedURL.extractOrigin(registration.scopeURL);
+    const origin = Common.ParsedURL.extractOrigin(registration.scopeURL);
     this._agent.deliverPushMessage(origin, registrationId, data);
   }
 
@@ -132,10 +131,10 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {boolean} lastChance
    */
   dispatchSyncEvent(registrationId, tag, lastChance) {
-    var registration = this._registrations.get(registrationId);
+    const registration = this._registrations.get(registrationId);
     if (!registration)
       return;
-    var origin = Common.ParsedURL.extractOrigin(registration.scopeURL);
+    const origin = Common.ParsedURL.extractOrigin(registration.scopeURL);
     this._agent.dispatchSyncEvent(origin, registrationId, tag, lastChance);
   }
 
@@ -178,8 +177,8 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {!Array.<!Protocol.ServiceWorker.ServiceWorkerRegistration>} registrations
    */
   _workerRegistrationUpdated(registrations) {
-    for (var payload of registrations) {
-      var registration = this._registrations.get(payload.registrationId);
+    for (const payload of registrations) {
+      let registration = this._registrations.get(payload.registrationId);
       if (!registration) {
         registration = new SDK.ServiceWorkerRegistration(payload);
         this._registrations.set(payload.registrationId, registration);
@@ -202,15 +201,15 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    */
   _workerVersionUpdated(versions) {
     /** @type {!Set.<!SDK.ServiceWorkerRegistration>} */
-    var registrations = new Set();
-    for (var payload of versions) {
-      var registration = this._registrations.get(payload.registrationId);
+    const registrations = new Set();
+    for (const payload of versions) {
+      const registration = this._registrations.get(payload.registrationId);
       if (!registration)
         continue;
       registration._updateVersion(payload);
       registrations.add(registration);
     }
-    for (var registration of registrations) {
+    for (const registration of registrations) {
       if (registration._shouldBeRemoved()) {
         this._registrations.delete(registration.id);
         this.dispatchEventToListeners(SDK.ServiceWorkerManager.Events.RegistrationDeleted, registration);
@@ -224,7 +223,7 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
    * @param {!Protocol.ServiceWorker.ServiceWorkerErrorMessage} payload
    */
   _workerErrorReported(payload) {
-    var registration = this._registrations.get(payload.registrationId);
+    const registration = this._registrations.get(payload.registrationId);
     if (!registration)
       return;
     registration.errors.push(payload);
@@ -243,6 +242,8 @@ SDK.ServiceWorkerManager = class extends SDK.SDKObject {
     this._agent.setForceUpdateOnPageLoad(this._forceUpdateSetting.get());
   }
 };
+
+SDK.SDKModel.register(SDK.ServiceWorkerManager, SDK.Target.Capability.Target | SDK.Target.Capability.Browser, true);
 
 /** @enum {symbol} */
 SDK.ServiceWorkerManager.Events = {
@@ -307,14 +308,14 @@ SDK.ServiceWorkerVersion = class {
   _update(payload) {
     this.id = payload.versionId;
     this.scriptURL = payload.scriptURL;
-    var parsedURL = new Common.ParsedURL(payload.scriptURL);
+    const parsedURL = new Common.ParsedURL(payload.scriptURL);
     this.securityOrigin = parsedURL.securityOrigin();
     this.runningStatus = payload.runningStatus;
     this.status = payload.status;
     this.scriptLastModified = payload.scriptLastModified;
     this.scriptResponseTime = payload.scriptResponseTime;
     this.controlledClients = [];
-    for (var i = 0; i < payload.controlledClients.length; ++i)
+    for (let i = 0; i < payload.controlledClients.length; ++i)
       this.controlledClients.push(payload.controlledClients[i]);
     this.targetId = payload.targetId || null;
   }
@@ -451,7 +452,7 @@ SDK.ServiceWorkerRegistration = class {
     this._fingerprint = Symbol('fingerprint');
     this.id = payload.registrationId;
     this.scopeURL = payload.scopeURL;
-    var parsedURL = new Common.ParsedURL(payload.scopeURL);
+    const parsedURL = new Common.ParsedURL(payload.scopeURL);
     this.securityOrigin = parsedURL.securityOrigin();
     this.isDeleted = payload.isDeleted;
     this.forceUpdateOnPageLoad = payload.forceUpdateOnPageLoad;
@@ -469,8 +470,8 @@ SDK.ServiceWorkerRegistration = class {
    */
   versionsByMode() {
     /** @type {!Map<string, !SDK.ServiceWorkerVersion>} */
-    var result = new Map();
-    for (var version of this.versions.values())
+    const result = new Map();
+    for (const version of this.versions.values())
       result.set(version.mode(), version);
     return result;
   }
@@ -481,7 +482,7 @@ SDK.ServiceWorkerRegistration = class {
    */
   _updateVersion(payload) {
     this._fingerprint = Symbol('fingerprint');
-    var version = this.versions.get(payload.versionId);
+    let version = this.versions.get(payload.versionId);
     if (!version) {
       version = new SDK.ServiceWorkerVersion(this, payload);
       this.versions.set(payload.versionId, version);
@@ -495,7 +496,7 @@ SDK.ServiceWorkerRegistration = class {
    * @return {boolean}
    */
   _isRedundant() {
-    for (var version of this.versions.values()) {
+    for (const version of this.versions.values()) {
       if (!version.isStoppedAndRedundant())
         return false;
     }
@@ -508,6 +509,14 @@ SDK.ServiceWorkerRegistration = class {
   _shouldBeRemoved() {
     return this._isRedundant() && (!this.errors.length || this._deleting);
   }
+
+  /**
+   * @return {boolean}
+   */
+  canBeRemoved() {
+    return this.isDeleted || this._deleting;
+  }
+
 
   clearErrors() {
     this._fingerprint = Symbol('fingerprint');
@@ -522,12 +531,10 @@ SDK.ServiceWorkerContextNamer = class {
   /**
    * @param {!SDK.Target} target
    * @param {!SDK.ServiceWorkerManager} serviceWorkerManager
-   * @param {!SDK.SubTargetsManager} subTargetsManager
    */
-  constructor(target, serviceWorkerManager, subTargetsManager) {
+  constructor(target, serviceWorkerManager) {
     this._target = target;
     this._serviceWorkerManager = serviceWorkerManager;
-    this._subTargetsManager = subTargetsManager;
     /** @type {!Map<string, !SDK.ServiceWorkerVersion>} */
     this._versionByTargetId = new Map();
     serviceWorkerManager.addEventListener(
@@ -543,10 +550,10 @@ SDK.ServiceWorkerContextNamer = class {
    */
   _registrationsUpdated(event) {
     this._versionByTargetId.clear();
-    var registrations = this._serviceWorkerManager.registrations().valuesArray();
-    for (var registration of registrations) {
-      var versions = registration.versions.valuesArray();
-      for (var version of versions) {
+    const registrations = this._serviceWorkerManager.registrations().valuesArray();
+    for (const registration of registrations) {
+      const versions = registration.versions.valuesArray();
+      for (const version of versions) {
         if (version.targetId)
           this._versionByTargetId.set(version.targetId, version);
       }
@@ -558,8 +565,8 @@ SDK.ServiceWorkerContextNamer = class {
    * @param {!Common.Event} event
    */
   _executionContextCreated(event) {
-    var executionContext = /** @type {!SDK.ExecutionContext} */ (event.data);
-    var serviceWorkerTargetId = this._serviceWorkerTargetIdForWorker(executionContext.target());
+    const executionContext = /** @type {!SDK.ExecutionContext} */ (event.data);
+    const serviceWorkerTargetId = this._serviceWorkerTargetIdForWorker(executionContext.target());
     if (!serviceWorkerTargetId)
       return;
     this._updateContextLabel(executionContext, this._versionByTargetId.get(serviceWorkerTargetId) || null);
@@ -570,22 +577,21 @@ SDK.ServiceWorkerContextNamer = class {
    * @return {?string}
    */
   _serviceWorkerTargetIdForWorker(target) {
-    var parent = target.parentTarget();
+    const parent = target.parentTarget();
     if (!parent || parent.parentTarget() !== this._target)
       return null;
-    var targetInfo = this._subTargetsManager.targetInfo(parent);
-    if (!targetInfo || targetInfo.type !== 'service_worker')
-      return null;
-    return targetInfo.id;
+    return parent.id();
   }
 
   _updateAllContextLabels() {
-    for (var target of SDK.targetManager.targets()) {
-      var serviceWorkerTargetId = this._serviceWorkerTargetIdForWorker(target);
+    for (const target of SDK.targetManager.targets()) {
+      const serviceWorkerTargetId = this._serviceWorkerTargetIdForWorker(target);
       if (!serviceWorkerTargetId)
         continue;
-      var version = this._versionByTargetId.get(serviceWorkerTargetId) || null;
-      for (var context of target.runtimeModel.executionContexts())
+      const version = this._versionByTargetId.get(serviceWorkerTargetId) || null;
+      const runtimeModel = target.model(SDK.RuntimeModel);
+      const executionContexts = runtimeModel ? runtimeModel.executionContexts() : [];
+      for (const context of executionContexts)
         this._updateContextLabel(context, version);
     }
   }
@@ -595,11 +601,12 @@ SDK.ServiceWorkerContextNamer = class {
    * @param {?SDK.ServiceWorkerVersion} version
    */
   _updateContextLabel(context, version) {
-    var parsedUrl = context.origin.asParsedURL();
-    var label = parsedUrl ? parsedUrl.lastPathComponentWithFragment() : context.name;
-    if (version)
-      context.setLabel(label + ' #' + version.id + ' (' + version.status + ')');
-    else
-      context.setLabel(label);
+    if (!version) {
+      context.setLabel('');
+      return;
+    }
+    const parsedUrl = context.origin.asParsedURL();
+    const label = parsedUrl ? parsedUrl.lastPathComponentWithFragment() : context.name;
+    context.setLabel(label + ' #' + version.id + ' (' + version.status + ')');
   }
 };

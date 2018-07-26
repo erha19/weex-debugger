@@ -41,7 +41,7 @@ Host.InspectorFrontendHostStub = class {
      */
     function stopEventPropagation(event) {
       // Let browser handle Ctrl+/Ctrl- shortcuts in hosted mode.
-      var zoomModifier = Host.isMac() ? event.metaKey : event.ctrlKey;
+      const zoomModifier = Host.isMac() ? event.metaKey : event.ctrlKey;
       if (zoomModifier && (event.keyCode === 187 || event.keyCode === 189))
         event.stopPropagation();
     }
@@ -68,8 +68,24 @@ Host.InspectorFrontendHostStub = class {
    * @override
    * @return {string}
    */
+  getInactiveSelectionBackgroundColor() {
+    return '#c9c8c8';
+  }
+
+  /**
+   * @override
+   * @return {string}
+   */
+  getInactiveSelectionForegroundColor() {
+    return '#323232';
+  }
+
+  /**
+   * @override
+   * @return {string}
+   */
   platform() {
-    var match = navigator.userAgent.match(/Windows NT/);
+    let match = navigator.userAgent.match(/Windows NT/);
     if (match)
       return 'windows';
     match = navigator.userAgent.match(/Mac OS X/);
@@ -135,15 +151,27 @@ Host.InspectorFrontendHostStub = class {
    * @suppressGlobalPropertiesCheck
    */
   inspectedURLChanged(url) {
-    document.title = Common.UIString('Developer Tools - %s', url);
+    document.title = Common.UIString('DevTools - %s', url.replace(/^https?:\/\//, ''));
   }
 
   /**
    * @override
    * @param {string} text
+   * @suppressGlobalPropertiesCheck
    */
   copyText(text) {
-    Common.console.error('Clipboard is not enabled in hosted mode. Please inspect using chrome://inspect');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    } else if (document.queryCommandSupported('copy')) {
+      const input = document.createElement('input');
+      input.value = text;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    } else {
+      Common.console.error('Clipboard is not enabled in hosted mode. Please inspect using chrome://inspect');
+    }
   }
 
   /**
@@ -152,6 +180,14 @@ Host.InspectorFrontendHostStub = class {
    */
   openInNewTab(url) {
     window.open(url, '_blank');
+  }
+
+  /**
+   * @override
+   * @param {string} fileSystemPath
+   */
+  showItemInFolder(fileSystemPath) {
+    Common.console.error('Show item in folder is not enabled in hosted mode. Please inspect using chrome://inspect');
   }
 
   /**
@@ -199,9 +235,9 @@ Host.InspectorFrontendHostStub = class {
 
   /**
    * @override
-   * @param {string=} fileSystemPath
+   * @param {string=} type
    */
-  addFileSystem(fileSystemPath) {
+  addFileSystem(type) {
   }
 
   /**
@@ -244,8 +280,8 @@ Host.InspectorFrontendHostStub = class {
    * @param {function(!Object<string, string>)} callback
    */
   getPreferences(callback) {
-    var prefs = {};
-    for (var name in window.localStorage)
+    const prefs = {};
+    for (const name in window.localStorage)
       prefs[name] = window.localStorage[name];
     callback(prefs);
   }
@@ -285,8 +321,9 @@ Host.InspectorFrontendHostStub = class {
    * @override
    * @param {number} requestId
    * @param {string} fileSystemPath
+   * @param {string} excludedFolders
    */
-  indexPath(requestId, fileSystemPath) {
+  indexPath(requestId, fileSystemPath, excludedFolders) {
   }
 
   /**
@@ -339,18 +376,17 @@ Host.InspectorFrontendHostStub = class {
   }
 
   /**
+   * @override
+   * @param {boolean} active
+   */
+  setEyeDropperActive(active) {
+  }
+
+  /**
    * @param {!Array<string>} certChain
    * @override
    */
   showCertificateViewer(certChain) {
-  }
-
-  /**
-   * @override
-   * @return {boolean}
-   */
-  isUnderTest() {
-    return false;
   }
 
   /**
@@ -368,11 +404,22 @@ Host.InspectorFrontendHostStub = class {
 
   /**
    * @override
-   * @param {boolean} discoverUsbDevices
-   * @param {boolean} portForwardingEnabled
-   * @param {!Adb.PortForwardingConfig} portForwardingConfig
    */
-  setDevicesDiscoveryConfig(discoverUsbDevices, portForwardingEnabled, portForwardingConfig) {
+  connectionReady() {
+  }
+
+  /**
+   * @override
+   * @param {boolean} value
+   */
+  setOpenNewWindowForPopups(value) {
+  }
+
+  /**
+   * @override
+   * @param {!Adb.Config} config
+   */
+  setDevicesDiscoveryConfig(config) {
   }
 
   /**
@@ -400,6 +447,12 @@ Host.InspectorFrontendHostStub = class {
 
   /**
    * @override
+   */
+  openNodeFrontend() {
+  }
+
+  /**
+   * @override
    * @param {number} x
    * @param {number} y
    * @param {!Array.<!InspectorFrontendHostAPI.ContextMenuDescriptor>} items
@@ -421,13 +474,13 @@ Host.InspectorFrontendHostStub = class {
 /**
  * @unrestricted
  */
-var InspectorFrontendAPIImpl = class {
+Host.InspectorFrontendAPIImpl = class {
   constructor() {
     this._debugFrontend =
         !!Runtime.queryParam('debugFrontend') || (window['InspectorTest'] && window['InspectorTest']['debugTest']);
 
-    var descriptors = InspectorFrontendHostAPI.EventDescriptors;
-    for (var i = 0; i < descriptors.length; ++i)
+    const descriptors = InspectorFrontendHostAPI.EventDescriptors;
+    for (let i = 0; i < descriptors.length; ++i)
       this[descriptors[i][1]] = this._dispatch.bind(this, descriptors[i][0], descriptors[i][2], descriptors[i][3]);
   }
 
@@ -437,7 +490,7 @@ var InspectorFrontendAPIImpl = class {
    * @param {boolean} runOnceLoaded
    */
   _dispatch(name, signature, runOnceLoaded) {
-    var params = Array.prototype.slice.call(arguments, 3);
+    const params = Array.prototype.slice.call(arguments, 3);
 
     if (this._debugFrontend)
       setImmediate(innerDispatch);
@@ -454,8 +507,8 @@ var InspectorFrontendAPIImpl = class {
         }
         return;
       }
-      var data = {};
-      for (var i = 0; i < signature.length; ++i)
+      const data = {};
+      for (let i = 0; i < signature.length; ++i)
         data[signature[i]] = params[i];
       try {
         InspectorFrontendHost.events.dispatchEventToListeners(name, data);
@@ -477,19 +530,20 @@ var InspectorFrontendAPIImpl = class {
 /**
  * @type {!InspectorFrontendHostAPI}
  */
-var InspectorFrontendHost = window.InspectorFrontendHost || null;
+let InspectorFrontendHost = window.InspectorFrontendHost || null;
 window.InspectorFrontendHost = InspectorFrontendHost;
 (function() {
 
   function initializeInspectorFrontendHost() {
+    let proto;
     if (!InspectorFrontendHost) {
       // Instantiate stub for web-hosted mode if necessary.
       window.InspectorFrontendHost = InspectorFrontendHost = new Host.InspectorFrontendHostStub();
     } else {
       // Otherwise add stubs for missing methods that are declared in the interface.
-      var proto = Host.InspectorFrontendHostStub.prototype;
-      for (var name in proto) {
-        var value = proto[name];
+      proto = Host.InspectorFrontendHostStub.prototype;
+      for (const name in proto) {
+        const value = proto[name];
         if (typeof value !== 'function' || InspectorFrontendHost[name])
           continue;
 
@@ -503,7 +557,7 @@ window.InspectorFrontendHost = InspectorFrontendHost;
      */
     function stub(name) {
       console.error('Incompatible embedder: method InspectorFrontendHost.' + name + ' is missing. Using stub instead.');
-      var args = Array.prototype.slice.call(arguments, 1);
+      const args = Array.prototype.slice.call(arguments, 1);
       return proto[name].apply(InspectorFrontendHost, args);
     }
 
@@ -514,11 +568,24 @@ window.InspectorFrontendHost = InspectorFrontendHost;
   // FIXME: This file is included into both apps, since the devtools_app needs the InspectorFrontendHostAPI only,
   // so the host instance should not initialized there.
   initializeInspectorFrontendHost();
-  window.InspectorFrontendAPI = new InspectorFrontendAPIImpl();
-  Common.setLocalizationPlatform(InspectorFrontendHost.platform());
+  window.InspectorFrontendAPI = new Host.InspectorFrontendAPIImpl();
 })();
 
 /**
  * @type {!Common.EventTarget}
  */
 InspectorFrontendHost.events;
+
+/**
+ * @param {!Object<string, string>=} prefs
+ * @return {boolean}
+ */
+Host.isUnderTest = function(prefs) {
+  // Integration tests rely on test queryParam.
+  if (Runtime.queryParam('test'))
+    return true;
+  // Browser tests rely on prefs.
+  if (prefs)
+    return prefs['isUnderTest'] === 'true';
+  return Common.settings && Common.settings.createSetting('isUnderTest', false).get();
+};

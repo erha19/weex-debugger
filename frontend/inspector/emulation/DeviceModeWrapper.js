@@ -15,8 +15,12 @@ Emulation.DeviceModeWrapper = class extends UI.VBox {
     /** @type {?Emulation.DeviceModeView} */
     this._deviceModeView = null;
     this._toggleDeviceModeAction = UI.actionRegistry.action('emulation.toggle-device-mode');
-    this._showDeviceModeSetting = Common.settings.createSetting('emulation.showDeviceMode', false);
+    const model = self.singleton(Emulation.DeviceModeModel);
+    this._showDeviceModeSetting = model.enabledSetting();
+    this._showDeviceModeSetting.setRequiresUserAction(!!Runtime.queryParam('hasOtherClients'));
     this._showDeviceModeSetting.addChangeListener(this._update.bind(this, false));
+    SDK.targetManager.addModelListener(
+        SDK.OverlayModel, SDK.OverlayModel.Events.ScreenshotRequested, this._screenshotRequestedFromOverlay, this);
     this._update(true);
   }
 
@@ -25,13 +29,29 @@ Emulation.DeviceModeWrapper = class extends UI.VBox {
   }
 
   /**
+   * @param {boolean=} fullSize
+   * @param {!Protocol.Page.Viewport=} clip
    * @return {boolean}
    */
-  _captureScreenshot() {
+  _captureScreenshot(fullSize, clip) {
     if (!this._deviceModeView)
-      return false;
-    this._deviceModeView.captureScreenshot();
+      this._deviceModeView = new Emulation.DeviceModeView();
+    this._deviceModeView.setNonEmulatedAvailableSize(this._inspectedPagePlaceholder.element);
+    if (fullSize)
+      this._deviceModeView.captureFullSizeScreenshot();
+    else if (clip)
+      this._deviceModeView.captureAreaScreenshot(clip);
+    else
+      this._deviceModeView.captureScreenshot();
     return true;
+  }
+
+  /**
+   * @param {!Common.Event} event
+   */
+  _screenshotRequestedFromOverlay(event) {
+    const clip = /** @type {!Protocol.Page.Viewport} */ (event.data);
+    this._captureScreenshot(false, clip);
   }
 
   /**
@@ -40,7 +60,7 @@ Emulation.DeviceModeWrapper = class extends UI.VBox {
   _update(force) {
     this._toggleDeviceModeAction.setToggled(this._showDeviceModeSetting.get());
     if (!force) {
-      var showing = this._deviceModeView && this._deviceModeView.isShowing();
+      const showing = this._deviceModeView && this._deviceModeView.isShowing();
       if (this._showDeviceModeSetting.get() === showing)
         return;
     }
@@ -49,12 +69,12 @@ Emulation.DeviceModeWrapper = class extends UI.VBox {
       if (!this._deviceModeView)
         this._deviceModeView = new Emulation.DeviceModeView();
       this._deviceModeView.show(this.element);
-      this._inspectedPagePlaceholder.clearMinimumSizeAndMargins();
+      this._inspectedPagePlaceholder.clearMinimumSize();
       this._inspectedPagePlaceholder.show(this._deviceModeView.element);
     } else {
       if (this._deviceModeView)
         this._deviceModeView.detach();
-      this._inspectedPagePlaceholder.restoreMinimumSizeAndMargins();
+      this._inspectedPagePlaceholder.restoreMinimumSize();
       this._inspectedPagePlaceholder.show(this.element);
     }
   }
@@ -76,12 +96,41 @@ Emulation.DeviceModeWrapper.ActionDelegate = class {
    */
   handleAction(context, actionId) {
     if (Emulation.DeviceModeView._wrapperInstance) {
-      if (actionId === 'emulation.toggle-device-mode') {
-        Emulation.DeviceModeView._wrapperInstance._toggleDeviceMode();
-        return true;
+      switch (actionId) {
+        case 'emulation.capture-screenshot':
+          return Emulation.DeviceModeView._wrapperInstance._captureScreenshot();
+
+        case 'emulation.capture-node-screenshot': {
+          const node = UI.context.flavor(SDK.DOMNode);
+          if (!node)
+            return true;
+          async function captureClip() {
+            const object = await node.resolveToObject();
+            const result = await object.callFunctionPromise(function() {
+              const rect = this.getBoundingClientRect();
+              const docRect = this.ownerDocument.documentElement.getBoundingClientRect();
+              return JSON.stringify({
+                x: rect.left - docRect.left,
+                y: rect.top - docRect.top,
+                width: rect.width,
+                height: rect.height,
+                scale: 1
+              });
+            });
+            const clip = /** @type {!Protocol.Page.Viewport} */ (JSON.parse(result.object.value));
+            Emulation.DeviceModeView._wrapperInstance._captureScreenshot(false, clip);
+          }
+          captureClip();
+          return true;
+        }
+
+        case 'emulation.capture-full-height-screenshot':
+          return Emulation.DeviceModeView._wrapperInstance._captureScreenshot(true);
+
+        case 'emulation.toggle-device-mode':
+          Emulation.DeviceModeView._wrapperInstance._toggleDeviceMode();
+          return true;
       }
-      if (actionId === 'emulation.capture-screenshot')
-        return Emulation.DeviceModeView._wrapperInstance._captureScreenshot();
     }
     return false;
   }

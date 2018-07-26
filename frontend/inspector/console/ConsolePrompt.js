@@ -1,9 +1,7 @@
 // Copyright 2016 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-/**
- * @unrestricted
- */
+
 Console.ConsolePrompt = class extends UI.Widget {
   constructor() {
     super();
@@ -11,9 +9,30 @@ Console.ConsolePrompt = class extends UI.Widget {
     this._history = new Console.ConsoleHistoryManager();
 
     this._initialText = '';
+    /** @type {?UI.TextEditor} */
     this._editor = null;
+    this._isBelowPromptEnabled = Runtime.experiments.isEnabled('consoleBelowPrompt');
+    this._eagerPreviewElement = createElementWithClass('div', 'console-eager-preview');
+    this._textChangeThrottler = new Common.Throttler(150);
+    this._formatter = new ObjectUI.RemoteObjectPreviewFormatter();
+    this._requestPreviewBound = this._requestPreview.bind(this);
+    this._innerPreviewElement = this._eagerPreviewElement.createChild('div', 'console-eager-inner-preview');
+    this._eagerPreviewElement.appendChild(UI.Icon.create('smallicon-command-result', 'preview-result-icon'));
 
+    this._eagerEvalSetting = Common.settings.moduleSetting('consoleEagerEval');
+    this._eagerEvalSetting.addChangeListener(this._eagerSettingChanged.bind(this));
+    this._eagerPreviewElement.classList.toggle('hidden', !this._eagerEvalSetting.get());
+
+    // TODO(luoe): split out prompt styles into ConsolePrompt.css.
+    const pinsEnabled = Runtime.experiments.isEnabled('pinnedExpressions');
+    if (pinsEnabled)
+      this.element.style.marginRight = '20px';
     this.element.tabIndex = 0;
+    /** @type {?Promise} */
+    this._previewRequestForTest = null;
+
+    /** @type {?UI.AutocompleteConfig} */
+    this._defaultAutocompleteConfig = null;
 
     self.runtime.extension(UI.TextEditorFactory).instance().then(gotFactory.bind(this));
 
@@ -25,22 +44,100 @@ Console.ConsolePrompt = class extends UI.Widget {
       this._editor =
           factory.createEditor({lineNumbers: false, lineWrapping: true, mimeType: 'javascript', autoHeight: true});
 
-      this._editor.configureAutocomplete({
-        substituteRangeCallback: this._substituteRange.bind(this),
+      this._defaultAutocompleteConfig = ObjectUI.JavaScriptAutocompleteConfig.createConfigForEditor(this._editor);
+      this._editor.configureAutocomplete(Object.assign({}, this._defaultAutocompleteConfig, {
         suggestionsCallback: this._wordsWithQuery.bind(this),
-        captureEnter: true
-      });
+        anchorBehavior: this._isBelowPromptEnabled ? UI.GlassPane.AnchorBehavior.PreferTop :
+                                                     UI.GlassPane.AnchorBehavior.PreferBottom
+      }));
       this._editor.widget().element.addEventListener('keydown', this._editorKeyDown.bind(this), true);
       this._editor.widget().show(this.element);
+      this._editor.addEventListener(UI.TextEditor.Events.TextChanged, this._onTextChanged, this);
+      this._editor.addEventListener(UI.TextEditor.Events.SuggestionChanged, this._onTextChanged, this);
+      if (pinsEnabled) {
+        const pinButton = this.element.createChild('span', 'command-pin-button');
+        pinButton.title = ls`Pin expression`;
+        pinButton.addEventListener('click', () => {
+          this.dispatchEventToListeners(Console.ConsolePrompt.Events.ExpressionPinned, this.text());
+        });
+      }
+      if (this._isBelowPromptEnabled)
+        this.element.appendChild(this._eagerPreviewElement);
 
       this.setText(this._initialText);
       delete this._initialText;
       if (this.hasFocus())
         this.focus();
-      this.element.tabIndex = -1;
+      this.element.removeAttribute('tabindex');
+      this._editor.widget().element.tabIndex = -1;
 
       this._editorSetForTest();
     }
+  }
+
+  _eagerSettingChanged() {
+    const enabled = this._eagerEvalSetting.get();
+    this._eagerPreviewElement.classList.toggle('hidden', !enabled);
+    if (enabled)
+      this._requestPreview();
+  }
+
+  /**
+   * @return {!Element}
+   */
+  belowEditorElement() {
+    return this._eagerPreviewElement;
+  }
+
+  _onTextChanged() {
+    // ConsoleView and prompt both use a throttler, so we clear the preview
+    // ASAP to avoid inconsistency between a fresh viewport and stale preview.
+    if (this._isBelowPromptEnabled && this._eagerEvalSetting.get()) {
+      const asSoonAsPossible = !this._editor.textWithCurrentSuggestion();
+      this._previewRequestForTest = this._textChangeThrottler.schedule(this._requestPreviewBound, asSoonAsPossible);
+    }
+    this.dispatchEventToListeners(Console.ConsolePrompt.Events.TextChanged);
+  }
+
+  /**
+   * @return {!Promise}
+   */
+  async _requestPreview() {
+    const text = this._editor.textWithCurrentSuggestion().trim();
+    const executionContext = UI.context.flavor(SDK.ExecutionContext);
+    if (!executionContext || !text || text.length > Console.ConsolePrompt._MaxLengthForEvaluation) {
+      this._innerPreviewElement.removeChildren();
+      return;
+    }
+
+    const options = {
+      expression: SDK.RuntimeModel.wrapObjectLiteralExpressionIfNeeded(text),
+      includeCommandLineAPI: true,
+      generatePreview: true,
+      throwOnSideEffect: true,
+      timeout: 500
+    };
+    const result = await executionContext.evaluate(options, true /* userGesture */, false /* awaitPromise */);
+    this._innerPreviewElement.removeChildren();
+    if (result.error)
+      return;
+
+    if (result.exceptionDetails) {
+      const exception = result.exceptionDetails.exception.description;
+      if (exception.startsWith('TypeError: '))
+        this._innerPreviewElement.textContent = exception;
+      return;
+    }
+
+    const {preview, type, subtype, description} = result.object;
+    if (preview && type === 'object' && subtype !== 'node') {
+      this._formatter.appendObjectPreview(this._innerPreviewElement, preview, false /* isEntry */);
+    } else {
+      const nonObjectPreview = this._formatter.renderPropertyPreview(type, subtype, description.trimEnd(400));
+      this._innerPreviewElement.appendChild(nonObjectPreview);
+    }
+    if (this._innerPreviewElement.deepTextContent() === this._editor.textWithCurrentSuggestion().trim())
+      this._innerPreviewElement.removeChildren();
   }
 
   /**
@@ -64,7 +161,7 @@ Console.ConsolePrompt = class extends UI.Widget {
 
   moveCaretToEndOfPrompt() {
     if (this._editor)
-      this._editor.setSelection(Common.TextRange.createFromLocation(Infinity, Infinity));
+      this._editor.setSelection(TextUtils.TextRange.createFromLocation(Infinity, Infinity));
   }
 
   /**
@@ -75,6 +172,7 @@ Console.ConsolePrompt = class extends UI.Widget {
       this._editor.setText(text);
     else
       this._initialText = text;
+    this.dispatchEventToListeners(Console.ConsolePrompt.Events.TextChanged);
   }
 
   /**
@@ -95,19 +193,25 @@ Console.ConsolePrompt = class extends UI.Widget {
    * @param {!Event} event
    */
   _editorKeyDown(event) {
-    var keyboardEvent = /** @type {!KeyboardEvent} */ (event);
-    var newText;
-    var isPrevious;
+    const keyboardEvent = /** @type {!KeyboardEvent} */ (event);
+    let newText;
+    let isPrevious;
+    // Check against visual coordinates in case lines wrap.
+    const selection = this._editor.selection();
+    const cursorY = this._editor.visualCoordinates(selection.endLine, selection.endColumn).y;
 
     switch (keyboardEvent.keyCode) {
       case UI.KeyboardShortcut.Keys.Up.code:
-        if (this._editor.selection().endLine > 0)
+        const startY = this._editor.visualCoordinates(0, 0).y;
+        if (keyboardEvent.shiftKey || !selection.isEmpty() || cursorY !== startY)
           break;
         newText = this._history.previous(this.text());
         isPrevious = true;
         break;
       case UI.KeyboardShortcut.Keys.Down.code:
-        if (this._editor.selection().endLine < this._editor.fullRange().endLine)
+        const fullRange = this._editor.fullRange();
+        const endY = this._editor.visualCoordinates(fullRange.endLine, fullRange.endColumn).y;
+        if (keyboardEvent.shiftKey || !selection.isEmpty() || cursorY !== endY)
           break;
         newText = this._history.next();
         break;
@@ -126,6 +230,10 @@ Console.ConsolePrompt = class extends UI.Widget {
       case UI.KeyboardShortcut.Keys.Enter.code:
         this._enterKeyPressed(keyboardEvent);
         break;
+      case UI.KeyboardShortcut.Keys.Tab.code:
+        if (!this.text())
+          keyboardEvent.consume();
+        break;
     }
 
     if (newText === undefined)
@@ -134,7 +242,7 @@ Console.ConsolePrompt = class extends UI.Widget {
     this.setText(newText);
 
     if (isPrevious)
-      this._editor.setSelection(Common.TextRange.createFromLocation(0, Infinity));
+      this._editor.setSelection(TextUtils.TextRange.createFromLocation(0, Infinity));
     else
       this.moveCaretToEndOfPrompt();
   }
@@ -142,7 +250,7 @@ Console.ConsolePrompt = class extends UI.Widget {
   /**
    * @param {!KeyboardEvent} event
    */
-  _enterKeyPressed(event) {
+  async _enterKeyPressed(event) {
     if (event.altKey || event.ctrlKey || event.shiftKey)
       return;
 
@@ -150,47 +258,49 @@ Console.ConsolePrompt = class extends UI.Widget {
 
     this.clearAutocomplete();
 
-    var str = this.text();
+    const str = this.text();
     if (!str.length)
       return;
 
-    var currentExecutionContext = UI.context.flavor(SDK.ExecutionContext);
+    const currentExecutionContext = UI.context.flavor(SDK.ExecutionContext);
     if (!this._isCaretAtEndOfPrompt() || !currentExecutionContext) {
       this._appendCommand(str, true);
       return;
     }
-    currentExecutionContext.target().runtimeModel.compileScript(
-        str, '', false, currentExecutionContext.id, compileCallback.bind(this));
-
-    /**
-     * @param {!Protocol.Runtime.ScriptId=} scriptId
-     * @param {?Protocol.Runtime.ExceptionDetails=} exceptionDetails
-     * @this {Console.ConsolePrompt}
-     */
-    function compileCallback(scriptId, exceptionDetails) {
-      if (str !== this.text())
-        return;
-      if (exceptionDetails &&
-          (exceptionDetails.exception.description.startsWith('SyntaxError: Unexpected end of input') ||
-           exceptionDetails.exception.description.startsWith('SyntaxError: Unterminated template literal'))) {
-        this._editor.newlineAndIndent();
-        this._enterProcessedForTest();
-        return;
-      }
-      this._appendCommand(str, true);
+    const result = await currentExecutionContext.runtimeModel.compileScript(str, '', false, currentExecutionContext.id);
+    if (str !== this.text())
+      return;
+    const exceptionDetails = result.exceptionDetails;
+    if (exceptionDetails &&
+        (exceptionDetails.exception.description.startsWith('SyntaxError: Unexpected end of input') ||
+         exceptionDetails.exception.description.startsWith('SyntaxError: Unterminated template literal'))) {
+      this._editor.newlineAndIndent();
       this._enterProcessedForTest();
+      return;
     }
+    await this._appendCommand(str, true);
+    this._enterProcessedForTest();
   }
 
   /**
    * @param {string} text
    * @param {boolean} useCommandLineAPI
    */
-  _appendCommand(text, useCommandLineAPI) {
+  async _appendCommand(text, useCommandLineAPI) {
     this.setText('');
-    var currentExecutionContext = UI.context.flavor(SDK.ExecutionContext);
+    const currentExecutionContext = UI.context.flavor(SDK.ExecutionContext);
     if (currentExecutionContext) {
-      SDK.ConsoleModel.evaluateCommandInConsole(currentExecutionContext, text, useCommandLineAPI);
+      const executionContext = currentExecutionContext;
+      const message = SDK.consoleModel.addCommandMessage(executionContext, text);
+      text = SDK.RuntimeModel.wrapObjectLiteralExpressionIfNeeded(text);
+      let preprocessed = false;
+      if (text.indexOf('await') !== -1) {
+        const preprocessedText = await Formatter.formatterWorkerPool().preprocessTopLevelAwaitExpressions(text);
+        preprocessed = !!preprocessedText;
+        text = preprocessedText || text;
+      }
+      SDK.consoleModel.evaluateCommandInConsole(
+          executionContext, message, text, useCommandLineAPI, /* awaitPromise */ preprocessed);
       if (Console.ConsolePanel.instance().isShowing())
         Host.userMetrics.actionTaken(Host.UserMetrics.Action.CommandEvaluatedInConsolePanel);
     }
@@ -205,20 +315,21 @@ Console.ConsolePrompt = class extends UI.Widget {
    * @return {!UI.SuggestBox.Suggestions}
    */
   _historyCompletions(prefix, force) {
-    if (!this._addCompletionsFromHistory || !this._isCaretAtEndOfPrompt() || (!prefix && !force))
+    const text = this.text();
+    if (!this._addCompletionsFromHistory || !this._isCaretAtEndOfPrompt() || (!text && !force))
       return [];
-    var result = [];
-    var text = this.text();
-    var set = new Set();
-    var data = this._history.historyData();
-    for (var i = data.length - 1; i >= 0 && result.length < 50; --i) {
-      var item = data[i];
+    const result = [];
+    const set = new Set();
+    const data = this._history.historyData();
+    for (let i = data.length - 1; i >= 0 && result.length < 50; --i) {
+      const item = data[i];
       if (!item.startsWith(text))
         continue;
       if (set.has(item))
         continue;
       set.add(item);
-      result.push({title: item.substring(text.length - prefix.length), className: 'additional'});
+      result.push(
+          {text: item.substring(text.length - prefix.length), iconType: 'smallicon-text-prompt', isSecondary: true});
     }
     return result;
   }
@@ -234,45 +345,27 @@ Console.ConsolePrompt = class extends UI.Widget {
   }
 
   /**
-   * @param {number} lineNumber
-   * @param {number} columnNumber
-   * @return {?Common.TextRange}
-   */
-  _substituteRange(lineNumber, columnNumber) {
-    var lineText = this._editor.line(lineNumber);
-    var index;
-    for (index = lineText.length - 1; index >= 0; index--) {
-      if (' =:[({;,!+-*/&|^<>.'.indexOf(lineText.charAt(index)) !== -1)
-        break;
-    }
-    return new Common.TextRange(lineNumber, index + 1, lineNumber, columnNumber);
-  }
-
-  /**
-   * @param {!Common.TextRange} queryRange
-   * @param {!Common.TextRange} substituteRange
+   * @param {!TextUtils.TextRange} queryRange
+   * @param {!TextUtils.TextRange} substituteRange
    * @param {boolean=} force
-   * @param {string=} currentTokenType
    * @return {!Promise<!UI.SuggestBox.Suggestions>}
    */
-  _wordsWithQuery(queryRange, substituteRange, force, currentTokenType) {
-    var query = this._editor.text(queryRange);
-    var before = this._editor.text(new Common.TextRange(0, 0, queryRange.startLine, queryRange.startColumn));
-    var historyWords = this._historyCompletions(query, force);
-
-    var excludedTokens = new Set(['js-comment', 'js-string-2']);
-    if (!before.endsWith('['))
-      excludedTokens.add('js-string');
-    if (excludedTokens.has(currentTokenType))
-      return Promise.resolve(historyWords);
-
-    return Components.JavaScriptAutocomplete.completionsForTextInCurrentContext(before, query, force)
-        .then(words => words.concat(historyWords));
+  async _wordsWithQuery(queryRange, substituteRange, force) {
+    const query = this._editor.text(queryRange);
+    const words = await this._defaultAutocompleteConfig.suggestionsCallback(queryRange, substituteRange, force);
+    const historyWords = this._historyCompletions(query, force);
+    return words.concat(historyWords);
   }
 
   _editorSetForTest() {
   }
 };
+
+/**
+ * @const
+ * @type {number}
+ */
+Console.ConsolePrompt._MaxLengthForEvaluation = 2000;
 
 /**
  * @unrestricted
@@ -362,4 +455,9 @@ Console.ConsoleHistoryManager = class {
   _currentHistoryItem() {
     return this._data[this._data.length - this._historyOffset];
   }
+};
+
+Console.ConsolePrompt.Events = {
+  ExpressionPinned: Symbol('ExpressionPinned'),
+  TextChanged: Symbol('TextChanged')
 };

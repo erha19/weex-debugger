@@ -11,7 +11,7 @@ SDK.CSSMediaQuery = class {
   constructor(payload) {
     this._active = payload.active;
     this._expressions = [];
-    for (var j = 0; j < payload.expressions.length; ++j)
+    for (let j = 0; j < payload.expressions.length; ++j)
       this._expressions.push(SDK.CSSMediaQueryExpression.parsePayload(payload.expressions[j]));
   }
 
@@ -50,7 +50,7 @@ SDK.CSSMediaQueryExpression = class {
     this._value = payload.value;
     this._unit = payload.unit;
     this._feature = payload.feature;
-    this._valueRange = payload.valueRange ? Common.TextRange.fromObject(payload.valueRange) : null;
+    this._valueRange = payload.valueRange ? TextUtils.TextRange.fromObject(payload.valueRange) : null;
     this._computedLength = payload.computedLength || null;
   }
 
@@ -84,7 +84,7 @@ SDK.CSSMediaQueryExpression = class {
   }
 
   /**
-   * @return {?Common.TextRange}
+   * @return {?TextUtils.TextRange}
    */
   valueRange() {
     return this._valueRange;
@@ -127,8 +127,8 @@ SDK.CSSMedia = class {
    * @return {!Array.<!SDK.CSSMedia>}
    */
   static parseMediaArrayPayload(cssModel, payload) {
-    var result = [];
-    for (var i = 0; i < payload.length; ++i)
+    const result = [];
+    for (let i = 0; i < payload.length; ++i)
       result.push(SDK.CSSMedia.parsePayload(cssModel, payload[i]));
     return result;
   }
@@ -140,12 +140,12 @@ SDK.CSSMedia = class {
     this.text = payload.text;
     this.source = payload.source;
     this.sourceURL = payload.sourceURL || '';
-    this.range = payload.range ? Common.TextRange.fromObject(payload.range) : null;
+    this.range = payload.range ? TextUtils.TextRange.fromObject(payload.range) : null;
     this.styleSheetId = payload.styleSheetId;
     this.mediaList = null;
     if (payload.mediaList) {
       this.mediaList = [];
-      for (var i = 0; i < payload.mediaList.length; ++i)
+      for (let i = 0; i < payload.mediaList.length; ++i)
         this.mediaList.push(SDK.CSSMediaQuery.parsePayload(payload.mediaList[i]));
     }
   }
@@ -178,7 +178,7 @@ SDK.CSSMedia = class {
   active() {
     if (!this.mediaList)
       return true;
-    for (var i = 0; i < this.mediaList.length; ++i) {
+    for (let i = 0; i < this.mediaList.length; ++i) {
       if (this.mediaList[i].active())
         return true;
     }
@@ -191,7 +191,7 @@ SDK.CSSMedia = class {
   lineNumberInSource() {
     if (!this.range)
       return undefined;
-    var header = this.header();
+    const header = this.header();
     if (!header)
       return undefined;
     return header.lineNumberInSource(this.range.startLine);
@@ -203,7 +203,7 @@ SDK.CSSMedia = class {
   columnNumberInSource() {
     if (!this.range)
       return undefined;
-    var header = this.header();
+    const header = this.header();
     if (!header)
       return undefined;
     return header.columnNumberInSource(this.range.startLine, this.range.startColumn);
@@ -220,10 +220,10 @@ SDK.CSSMedia = class {
    * @return {?SDK.CSSLocation}
    */
   rawLocation() {
-    var header = this.header();
+    const header = this.header();
     if (!header || this.lineNumberInSource() === undefined)
       return null;
-    var lineNumber = Number(this.lineNumberInSource());
+    const lineNumber = Number(this.lineNumberInSource());
     return new SDK.CSSLocation(header, lineNumber, this.columnNumberInSource());
   }
 };

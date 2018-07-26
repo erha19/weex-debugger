@@ -35,7 +35,13 @@ Sources.TabbedEditorContainerDelegate.prototype = {
    * @param {!Workspace.UISourceCode} uiSourceCode
    * @return {!UI.Widget}
    */
-  viewForFile: function(uiSourceCode) {},
+  viewForFile(uiSourceCode) {},
+
+  /**
+  * @param {!Sources.UISourceCodeFrame} sourceFrame
+  * @param {!Workspace.UISourceCode} uiSourceCode
+  */
+  recycleUISourceCodeFrame(sourceFrame, uiSourceCode) {},
 };
 
 /**
@@ -45,14 +51,14 @@ Sources.TabbedEditorContainer = class extends Common.Object {
   /**
    * @param {!Sources.TabbedEditorContainerDelegate} delegate
    * @param {!Common.Setting} setting
-   * @param {string} placeholderText
+   * @param {!Element} placeholderElement
    */
-  constructor(delegate, setting, placeholderText) {
+  constructor(delegate, setting, placeholderElement) {
     super();
     this._delegate = delegate;
 
     this._tabbedPane = new UI.TabbedPane();
-    this._tabbedPane.setPlaceholderText(placeholderText);
+    this._tabbedPane.setPlaceholderElement(placeholderElement);
     this._tabbedPane.setTabDelegate(new Sources.EditorContainerTabDelegate(this));
 
     this._tabbedPane.setCloseableTabs(true);
@@ -77,56 +83,46 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _onBindingCreated(event) {
-    var binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
-    this._updateFileTitle(binding.network);
+    const binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
+    this._updateFileTitle(binding.fileSystem);
 
-    var networkTabId = this._tabIds.get(binding.network);
-    var fileSystemTabId = this._tabIds.get(binding.fileSystem);
-    if (!fileSystemTabId)
+    const networkTabId = this._tabIds.get(binding.network);
+    let fileSystemTabId = this._tabIds.get(binding.fileSystem);
+
+    const wasSelectedInNetwork = this._currentFile === binding.network;
+    const currentSelectionRange = this._history.selectionRange(binding.network.url());
+    const currentScrollLineNumber = this._history.scrollLineNumber(binding.network.url());
+    this._history.remove(binding.network.url());
+
+    if (!networkTabId)
       return;
 
-    var wasSelectedInFileSystem = this._currentFile === binding.fileSystem;
-    var currentSelectionRange = this._history.selectionRange(binding.fileSystem.url());
-    var currentScrollLineNumber = this._history.scrollLineNumber(binding.fileSystem.url());
+    if (!fileSystemTabId) {
+      const networkView = this._tabbedPane.tabView(networkTabId);
+      const tabIndex = this._tabbedPane.tabIndex(networkTabId);
+      if (networkView instanceof Sources.UISourceCodeFrame) {
+        this._delegate.recycleUISourceCodeFrame(networkView, binding.fileSystem);
+        fileSystemTabId = this._appendFileTab(binding.fileSystem, false, tabIndex, networkView);
+      } else {
+        fileSystemTabId = this._appendFileTab(binding.fileSystem, false, tabIndex);
+        const fileSystemTabView = /** @type {!UI.Widget} */ (this._tabbedPane.tabView(fileSystemTabId));
+        this._restoreEditorProperties(fileSystemTabView, currentSelectionRange, currentScrollLineNumber);
+      }
+    }
 
-    var tabIndex = this._tabbedPane.tabIndex(fileSystemTabId);
-    var tabsToClose = [fileSystemTabId];
-    if (networkTabId)
-      tabsToClose.push(networkTabId);
-    this._closeTabs(tabsToClose, true);
-    networkTabId = this._appendFileTab(binding.network, false, tabIndex);
+    this._closeTabs([networkTabId], true);
+    if (wasSelectedInNetwork)
+      this._tabbedPane.selectTab(fileSystemTabId, false);
+
     this._updateHistory();
-
-    if (wasSelectedInFileSystem)
-      this._tabbedPane.selectTab(networkTabId, false);
-
-    var networkTabView = /** @type {!UI.Widget} */ (this._tabbedPane.tabView(networkTabId));
-    this._restoreEditorProperties(networkTabView, currentSelectionRange, currentScrollLineNumber);
   }
 
   /**
    * @param {!Common.Event} event
    */
   _onBindingRemoved(event) {
-    var binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
-    this._updateFileTitle(binding.network);
-
-    var networkTabId = this._tabIds.get(binding.network);
-    if (!networkTabId)
-      return;
-
-    var tabIndex = this._tabbedPane.tabIndex(networkTabId);
-    var wasSelected = this._currentFile === binding.network;
-    var fileSystemTabId = this._appendFileTab(binding.fileSystem, false, tabIndex);
-    this._updateHistory();
-
-    if (wasSelected)
-      this._tabbedPane.selectTab(fileSystemTabId, false);
-
-    var fileSystemTabView = /** @type {!UI.Widget} */ (this._tabbedPane.tabView(fileSystemTabId));
-    var savedSelectionRange = this._history.selectionRange(binding.network.url());
-    var savedScrollLineNumber = this._history.scrollLineNumber(binding.network.url());
-    this._restoreEditorProperties(fileSystemTabView, savedSelectionRange, savedScrollLineNumber);
+    const binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
+    this._updateFileTitle(binding.fileSystem);
   }
 
   /**
@@ -182,7 +178,7 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Workspace.UISourceCode} uiSourceCode
    */
   closeFile(uiSourceCode) {
-    var tabId = this._tabIds.get(uiSourceCode);
+    const tabId = this._tabIds.get(uiSourceCode);
     if (!tabId)
       return;
     this._closeTabs([tabId]);
@@ -197,16 +193,16 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    */
   historyUISourceCodes() {
     // FIXME: there should be a way to fetch UISourceCode for its uri.
-    var uriToUISourceCode = {};
-    for (var id in this._files) {
-      var uiSourceCode = this._files[id];
+    const uriToUISourceCode = {};
+    for (const id in this._files) {
+      const uiSourceCode = this._files[id];
       uriToUISourceCode[uiSourceCode.url()] = uiSourceCode;
     }
 
-    var result = [];
-    var uris = this._history._urls();
-    for (var i = 0; i < uris.length; ++i) {
-      var uiSourceCode = uriToUISourceCode[uris[i]];
+    const result = [];
+    const uris = this._history._urls();
+    for (let i = 0; i < uris.length; ++i) {
+      const uiSourceCode = uriToUISourceCode[uris[i]];
       if (uiSourceCode)
         result.push(uiSourceCode);
     }
@@ -237,7 +233,7 @@ Sources.TabbedEditorContainer = class extends Common.Object {
   _scrollChanged(event) {
     if (this._scrollTimer)
       clearTimeout(this._scrollTimer);
-    var lineNumber = /** @type {number} */ (event.data);
+    const lineNumber = /** @type {number} */ (event.data);
     this._scrollTimer = setTimeout(saveHistory.bind(this), 100);
     this._history.updateScrollLineNumber(this._currentFile.url(), lineNumber);
 
@@ -253,9 +249,11 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _selectionChanged(event) {
-    var range = /** @type {!Common.TextRange} */ (event.data);
+    const range = /** @type {!TextUtils.TextRange} */ (event.data);
     this._history.updateSelectionRange(this._currentFile.url(), range);
     this._history.save(this._previouslyViewedFilesSetting);
+
+    Extensions.extensionServer.sourceSelectionChanged(this._currentFile.url(), range);
   }
 
   /**
@@ -263,25 +261,25 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {boolean=} userGesture
    */
   _innerShowFile(uiSourceCode, userGesture) {
-    var binding = Persistence.persistence.binding(uiSourceCode);
-    uiSourceCode = binding ? binding.network : uiSourceCode;
+    const binding = Persistence.persistence.binding(uiSourceCode);
+    uiSourceCode = binding ? binding.fileSystem : uiSourceCode;
     if (this._currentFile === uiSourceCode)
       return;
 
     this._removeViewListeners();
     this._currentFile = uiSourceCode;
 
-    var tabId = this._tabIds.get(uiSourceCode) || this._appendFileTab(uiSourceCode, userGesture);
+    const tabId = this._tabIds.get(uiSourceCode) || this._appendFileTab(uiSourceCode, userGesture);
 
     this._tabbedPane.selectTab(tabId, userGesture);
     if (userGesture)
       this._editorSelectedByUserAction();
 
-    var previousView = this._currentView;
+    const previousView = this._currentView;
     this._currentView = this.visibleView;
     this._addViewListeners();
 
-    var eventData = {
+    const eventData = {
       currentFile: this._currentFile,
       currentView: this._currentView,
       previousView: previousView,
@@ -295,11 +293,9 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @return {string}
    */
   _titleForFile(uiSourceCode) {
-    var binding = Persistence.persistence.binding(uiSourceCode);
-    var titleUISourceCode = binding ? binding.fileSystem : uiSourceCode;
-    var maxDisplayNameLength = 30;
-    var title = titleUISourceCode.displayName(true).trimMiddle(maxDisplayNameLength);
-    if (uiSourceCode.isDirty() || Persistence.persistence.hasUnsavedCommittedChanges(uiSourceCode))
+    const maxDisplayNameLength = 30;
+    let title = uiSourceCode.displayName(true).trimMiddle(maxDisplayNameLength);
+    if (uiSourceCode.isDirty())
       title += '*';
     return title;
   }
@@ -309,13 +305,12 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {string} nextTabId
    */
   _maybeCloseTab(id, nextTabId) {
-    var uiSourceCode = this._files[id];
-    var shouldPrompt = uiSourceCode.isDirty() && uiSourceCode.project().canSetFileContent();
+    const uiSourceCode = this._files[id];
+    const shouldPrompt = uiSourceCode.isDirty() && uiSourceCode.project().canSetFileContent();
     // FIXME: this should be replaced with common Save/Discard/Cancel dialog.
     if (!shouldPrompt ||
         confirm(Common.UIString('Are you sure you want to close unsaved file: %s?', uiSourceCode.name()))) {
       uiSourceCode.resetWorkingCopy();
-      var previousView = this._currentView;
       if (nextTabId)
         this._tabbedPane.selectTab(nextTabId, true);
       this._tabbedPane.closeTab(id, true);
@@ -329,11 +324,11 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {boolean=} forceCloseDirtyTabs
    */
   _closeTabs(ids, forceCloseDirtyTabs) {
-    var dirtyTabs = [];
-    var cleanTabs = [];
-    for (var i = 0; i < ids.length; ++i) {
-      var id = ids[i];
-      var uiSourceCode = this._files[id];
+    const dirtyTabs = [];
+    const cleanTabs = [];
+    for (let i = 0; i < ids.length; ++i) {
+      const id = ids[i];
+      const uiSourceCode = this._files[id];
       if (!forceCloseDirtyTabs && uiSourceCode.isDirty())
         dirtyTabs.push(id);
       else
@@ -342,8 +337,8 @@ Sources.TabbedEditorContainer = class extends Common.Object {
     if (dirtyTabs.length)
       this._tabbedPane.selectTab(dirtyTabs[0], true);
     this._tabbedPane.closeTabs(cleanTabs, true);
-    for (var i = 0; i < dirtyTabs.length; ++i) {
-      var nextTabId = i + 1 < dirtyTabs.length ? dirtyTabs[i + 1] : null;
+    for (let i = 0; i < dirtyTabs.length; ++i) {
+      const nextTabId = i + 1 < dirtyTabs.length ? dirtyTabs[i + 1] : null;
       if (!this._maybeCloseTab(dirtyTabs[i], nextTabId))
         break;
     }
@@ -354,7 +349,7 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!UI.ContextMenu} contextMenu
    */
   _onContextMenu(tabId, contextMenu) {
-    var uiSourceCode = this._files[tabId];
+    const uiSourceCode = this._files[tabId];
     if (uiSourceCode)
       contextMenu.appendApplicableItems(uiSourceCode);
   }
@@ -363,8 +358,13 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Workspace.UISourceCode} uiSourceCode
    */
   addUISourceCode(uiSourceCode) {
-    var uri = uiSourceCode.url();
-    var index = this._history.index(uri);
+    const binding = Persistence.persistence.binding(uiSourceCode);
+    uiSourceCode = binding ? binding.fileSystem : uiSourceCode;
+    if (this._currentFile === uiSourceCode)
+      return;
+
+    const uri = uiSourceCode.url();
+    const index = this._history.index(uri);
     if (index === -1)
       return;
 
@@ -379,9 +379,9 @@ Sources.TabbedEditorContainer = class extends Common.Object {
 
     if (!this._currentFile)
       return;
-    var currentProjectType = this._currentFile.project().type();
-    var addedProjectType = uiSourceCode.project().type();
-    var snippetsProjectType = Workspace.projectTypes.Snippets;
+    const currentProjectType = this._currentFile.project().type();
+    const addedProjectType = uiSourceCode.project().type();
+    const snippetsProjectType = Workspace.projectTypes.Snippets;
     if (this._history.index(this._currentFile.url()) && currentProjectType === snippetsProjectType &&
         addedProjectType !== snippetsProjectType)
       this._innerShowFile(uiSourceCode, false);
@@ -398,10 +398,10 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Array.<!Workspace.UISourceCode>} uiSourceCodes
    */
   removeUISourceCodes(uiSourceCodes) {
-    var tabIds = [];
-    for (var i = 0; i < uiSourceCodes.length; ++i) {
-      var uiSourceCode = uiSourceCodes[i];
-      var tabId = this._tabIds.get(uiSourceCode);
+    const tabIds = [];
+    for (let i = 0; i < uiSourceCodes.length; ++i) {
+      const uiSourceCode = uiSourceCodes[i];
+      const tabId = this._tabIds.get(uiSourceCode);
       if (tabId)
         tabIds.push(tabId);
     }
@@ -421,7 +421,7 @@ Sources.TabbedEditorContainer = class extends Common.Object {
   }
 
   _updateHistory() {
-    var tabIds = this._tabbedPane.lastOpenedTabIds(Sources.TabbedEditorContainer.maximalPreviouslyViewedFilesCount);
+    const tabIds = this._tabbedPane.lastOpenedTabIds(Sources.TabbedEditorContainer.maximalPreviouslyViewedFilesCount);
 
     /**
      * @param {string} tabId
@@ -440,7 +440,7 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @return {string}
    */
   _tooltipForFile(uiSourceCode) {
-    uiSourceCode = Persistence.persistence.fileSystem(uiSourceCode) || uiSourceCode;
+    uiSourceCode = Persistence.persistence.network(uiSourceCode) || uiSourceCode;
     return uiSourceCode.url();
   }
 
@@ -448,20 +448,23 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Workspace.UISourceCode} uiSourceCode
    * @param {boolean=} userGesture
    * @param {number=} index
+   * @param {!UI.Widget=} replaceView
    * @return {string}
    */
-  _appendFileTab(uiSourceCode, userGesture, index) {
-    var view = this._delegate.viewForFile(uiSourceCode);
-    var title = this._titleForFile(uiSourceCode);
-    var tooltip = this._tooltipForFile(uiSourceCode);
+  _appendFileTab(uiSourceCode, userGesture, index, replaceView) {
+    const view = replaceView || this._delegate.viewForFile(uiSourceCode);
+    const title = this._titleForFile(uiSourceCode);
+    const tooltip = this._tooltipForFile(uiSourceCode);
 
-    var tabId = this._generateTabId();
+    const tabId = this._generateTabId();
     this._tabIds.set(uiSourceCode, tabId);
     this._files[tabId] = uiSourceCode;
 
-    var savedSelectionRange = this._history.selectionRange(uiSourceCode.url());
-    var savedScrollLineNumber = this._history.scrollLineNumber(uiSourceCode.url());
-    this._restoreEditorProperties(view, savedSelectionRange, savedScrollLineNumber);
+    if (!replaceView) {
+      const savedSelectionRange = this._history.selectionRange(uiSourceCode.url());
+      const savedScrollLineNumber = this._history.scrollLineNumber(uiSourceCode.url());
+      this._restoreEditorProperties(view, savedSelectionRange, savedScrollLineNumber);
+    }
 
     this._tabbedPane.appendTab(tabId, title, view, tooltip, userGesture, undefined, index);
 
@@ -472,11 +475,11 @@ Sources.TabbedEditorContainer = class extends Common.Object {
 
   /**
    * @param {!UI.Widget} editorView
-   * @param {!Common.TextRange=} selection
+   * @param {!TextUtils.TextRange=} selection
    * @param {number=} firstLineNumber
    */
   _restoreEditorProperties(editorView, selection, firstLineNumber) {
-    var sourceFrame =
+    const sourceFrame =
         editorView instanceof SourceFrame.SourceFrame ? /** @type {!SourceFrame.SourceFrame} */ (editorView) : null;
     if (!sourceFrame)
       return;
@@ -490,10 +493,10 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _tabClosed(event) {
-    var tabId = /** @type {string} */ (event.data.tabId);
-    var userGesture = /** @type {boolean} */ (event.data.isUserGesture);
+    const tabId = /** @type {string} */ (event.data.tabId);
+    const userGesture = /** @type {boolean} */ (event.data.isUserGesture);
 
-    var uiSourceCode = this._files[tabId];
+    const uiSourceCode = this._files[tabId];
     if (this._currentFile === uiSourceCode) {
       this._removeViewListeners();
       delete this._currentView;
@@ -514,10 +517,10 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _tabSelected(event) {
-    var tabId = /** @type {string} */ (event.data.tabId);
-    var userGesture = /** @type {boolean} */ (event.data.isUserGesture);
+    const tabId = /** @type {string} */ (event.data.tabId);
+    const userGesture = /** @type {boolean} */ (event.data.isUserGesture);
 
-    var uiSourceCode = this._files[tabId];
+    const uiSourceCode = this._files[tabId];
     this._innerShowFile(uiSourceCode, userGesture);
   }
 
@@ -547,37 +550,43 @@ Sources.TabbedEditorContainer = class extends Common.Object {
    * @param {!Workspace.UISourceCode} uiSourceCode
    */
   _updateFileTitle(uiSourceCode) {
-    var tabId = this._tabIds.get(uiSourceCode);
+    const tabId = this._tabIds.get(uiSourceCode);
     if (tabId) {
-      var title = this._titleForFile(uiSourceCode);
+      const title = this._titleForFile(uiSourceCode);
       this._tabbedPane.changeTabTitle(tabId, title);
+      let icon = null;
       if (Persistence.persistence.hasUnsavedCommittedChanges(uiSourceCode)) {
-        this._tabbedPane.setTabIcon(
-            tabId, 'smallicon-warning', Common.UIString('Changes to this file were not saved to file system.'));
-      } else if (Runtime.experiments.isEnabled('persistence2') && Persistence.persistence.binding(uiSourceCode)) {
-        var binding = Persistence.persistence.binding(uiSourceCode);
-        this._tabbedPane.setTabIcon(
-            tabId, 'smallicon-green-checkmark',
-            Persistence.PersistenceUtils.tooltipForUISourceCode(binding.fileSystem));
+        icon = UI.Icon.create('smallicon-warning');
+        icon.title = Common.UIString('Changes to this file were not saved to file system.');
       } else {
-        this._tabbedPane.setTabIcon(tabId, '');
+        icon = Persistence.PersistenceUtils.iconForUISourceCode(uiSourceCode);
       }
+      this._tabbedPane.setTabIcon(tabId, icon);
     }
   }
 
+  /**
+   * @param {!Common.Event} event
+   */
   _uiSourceCodeTitleChanged(event) {
-    var uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.target);
+    const uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.data);
     this._updateFileTitle(uiSourceCode);
     this._updateHistory();
   }
 
+  /**
+   * @param {!Common.Event} event
+   */
   _uiSourceCodeWorkingCopyChanged(event) {
-    var uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.target);
+    const uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.data);
     this._updateFileTitle(uiSourceCode);
   }
 
+  /**
+   * @param {!Common.Event} event
+   */
   _uiSourceCodeWorkingCopyCommitted(event) {
-    var uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.target);
+    const uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.data.uiSourceCode);
     this._updateFileTitle(uiSourceCode);
   }
 
@@ -612,7 +621,7 @@ Sources.TabbedEditorContainer.maximalPreviouslyViewedFilesCount = 30;
 Sources.TabbedEditorContainer.HistoryItem = class {
   /**
    * @param {string} url
-   * @param {!Common.TextRange=} selectionRange
+   * @param {!TextUtils.TextRange=} selectionRange
    * @param {number=} scrollLineNumber
    */
   constructor(url, selectionRange, scrollLineNumber) {
@@ -628,8 +637,8 @@ Sources.TabbedEditorContainer.HistoryItem = class {
    * @return {!Sources.TabbedEditorContainer.HistoryItem}
    */
   static fromObject(serializedHistoryItem) {
-    var selectionRange = serializedHistoryItem.selectionRange ?
-        Common.TextRange.fromObject(serializedHistoryItem.selectionRange) :
+    const selectionRange = serializedHistoryItem.selectionRange ?
+        TextUtils.TextRange.fromObject(serializedHistoryItem.selectionRange) :
         undefined;
     return new Sources.TabbedEditorContainer.HistoryItem(
         serializedHistoryItem.url, selectionRange, serializedHistoryItem.scrollLineNumber);
@@ -641,7 +650,7 @@ Sources.TabbedEditorContainer.HistoryItem = class {
   serializeToObject() {
     if (!this._isSerializable)
       return null;
-    var serializedHistoryItem = {};
+    const serializedHistoryItem = {};
     serializedHistoryItem.url = this.url;
     serializedHistoryItem.selectionRange = this.selectionRange;
     serializedHistoryItem.scrollLineNumber = this.scrollLineNumber;
@@ -669,8 +678,8 @@ Sources.TabbedEditorContainer.History = class {
    * @return {!Sources.TabbedEditorContainer.History}
    */
   static fromObject(serializedHistory) {
-    var items = [];
-    for (var i = 0; i < serializedHistory.length; ++i)
+    const items = [];
+    for (let i = 0; i < serializedHistory.length; ++i)
       items.push(Sources.TabbedEditorContainer.HistoryItem.fromObject(serializedHistory[i]));
     return new Sources.TabbedEditorContainer.History(items);
   }
@@ -686,7 +695,7 @@ Sources.TabbedEditorContainer.History = class {
   _rebuildItemIndex() {
     /** @type {!Map<string, number>} */
     this._itemsIndex = new Map();
-    for (var i = 0; i < this._items.length; ++i) {
+    for (let i = 0; i < this._items.length; ++i) {
       console.assert(!this._itemsIndex.has(this._items[i].url));
       this._itemsIndex.set(this._items[i].url, i);
     }
@@ -694,21 +703,21 @@ Sources.TabbedEditorContainer.History = class {
 
   /**
    * @param {string} url
-   * @return {!Common.TextRange|undefined}
+   * @return {!TextUtils.TextRange|undefined}
    */
   selectionRange(url) {
-    var index = this.index(url);
+    const index = this.index(url);
     return index !== -1 ? this._items[index].selectionRange : undefined;
   }
 
   /**
    * @param {string} url
-   * @param {!Common.TextRange=} selectionRange
+   * @param {!TextUtils.TextRange=} selectionRange
    */
   updateSelectionRange(url, selectionRange) {
     if (!selectionRange)
       return;
-    var index = this.index(url);
+    const index = this.index(url);
     if (index === -1)
       return;
     this._items[index].selectionRange = selectionRange;
@@ -719,7 +728,7 @@ Sources.TabbedEditorContainer.History = class {
    * @return {number|undefined}
    */
   scrollLineNumber(url) {
-    var index = this.index(url);
+    const index = this.index(url);
     return index !== -1 ? this._items[index].scrollLineNumber : undefined;
   }
 
@@ -728,7 +737,7 @@ Sources.TabbedEditorContainer.History = class {
    * @param {number} scrollLineNumber
    */
   updateScrollLineNumber(url, scrollLineNumber) {
-    var index = this.index(url);
+    const index = this.index(url);
     if (index === -1)
       return;
     this._items[index].scrollLineNumber = scrollLineNumber;
@@ -738,9 +747,9 @@ Sources.TabbedEditorContainer.History = class {
    * @param {!Array.<string>} urls
    */
   update(urls) {
-    for (var i = urls.length - 1; i >= 0; --i) {
-      var index = this.index(urls[i]);
-      var item;
+    for (let i = urls.length - 1; i >= 0; --i) {
+      const index = this.index(urls[i]);
+      let item;
       if (index !== -1) {
         item = this._items[index];
         this._items.splice(index, 1);
@@ -756,7 +765,7 @@ Sources.TabbedEditorContainer.History = class {
    * @param {string} url
    */
   remove(url) {
-    var index = this.index(url);
+    const index = this.index(url);
     if (index !== -1) {
       this._items.splice(index, 1);
       this._rebuildItemIndex();
@@ -774,9 +783,9 @@ Sources.TabbedEditorContainer.History = class {
    * @return {!Array.<!Object>}
    */
   _serializeToObject() {
-    var serializedHistory = [];
-    for (var i = 0; i < this._items.length; ++i) {
-      var serializedItem = this._items[i].serializeToObject();
+    const serializedHistory = [];
+    for (let i = 0; i < this._items.length; ++i) {
+      const serializedItem = this._items[i].serializeToObject();
       if (serializedItem)
         serializedHistory.push(serializedItem);
       if (serializedHistory.length === Sources.TabbedEditorContainer.maximalPreviouslyViewedFilesCount)
@@ -789,8 +798,8 @@ Sources.TabbedEditorContainer.History = class {
    * @return {!Array.<string>}
    */
   _urls() {
-    var result = [];
-    for (var i = 0; i < this._items.length; ++i)
+    const result = [];
+    for (let i = 0; i < this._items.length; ++i)
       result.push(this._items[i].url);
     return result;
   }

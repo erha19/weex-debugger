@@ -26,12 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 // For testing.
-UI.panels = [];
+UI.panels = {};
 
 /**
  * @unrestricted
  */
 UI.Panel = class extends UI.VBox {
+  /**
+   * @param {string} name
+   */
   constructor(name) {
     super();
 
@@ -42,8 +45,6 @@ UI.Panel = class extends UI.VBox {
 
     // For testing.
     UI.panels[name] = this;
-
-    this._shortcuts = /** !Object.<number, function(Event=):boolean> */ ({});
   }
 
   get name() {
@@ -63,25 +64,6 @@ UI.Panel = class extends UI.VBox {
    */
   elementsToRestoreScrollPositionsFor() {
     return [];
-  }
-
-  /**
-   * @param {!KeyboardEvent} event
-   */
-  handleShortcut(event) {
-    var shortcutKey = UI.KeyboardShortcut.makeKeyFromEvent(event);
-    var handler = this._shortcuts[shortcutKey];
-    if (handler && handler(event))
-      event.handled = true;
-  }
-
-  /**
-   * @param {!Array.<!UI.KeyboardShortcut.Descriptor>} keys
-   * @param {function(!Event=):boolean} handler
-   */
-  registerShortcuts(keys, handler) {
-    for (var i = 0; i < keys.length; ++i)
-      this._shortcuts[keys[i].key] = handler;
   }
 
   /**
@@ -105,9 +87,6 @@ UI.Panel = class extends UI.VBox {
     this.doResize();
   }
 };
-
-// Should by in sync with style declarations.
-UI.Panel.counterRightMargin = 25;
 
 /**
  * @unrestricted

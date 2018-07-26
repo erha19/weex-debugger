@@ -48,7 +48,7 @@ Extensions.ExtensionPanel = class extends UI.Panel {
     this._searchableView = new UI.SearchableView(this);
     this._searchableView.show(this.element);
 
-    var extensionView = new Extensions.ExtensionView(server, this._id, pageURL, 'extension');
+    const extensionView = new Extensions.ExtensionView(server, this._id, pageURL, 'extension');
     extensionView.show(this._searchableView.element);
   }
 
@@ -83,7 +83,7 @@ Extensions.ExtensionPanel = class extends UI.Panel {
    * @param {boolean=} jumpBackwards
    */
   performSearch(searchConfig, shouldJump, jumpBackwards) {
-    var query = searchConfig.query;
+    const query = searchConfig.query;
     this._server.notifySearchAction(this._id, Extensions.extensionAPI.panels.SearchAction.PerformSearch, query);
   }
 
@@ -133,7 +133,8 @@ Extensions.ExtensionButton = class {
     this._id = id;
 
     this._toolbarButton = new UI.ToolbarButton('', '');
-    this._toolbarButton.addEventListener('click', server.notifyButtonClicked.bind(server, this._id));
+    this._toolbarButton.addEventListener(
+        UI.ToolbarButton.Events.Click, server.notifyButtonClicked.bind(server, this._id));
     this.update(iconURL, tooltip, disabled);
   }
 
@@ -223,7 +224,7 @@ Extensions.ExtensionSidebarPane = class extends UI.SimpleView {
       delete this._objectPropertiesView;
     }
     if (this._extensionView)
-      this._extensionView.detach();
+      this._extensionView.detach(true);
 
     this._extensionView = new Extensions.ExtensionView(this._server, this._id, url, 'extension fill');
     this._extensionView.show(this.element);
@@ -247,17 +248,17 @@ Extensions.ExtensionSidebarPane = class extends UI.SimpleView {
    * @param {boolean=} wasThrown
    */
   _onEvaluate(title, callback, error, result, wasThrown) {
-    if (error)
+    if (error || !result)
       callback(error.toString());
     else
-      this._setObject(/** @type {!SDK.RemoteObject} */ (result), title, callback);
+      this._setObject(result, title, callback);
   }
 
   _createObjectPropertiesView() {
     if (this._objectPropertiesView)
       return;
     if (this._extensionView) {
-      this._extensionView.detach();
+      this._extensionView.detach(true);
       delete this._extensionView;
     }
     this._objectPropertiesView = new Extensions.ExtensionNotifierView(this._server, this._id);
@@ -276,12 +277,15 @@ Extensions.ExtensionSidebarPane = class extends UI.SimpleView {
       return;
     }
     this._objectPropertiesView.element.removeChildren();
-    var section = new Components.ObjectPropertiesSection(object, title);
-    if (!title)
-      section.titleLessMode();
-    section.expand();
-    section.editable = false;
-    this._objectPropertiesView.element.appendChild(section.element);
-    callback();
+    Common.Renderer
+        .render(object, {
+          title: title,
+          expanded: true,
+          editable: false,
+        })
+        .then(element => {
+          this._objectPropertiesView.element.appendChild(element);
+          callback();
+        });
   }
 };

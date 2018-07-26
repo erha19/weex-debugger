@@ -9,9 +9,10 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
     super();
     this._node = null;
     this._axNode = null;
+    this._skipNextPullNode = false;
     this._sidebarPaneStack = UI.viewManager.createStackLocation();
-    this._treeSubPane = new Accessibility.AXTreePane();
-    this._sidebarPaneStack.showView(this._treeSubPane);
+    this._breadcrumbsSubPane = new Accessibility.AXBreadcrumbsPane(this);
+    this._sidebarPaneStack.showView(this._breadcrumbsSubPane);
     this._ariaSubPane = new Accessibility.ARIAAttributesPane();
     this._sidebarPaneStack.showView(this._ariaSubPane);
     this._axNodeSubPane = new Accessibility.AXNodeSubPane();
@@ -29,6 +30,23 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
   }
 
   /**
+   * @return {?Accessibility.AccessibilityNode}
+   */
+  axNode() {
+    return this._axNode;
+  }
+
+  /**
+   * @param {?SDK.DOMNode} node
+   * @param {boolean=} fromAXTree
+   */
+  setNode(node, fromAXTree) {
+    this._skipNextPullNode = !!fromAXTree;
+    this._node = node;
+    this.update();
+  }
+
+  /**
    * @param {?Accessibility.AccessibilityNode} axNode
    */
   accessibilityNodeCallback(axNode) {
@@ -37,15 +55,15 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
 
     this._axNode = axNode;
 
-    if (axNode.ignored())
-      this._sidebarPaneStack.removeView(this._ariaSubPane);
-    else
+    if (axNode.isDOMNode())
       this._sidebarPaneStack.showView(this._ariaSubPane, this._axNodeSubPane);
+    else
+      this._sidebarPaneStack.removeView(this._ariaSubPane);
 
     if (this._axNodeSubPane)
       this._axNodeSubPane.setAXNode(axNode);
-    if (this._treeSubPane)
-      this._treeSubPane.setAXNode(axNode);
+    if (this._breadcrumbsSubPane)
+      this._breadcrumbsSubPane.setAXNode(axNode);
   }
 
   /**
@@ -54,13 +72,13 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
    * @return {!Promise.<?>}
    */
   doUpdate() {
-    var node = this.node();
-    this._treeSubPane.setNode(node);
+    const node = this.node();
     this._axNodeSubPane.setNode(node);
     this._ariaSubPane.setNode(node);
+    this._breadcrumbsSubPane.setNode(node);
     if (!node)
       return Promise.resolve();
-    var accessibilityModel = Accessibility.AccessibilityModel.fromTarget(node.target());
+    const accessibilityModel = node.domModel().target().model(Accessibility.AccessibilityModel);
     accessibilityModel.clear();
     return accessibilityModel.requestPartialAXTree(node).then(() => {
       this.accessibilityNodeCallback(accessibilityModel.axNodeForDOMNode(node));
@@ -73,8 +91,10 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
   wasShown() {
     super.wasShown();
 
-    this._treeSubPane.setNode(this.node());
+    this._breadcrumbsSubPane.setNode(this.node());
+    this._breadcrumbsSubPane.setAXNode(this.axNode());
     this._axNodeSubPane.setNode(this.node());
+    this._axNodeSubPane.setAXNode(this.axNode());
     this._ariaSubPane.setNode(this.node());
 
     SDK.targetManager.addModelListener(SDK.DOMModel, SDK.DOMModel.Events.AttrModified, this._onAttrChange, this);
@@ -98,8 +118,11 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
   }
 
   _pullNode() {
-    this._node = UI.context.flavor(SDK.DOMNode);
-    this.update();
+    if (this._skipNextPullNode) {
+      this._skipNextPullNode = false;
+      return;
+    }
+    this.setNode(UI.context.flavor(SDK.DOMNode));
   }
 
   /**
@@ -108,7 +131,7 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
   _onAttrChange(event) {
     if (!this.node())
       return;
-    var node = event.data.node;
+    const node = event.data.node;
     if (this.node() !== node)
       return;
     this.update();
@@ -120,7 +143,7 @@ Accessibility.AccessibilitySidebarView = class extends UI.ThrottledWidget {
   _onNodeChange(event) {
     if (!this.node())
       return;
-    var node = event.data;
+    const node = event.data;
     if (this.node() !== node)
       return;
     this.update();
@@ -138,7 +161,7 @@ Accessibility.AccessibilitySubPane = class extends UI.SimpleView {
     super(name);
 
     this._axNode = null;
-    this.registerRequiredCSS('accessibility/accessibilityNode.css');
+    this.registerRequiredCSS('accessibility/accessibilityProperties.css');
   }
 
   /**
@@ -168,21 +191,23 @@ Accessibility.AccessibilitySubPane = class extends UI.SimpleView {
    * @return {!Element}
    */
   createInfo(textContent, className) {
-    var classNameOrDefault = className || 'gray-info-message';
-    var info = this.element.createChild('div', classNameOrDefault);
+    const classNameOrDefault = className || 'gray-info-message';
+    const info = this.element.createChild('div', classNameOrDefault);
     info.textContent = textContent;
     return info;
   }
 
   /**
-   * @return {!TreeOutline}
+   * @return {!UI.TreeOutline}
    */
   createTreeOutline() {
-    var treeOutline = new TreeOutlineInShadow();
+    const treeOutline = new UI.TreeOutlineInShadow();
     treeOutline.registerRequiredCSS('accessibility/accessibilityNode.css');
-    treeOutline.registerRequiredCSS('components/objectValue.css');
+    treeOutline.registerRequiredCSS('accessibility/accessibilityProperties.css');
+    treeOutline.registerRequiredCSS('object_ui/objectValue.css');
 
     treeOutline.element.classList.add('hidden');
+    treeOutline.hideOverflow();
     this.element.appendChild(treeOutline.element);
     return treeOutline;
   }

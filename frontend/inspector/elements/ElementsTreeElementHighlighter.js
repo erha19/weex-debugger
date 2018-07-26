@@ -11,12 +11,13 @@ Elements.ElementsTreeElementHighlighter = class {
   constructor(treeOutline) {
     this._throttler = new Common.Throttler(100);
     this._treeOutline = treeOutline;
-    this._treeOutline.addEventListener(TreeOutline.Events.ElementExpanded, this._clearState, this);
-    this._treeOutline.addEventListener(TreeOutline.Events.ElementCollapsed, this._clearState, this);
+    this._treeOutline.addEventListener(UI.TreeOutline.Events.ElementExpanded, this._clearState, this);
+    this._treeOutline.addEventListener(UI.TreeOutline.Events.ElementCollapsed, this._clearState, this);
     this._treeOutline.addEventListener(Elements.ElementsTreeOutline.Events.SelectedNodeChanged, this._clearState, this);
     SDK.targetManager.addModelListener(
-        SDK.DOMModel, SDK.DOMModel.Events.NodeHighlightedInOverlay, this._highlightNode, this);
-    this._treeOutline.domModel().addEventListener(SDK.DOMModel.Events.InspectModeWillBeToggled, this._clearState, this);
+        SDK.OverlayModel, SDK.OverlayModel.Events.HighlightNodeRequested, this._highlightNode, this);
+    SDK.targetManager.addModelListener(
+        SDK.OverlayModel, SDK.OverlayModel.Events.InspectModeWillBeToggled, this._clearState, this);
   }
 
   /**
@@ -26,10 +27,11 @@ Elements.ElementsTreeElementHighlighter = class {
     if (!Common.moduleSetting('highlightNodeOnHoverInOverlay').get())
       return;
 
-    var domNode = /** @type {!SDK.DOMNode} */ (event.data);
+    const domNode = /** @type {!SDK.DOMNode} */ (event.data);
 
     this._throttler.schedule(callback.bind(this));
-    this._pendingHighlightNode = this._treeOutline.domModel() === domNode.domModel() ? domNode : null;
+    this._pendingHighlightNode =
+        this._treeOutline === Elements.ElementsTreeOutline.forDOMModel(domNode.domModel()) ? domNode : null;
 
     /**
      * @this {Elements.ElementsTreeElementHighlighter}
@@ -46,10 +48,10 @@ Elements.ElementsTreeElementHighlighter = class {
    */
   _highlightNodeInternal(node) {
     this._isModifyingTreeOutline = true;
-    var treeElement = null;
+    let treeElement = null;
 
     if (this._currentHighlightedElement) {
-      var currentTreeElement = this._currentHighlightedElement;
+      let currentTreeElement = this._currentHighlightedElement;
       while (currentTreeElement !== this._alreadyExpandedParentElement) {
         if (currentTreeElement.expanded)
           currentTreeElement.collapse();
@@ -61,8 +63,8 @@ Elements.ElementsTreeElementHighlighter = class {
     delete this._currentHighlightedElement;
     delete this._alreadyExpandedParentElement;
     if (node) {
-      var deepestExpandedParent = node;
-      var treeElementSymbol = this._treeOutline.treeElementSymbol();
+      let deepestExpandedParent = node;
+      const treeElementSymbol = this._treeOutline.treeElementSymbol();
       while (deepestExpandedParent &&
              (!deepestExpandedParent[treeElementSymbol] || !deepestExpandedParent[treeElementSymbol].expanded))
         deepestExpandedParent = deepestExpandedParent.parentNode;

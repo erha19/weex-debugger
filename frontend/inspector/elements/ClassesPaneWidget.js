@@ -6,67 +6,105 @@
  */
 Elements.ClassesPaneWidget = class extends UI.Widget {
   constructor() {
-    super();
-    this.element.className = 'styles-element-classes-pane';
-    var container = this.element.createChild('div', 'title-container');
+    super(true);
+    this.registerRequiredCSS('elements/classesPaneWidget.css');
+    this.contentElement.className = 'styles-element-classes-pane';
+    const container = this.contentElement.createChild('div', 'title-container');
     this._input = container.createChild('div', 'new-class-input monospace');
-    this._input.setAttribute('placeholder', Common.UIString('Add new class'));
     this.setDefaultFocusedElement(this._input);
-    this._classesContainer = this.element.createChild('div', 'source-code');
+    this._classesContainer = this.contentElement.createChild('div', 'source-code');
     this._classesContainer.classList.add('styles-element-classes-container');
-    this._prompt = new Elements.ClassesPaneWidget.ClassNamePrompt();
+    this._prompt = new Elements.ClassesPaneWidget.ClassNamePrompt(this._nodeClasses.bind(this));
     this._prompt.setAutocompletionTimeout(0);
     this._prompt.renderAsBlock();
 
-    var proxyElement = this._prompt.attach(this._input);
+    const proxyElement = this._prompt.attach(this._input);
+    this._prompt.setPlaceholder(Common.UIString('Add new class'));
+    this._prompt.addEventListener(UI.TextPrompt.Events.TextChanged, this._onTextChanged, this);
     proxyElement.addEventListener('keydown', this._onKeyDown.bind(this), false);
 
     SDK.targetManager.addModelListener(SDK.DOMModel, SDK.DOMModel.Events.DOMMutated, this._onDOMMutated, this);
     /** @type {!Set<!SDK.DOMNode>} */
     this._mutatingNodes = new Set();
-    UI.context.addFlavorChangeListener(SDK.DOMNode, this._update, this);
+    /** @type {!Map<!SDK.DOMNode, string>} */
+    this._pendingNodeClasses = new Map();
+    this._updateNodeThrottler = new Common.Throttler(0);
+    /** @type {?SDK.DOMNode} */
+    this._previousTarget = null;
+    UI.context.addFlavorChangeListener(SDK.DOMNode, this._onSelectedNodeChanged, this);
+  }
+
+  /**
+   * @param {string} text
+   * @return {!Array.<string>}
+   */
+  _splitTextIntoClasses(text) {
+    return text.split(/[.,\s]/)
+      .map(className => className.trim())
+      .filter(className => className.length);
   }
 
   /**
    * @param {!Event} event
    */
   _onKeyDown(event) {
-    var text = event.target.textContent;
-    if (isEscKey(event)) {
-      event.target.textContent = '';
-      if (!text.isWhitespace())
-        event.consume(true);
+    if (!isEnterKey(event) && !isEscKey(event))
       return;
+
+    if (isEnterKey(event)) {
+      event.consume();
+      if (this._prompt.acceptAutoComplete())
+        return;
     }
 
-    if (!isEnterKey(event))
-      return;
-    var node = UI.context.flavor(SDK.DOMNode);
-    if (!node)
-      return;
+    let text = event.target.textContent;
+    if (isEscKey(event)) {
+      if (!text.isWhitespace())
+        event.consume(true);
+      text = '';
+    }
 
     this._prompt.clearAutocomplete();
     event.target.textContent = '';
-    var classNames = text.split(/[.,\s]/);
-    for (var className of classNames) {
-      var className = className.trim();
-      if (!className.length)
-        continue;
+
+    const node = UI.context.flavor(SDK.DOMNode);
+    if (!node)
+      return;
+
+    const classNames = this._splitTextIntoClasses(text);
+    for (const className of classNames)
       this._toggleClass(node, className, true);
-    }
     this._installNodeClasses(node);
     this._update();
-    event.consume(true);
+  }
+
+  _onTextChanged() {
+    const node = UI.context.flavor(SDK.DOMNode);
+    if (!node)
+      return;
+    this._installNodeClasses(node);
   }
 
   /**
    * @param {!Common.Event} event
    */
   _onDOMMutated(event) {
-    var node = /** @type {!SDK.DOMNode} */ (event.data);
+    const node = /** @type {!SDK.DOMNode} */ (event.data);
     if (this._mutatingNodes.has(node))
       return;
     delete node[Elements.ClassesPaneWidget._classesSymbol];
+    this._update();
+  }
+
+  /**
+   * @param {!Common.Event} event
+   */
+  _onSelectedNodeChanged(event) {
+    if (this._previousTarget && this._prompt.text()) {
+      this._input.textContent = '';
+      this._installNodeClasses(this._previousTarget);
+    }
+    this._previousTarget = /** @type {?SDK.DOMNode} */ (event.data);
     this._update();
   }
 
@@ -81,7 +119,7 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
     if (!this.isShowing())
       return;
 
-    var node = UI.context.flavor(SDK.DOMNode);
+    let node = UI.context.flavor(SDK.DOMNode);
     if (node)
       node = node.enclosingElementOrSelf();
 
@@ -91,13 +129,12 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
     if (!node)
       return;
 
-    var classes = this._nodeClasses(node);
-    var keys = classes.keysArray();
+    const classes = this._nodeClasses(node);
+    const keys = classes.keysArray();
     keys.sort(String.caseInsensetiveComparator);
-    for (var i = 0; i < keys.length; ++i) {
-      var className = keys[i];
-      var label = createCheckboxLabel(className, classes.get(className));
-      label.visualizeFocus = true;
+    for (let i = 0; i < keys.length; ++i) {
+      const className = keys[i];
+      const label = UI.CheckboxLabel.create(className, classes.get(className));
       label.classList.add('monospace');
       label.checkboxElement.addEventListener('click', this._onClick.bind(this, className), false);
       this._classesContainer.appendChild(label);
@@ -109,10 +146,10 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
    * @param {!Event} event
    */
   _onClick(className, event) {
-    var node = UI.context.flavor(SDK.DOMNode);
+    const node = UI.context.flavor(SDK.DOMNode);
     if (!node)
       return;
-    var enabled = event.target.checked;
+    const enabled = event.target.checked;
     this._toggleClass(node, className, enabled);
     this._installNodeClasses(node);
   }
@@ -122,13 +159,13 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
    * @return {!Map<string, boolean>}
    */
   _nodeClasses(node) {
-    var result = node[Elements.ClassesPaneWidget._classesSymbol];
+    let result = node[Elements.ClassesPaneWidget._classesSymbol];
     if (!result) {
-      var classAttribute = node.getAttribute('class') || '';
-      var classes = classAttribute.split(/\s/);
+      const classAttribute = node.getAttribute('class') || '';
+      const classes = classAttribute.split(/\s/);
       result = new Map();
-      for (var i = 0; i < classes.length; ++i) {
-        var className = classes[i].trim();
+      for (let i = 0; i < classes.length; ++i) {
+        const className = classes[i].trim();
         if (!className.length)
           continue;
         result.set(className, true);
@@ -144,7 +181,7 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
    * @param {boolean} enabled
    */
   _toggleClass(node, className, enabled) {
-    var classes = this._nodeClasses(node);
+    const classes = this._nodeClasses(node);
     classes.set(className, enabled);
   }
 
@@ -152,22 +189,43 @@ Elements.ClassesPaneWidget = class extends UI.Widget {
    * @param {!SDK.DOMNode} node
    */
   _installNodeClasses(node) {
-    var classes = this._nodeClasses(node);
-    var activeClasses = new Set();
-    for (var className of classes.keys()) {
+    const classes = this._nodeClasses(node);
+    const activeClasses = new Set();
+    for (const className of classes.keys()) {
       if (classes.get(className))
         activeClasses.add(className);
     }
 
-    var newClasses = activeClasses.valuesArray();
+    const additionalClasses = this._splitTextIntoClasses(this._prompt.textWithCurrentSuggestion());
+    for (const className of additionalClasses)
+      activeClasses.add(className);
+
+    const newClasses = activeClasses.valuesArray();
     newClasses.sort();
-    this._mutatingNodes.add(node);
-    node.setAttributeValue('class', newClasses.join(' '), onClassNameUpdated.bind(this));
+
+    this._pendingNodeClasses.set(node, newClasses.join(' '));
+    this._updateNodeThrottler.schedule(this._flushPendingClasses.bind(this));
+  }
+
+  /**
+   * @return {!Promise}
+   */
+  _flushPendingClasses() {
+    const promises = [];
+    for (const node of this._pendingNodeClasses.keys()) {
+      this._mutatingNodes.add(node);
+      const promise = node.setAttributeValuePromise('class', this._pendingNodeClasses.get(node))
+                          .then(onClassValueUpdated.bind(this, node));
+      promises.push(promise);
+    }
+    this._pendingNodeClasses.clear();
+    return Promise.all(promises);
 
     /**
+     * @param {!SDK.DOMNode} node
      * @this {Elements.ClassesPaneWidget}
      */
-    function onClassNameUpdated() {
+    function onClassValueUpdated(node) {
       this._mutatingNodes.delete(node);
     }
   }
@@ -184,7 +242,7 @@ Elements.ClassesPaneWidget.ButtonProvider = class {
     this._button = new UI.ToolbarToggle(Common.UIString('Element Classes'), '');
     this._button.setText('.cls');
     this._button.element.classList.add('monospace');
-    this._button.addEventListener('click', this._clicked, this);
+    this._button.addEventListener(UI.ToolbarButton.Events.Click, this._clicked, this);
     this._view = new Elements.ClassesPaneWidget();
   }
 
@@ -205,8 +263,12 @@ Elements.ClassesPaneWidget.ButtonProvider = class {
  * @unrestricted
  */
 Elements.ClassesPaneWidget.ClassNamePrompt = class extends UI.TextPrompt {
-  constructor() {
+  /**
+   * @param {function(!SDK.DOMNode):!Map<string, boolean>} nodeClasses
+   */
+  constructor(nodeClasses) {
     super();
+    this._nodeClasses = nodeClasses;
     this.initialize(this._buildClassNameCompletions.bind(this), ' ');
     this.disableDefaultSuggestionForEmptyInput();
     this._selectedFrameId = '';
@@ -218,22 +280,22 @@ Elements.ClassesPaneWidget.ClassNamePrompt = class extends UI.TextPrompt {
    * @return {!Promise.<!Array.<string>>}
    */
   _getClassNames(selectedNode) {
-    var promises = [];
-    var completions = new Set();
+    const promises = [];
+    const completions = new Set();
     this._selectedFrameId = selectedNode.frameId();
 
-    var cssModel = SDK.CSSModel.fromTarget(selectedNode.target());
-    var allStyleSheets = cssModel.allStyleSheets();
-    for (var stylesheet of allStyleSheets) {
+    const cssModel = selectedNode.domModel().cssModel();
+    const allStyleSheets = cssModel.allStyleSheets();
+    for (const stylesheet of allStyleSheets) {
       if (stylesheet.frameId !== this._selectedFrameId)
         continue;
-      var cssPromise = cssModel.classNamesPromise(stylesheet.id).then(classes => completions.addAll(classes));
+      const cssPromise = cssModel.classNamesPromise(stylesheet.id).then(classes => completions.addAll(classes));
       promises.push(cssPromise);
     }
 
-    var domPromise = selectedNode.domModel()
-                         .classNamesPromise(selectedNode.ownerDocument.id)
-                         .then(classes => completions.addAll(classes));
+    const domPromise = selectedNode.domModel()
+                           .classNamesPromise(selectedNode.ownerDocument.id)
+                           .then(classes => completions.addAll(classes));
     promises.push(domPromise);
     return Promise.all(promises).then(() => completions.valuesArray());
   }
@@ -248,17 +310,20 @@ Elements.ClassesPaneWidget.ClassNamePrompt = class extends UI.TextPrompt {
     if (!prefix || force)
       this._classNamesPromise = null;
 
-    var selectedNode = UI.context.flavor(SDK.DOMNode);
-    if (!selectedNode || (!prefix && !force && !expression))
+    const selectedNode = UI.context.flavor(SDK.DOMNode);
+    if (!selectedNode || (!prefix && !force && !expression.trim()))
       return Promise.resolve([]);
 
     if (!this._classNamesPromise || this._selectedFrameId !== selectedNode.frameId())
       this._classNamesPromise = this._getClassNames(selectedNode);
 
     return this._classNamesPromise.then(completions => {
+      const classesMap = this._nodeClasses(/** @type {!SDK.DOMNode} */ (selectedNode));
+      completions = completions.filter(value => !classesMap.get(value));
+
       if (prefix[0] === '.')
         completions = completions.map(value => '.' + value);
-      return completions.filter(value => value.startsWith(prefix)).map(completion => ({title: completion}));
+      return completions.filter(value => value.startsWith(prefix)).sort().map(completion => ({text: completion}));
     });
   }
 };

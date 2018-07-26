@@ -13,16 +13,17 @@
         },
         {
             "type": "context-menu-item",
-            "condition": "remoteFrontend",
             "location": "mainMenu",
             "order": 10,
             "actionId": "components.request-app-banner"
         }
     ],
     "dependencies": [
-        "components"
+        "components",
+        "emulation"
     ],
     "scripts": [
+        "InputModel.js",
         "ScreencastApp.js",
         "ScreencastView.js"
     ],

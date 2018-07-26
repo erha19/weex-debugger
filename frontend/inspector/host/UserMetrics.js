@@ -36,8 +36,8 @@ Host.UserMetrics = class {
    * @param {string} panelName
    */
   panelShown(panelName) {
-    var code = Host.UserMetrics._PanelCodes[panelName] || 0;
-    var size = Object.keys(Host.UserMetrics._PanelCodes).length + 1;
+    const code = Host.UserMetrics._PanelCodes[panelName] || 0;
+    const size = Object.keys(Host.UserMetrics._PanelCodes).length + 1;
     InspectorFrontendHost.recordEnumeratedHistogram('DevTools.PanelShown', code, size);
   }
 
@@ -52,7 +52,7 @@ Host.UserMetrics = class {
    * @param {!Host.UserMetrics.Action} action
    */
   actionTaken(action) {
-    var size = Object.keys(Host.UserMetrics.Action).length + 1;
+    const size = Object.keys(Host.UserMetrics.Action).length + 1;
     InspectorFrontendHost.recordEnumeratedHistogram('DevTools.ActionTaken', action, size);
   }
 };
@@ -79,7 +79,21 @@ Host.UserMetrics.Action = {
   StyleRuleEdited: 14,
   CommandEvaluatedInConsolePanel: 15,
   DOMPropertiesExpanded: 16,
-  ResizedViewInResponsiveMode: 17
+  ResizedViewInResponsiveMode: 17,
+  TimelinePageReloadStarted: 18,
+  ConnectToNodeJSFromFrontend: 19,
+  ConnectToNodeJSDirectly: 20,
+  CpuThrottlingEnabled: 21,
+  CpuProfileNodeFocused: 22,
+  CpuProfileNodeExcluded: 23,
+  SelectFileFromFilePicker: 24,
+  SelectCommandFromCommandMenu: 25,
+  ChangeInspectedNodeInElementsPanel: 26,
+  StyleRuleCopied: 27,
+  CoverageStarted: 28,
+  Audits2Started: 29,
+  Audits2Finished: 30,
+  ShowedThirdPartyBadges: 31,
 };
 
 Host.UserMetrics._PanelCodes = {
@@ -88,17 +102,19 @@ Host.UserMetrics._PanelCodes = {
   network: 3,
   sources: 4,
   timeline: 5,
-  profiles: 6,
+  heap_profiler: 6,
   audits: 7,
   console: 8,
   layers: 9,
-  'drawer-console': 10,
+  'drawer-console-view': 10,
   'drawer-animations': 11,
   'drawer-network.config': 12,
   'drawer-rendering': 13,
   'drawer-sensors': 14,
   'drawer-sources.search': 15,
-  security: 16
+  security: 16,
+  js_profiler: 17,
+  audits2: 18,
 };
 
 /** @type {!Host.UserMetrics} */

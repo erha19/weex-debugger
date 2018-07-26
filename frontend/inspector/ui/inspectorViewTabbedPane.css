@@ -8,11 +8,9 @@
 .tabbed-pane-header-tab.selected {
     height: 26px;
     margin: 0;
-    background: #f3f3f3;
     border: none;
     border-left: 2px solid transparent;
     border-right: 2px solid transparent;
-    padding: 0 6px;
 }
 
 .tabbed-pane-header-tab.selected {

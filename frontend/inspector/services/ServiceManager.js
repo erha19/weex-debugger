@@ -11,7 +11,7 @@ Services.ServiceManager = class {
    */
   createRemoteService(serviceName) {
     if (!this._remoteConnection) {
-      var url = Runtime.queryParam('service-backend');
+      const url = Runtime.queryParam('service-backend');
       if (!url) {
         console.error('No endpoint address specified');
         return /** @type {!Promise<?Services.ServiceManager.Service>} */ (Promise.resolve(null));
@@ -25,17 +25,27 @@ Services.ServiceManager = class {
   /**
    * @param {string} appName
    * @param {string} serviceName
-   * @param {boolean} isSharedWorker
    * @return {!Promise<?Services.ServiceManager.Service>}
    */
-  createAppService(appName, serviceName, isSharedWorker) {
-    var url = appName + '.js';
-    var remoteBase = Runtime.queryParam('remoteBase');
-    if (remoteBase)
-      url += '?remoteBase=' + remoteBase;
+  createAppService(appName, serviceName) {
+    let url = appName + '.js';
+    const remoteBase = Runtime.queryParam('remoteBase');
+    const debugFrontend = Runtime.queryParam('debugFrontend');
+    const isUnderTest = Host.isUnderTest();
 
-    var worker = isSharedWorker ? new SharedWorker(url, appName) : new Worker(url);
-    var connection = new Services.ServiceManager.Connection(new Services.ServiceManager.WorkerServicePort(worker));
+    const queryParams = [];
+    if (remoteBase)
+      queryParams.push('remoteBase=' + remoteBase);
+    if (debugFrontend)
+      queryParams.push('debugFrontend=' + debugFrontend);
+    if (isUnderTest)
+      queryParams.push('isUnderTest=true');
+
+    if (queryParams.length)
+      url += `?${queryParams.join('&')}`;
+
+    const worker = new Worker(url);
+    const connection = new Services.ServiceManager.Connection(new Services.ServiceManager.WorkerServicePort(worker));
     return connection._createService(serviceName);
   }
 };
@@ -68,7 +78,7 @@ Services.ServiceManager.Connection = class {
         console.error('Could not initialize service: ' + serviceName);
         return null;
       }
-      var service = new Services.ServiceManager.Service(this, serviceName, result.id);
+      const service = new Services.ServiceManager.Service(this, serviceName, result.id);
       this._services.set(serviceName + ':' + result.id, service);
       return service;
     });
@@ -91,8 +101,8 @@ Services.ServiceManager.Connection = class {
    * @return {!Promise<?Object>}
    */
   _sendCommand(method, params) {
-    var id = this._lastId++;
-    var message = JSON.stringify({id: id, method: method, params: params || {}});
+    const id = this._lastId++;
+    const message = JSON.stringify({id: id, method: method, params: params || {}});
     return this._port.send(message).then(success => {
       if (!success)
         return Promise.resolve(null);
@@ -104,7 +114,7 @@ Services.ServiceManager.Connection = class {
    * @param {string} data
    */
   _onMessage(data) {
-    var object;
+    let object;
     try {
       object = JSON.parse(data);
     } catch (e) {
@@ -119,10 +129,10 @@ Services.ServiceManager.Connection = class {
       return;
     }
 
-    var tokens = object.method.split('.');
-    var serviceName = tokens[0];
-    var methodName = tokens[1];
-    var service = this._services.get(serviceName + ':' + object.params.id);
+    const tokens = object.method.split('.');
+    const serviceName = tokens[0];
+    const methodName = tokens[1];
+    const service = this._services.get(serviceName + ':' + object.params.id);
     if (!service) {
       console.error('Unable to lookup stub for ' + serviceName + ':' + object.params.id);
       return;
@@ -131,10 +141,10 @@ Services.ServiceManager.Connection = class {
   }
 
   _connectionClosed() {
-    for (var callback of this._callbacks.values())
+    for (const callback of this._callbacks.values())
       callback(null);
     this._callbacks.clear();
-    for (var service of this._services.values())
+    for (const service of this._services.values())
       service._dispatchNotification('disposed');
     this._services.clear();
   }
@@ -161,7 +171,7 @@ Services.ServiceManager.Service = class {
    * @return {!Promise}
    */
   dispose() {
-    var params = {id: this._objectId};
+    const params = {id: this._objectId};
     return this._connection._sendCommand(this._serviceName + '.dispose', params).then(() => {
       this._connection._serviceDisposed(this);
     });
@@ -191,7 +201,7 @@ Services.ServiceManager.Service = class {
    * @param {!Object=} params
    */
   _dispatchNotification(methodName, params) {
-    var handler = this._notificationHandlers.get(methodName);
+    const handler = this._notificationHandlers.get(methodName);
     if (!handler) {
       console.error('Could not report notification \'' + methodName + '\' on \'' + this._objectId + '\'');
       return;
@@ -235,11 +245,11 @@ Services.ServiceManager.RemoteServicePort = class {
      * @this {Services.ServiceManager.RemoteServicePort}
      */
     function promiseBody(fulfill) {
-      var socket;
+      let socket;
       try {
         socket = new WebSocket(/** @type {string} */ (this._url));
         socket.onmessage = onMessage.bind(this);
-        socket.onclose = this._closeHandler;
+        socket.onclose = onClose.bind(this);
         socket.onopen = onConnect.bind(this);
       } catch (e) {
         fulfill(false);
@@ -259,6 +269,15 @@ Services.ServiceManager.RemoteServicePort = class {
        */
       function onMessage(event) {
         this._messageHandler(event.data);
+      }
+
+      /**
+       * @this {Services.ServiceManager.RemoteServicePort}
+       */
+      function onClose() {
+        if (!this._socket)
+          fulfill(false);
+        this._socketClosed(!!this._socket);
       }
     }
   }
@@ -286,11 +305,20 @@ Services.ServiceManager.RemoteServicePort = class {
     return this._open().then(() => {
       if (this._socket) {
         this._socket.close();
-        this._socket = null;
-        delete this._connectionPromise;
+        this._socketClosed(true);
       }
       return true;
     });
+  }
+
+  /**
+   * @param {boolean=} notifyClient
+   */
+  _socketClosed(notifyClient) {
+    this._socket = null;
+    delete this._connectionPromise;
+    if (notifyClient)
+      this._closeHandler();
   }
 };
 
@@ -300,22 +328,16 @@ Services.ServiceManager.RemoteServicePort = class {
  */
 Services.ServiceManager.WorkerServicePort = class {
   /**
-   * @param {!Worker|!SharedWorker} worker
+   * @param {!Worker} worker
    */
   constructor(worker) {
     this._worker = worker;
 
-    var fulfill;
+    let fulfill;
     this._workerPromise = new Promise(resolve => fulfill = resolve);
-    this._isSharedWorker = worker instanceof SharedWorker;
 
-    if (this._isSharedWorker) {
-      this._worker.port.onmessage = onMessage.bind(this);
-      this._worker.port.onclose = this._closeHandler;
-    } else {
-      this._worker.onmessage = onMessage.bind(this);
-      this._worker.onclose = this._closeHandler;
-    }
+    this._worker.onmessage = onMessage.bind(this);
+    this._worker.onclose = this._closeHandler;
 
     /**
      * @param {!Event} event
@@ -348,10 +370,7 @@ Services.ServiceManager.WorkerServicePort = class {
   send(message) {
     return this._workerPromise.then(() => {
       try {
-        if (this._isSharedWorker)
-          this._worker.port.postMessage(message);
-        else
-          this._worker.postMessage(message);
+        this._worker.postMessage(message);
         return true;
       } catch (e) {
         return false;

@@ -37,6 +37,7 @@ Common.ParsedURL = class {
     this.isValid = false;
     this.url = url;
     this.scheme = '';
+    this.user = '';
     this.host = '';
     this.port = '';
     this.path = '';
@@ -45,15 +46,16 @@ Common.ParsedURL = class {
     this.folderPathComponents = '';
     this.lastPathComponent = '';
 
-    var match = url.match(Common.ParsedURL._urlRegex());
+    const match = url.match(Common.ParsedURL._urlRegex());
     if (match) {
       this.isValid = true;
-      this.scheme = match[1].toLowerCase();
-      this.host = match[2];
-      this.port = match[3];
-      this.path = match[4] || '/';
-      this.queryParams = match[5] || '';
-      this.fragment = match[6];
+      this.scheme = match[2].toLowerCase();
+      this.user = match[3];
+      this.host = match[4];
+      this.port = match[5];
+      this.path = match[6] || '/';
+      this.queryParams = match[7] || '';
+      this.fragment = match[8];
     } else {
       if (this.url.startsWith('data:')) {
         this.scheme = 'data';
@@ -66,7 +68,7 @@ Common.ParsedURL = class {
       this.path = this.url;
     }
 
-    var lastSlashIndex = this.path.lastIndexOf('/');
+    const lastSlashIndex = this.path.lastIndexOf('/');
     if (lastSlashIndex !== -1) {
       this.folderPathComponents = this.path.substring(0, lastSlashIndex);
       this.lastPathComponent = this.path.substring(lastSlashIndex + 1);
@@ -91,28 +93,54 @@ Common.ParsedURL = class {
   }
 
   /**
+   * @param {string} fileURL
+   * @param {boolean} isWindows
+   * @return {string}
+   */
+  static urlToPlatformPath(fileURL, isWindows) {
+    console.assert(fileURL.startsWith('file://'), 'This must be a file URL.');
+    if (isWindows)
+      return fileURL.substr('file:///'.length).replace(/\//g, '\\');
+    return fileURL.substr('file://'.length);
+  }
+
+  /**
+   * @param {string} url
+   * @return {string}
+   */
+  static urlWithoutHash(url) {
+    const hashIndex = url.indexOf('#');
+    if (hashIndex !== -1)
+      return url.substr(0, hashIndex);
+    return url;
+  }
+
+  /**
    * @return {!RegExp}
    */
   static _urlRegex() {
     if (Common.ParsedURL._urlRegexInstance)
       return Common.ParsedURL._urlRegexInstance;
     // RegExp groups:
-    // 1 - scheme (using the RFC3986 grammar)
-    // 2 - hostname
-    // 3 - ?port
-    // 4 - ?path
-    // 5 - ?query
-    // 6 - ?fragment
-    var schemeRegex = /([A-Za-z][A-Za-z0-9+.-]*):\/\//;
-    var hostRegex = /([^\s\/:]*)/;
-    var portRegex = /(?::([\d]+))?/;
-    var pathRegex = /(\/[^#?]*)?/;
-    var queryRegex = /(?:\?([^#]*))?/;
-    var fragmentRegex = /(?:#(.*))?/;
+    // 1 - scheme, hostname, ?port
+    // 2 - scheme (using the RFC3986 grammar)
+    // 3 - ?user:password
+    // 4 - hostname
+    // 5 - ?port
+    // 6 - ?path
+    // 7 - ?query
+    // 8 - ?fragment
+    const schemeRegex = /([A-Za-z][A-Za-z0-9+.-]*):\/\//;
+    const userRegex = /(?:([A-Za-z0-9\-._~%!$&'()*+,;=:]*)@)?/;
+    const hostRegex = /((?:\[::\d?\])|(?:[^\s\/:]*))/;
+    const portRegex = /(?::([\d]+))?/;
+    const pathRegex = /(\/[^#?]*)?/;
+    const queryRegex = /(?:\?([^#]*))?/;
+    const fragmentRegex = /(?:#(.*))?/;
 
     Common.ParsedURL._urlRegexInstance = new RegExp(
-        '^' + schemeRegex.source + hostRegex.source + portRegex.source + pathRegex.source + queryRegex.source +
-        fragmentRegex.source + '$');
+        '^(' + schemeRegex.source + userRegex.source + hostRegex.source + portRegex.source + ')' + pathRegex.source +
+        queryRegex.source + fragmentRegex.source + '$');
     return Common.ParsedURL._urlRegexInstance;
   }
 
@@ -121,7 +149,7 @@ Common.ParsedURL = class {
    * @return {string}
    */
   static extractPath(url) {
-    var parsedURL = url.asParsedURL();
+    const parsedURL = url.asParsedURL();
     return parsedURL ? parsedURL.path : '';
   }
 
@@ -130,7 +158,7 @@ Common.ParsedURL = class {
    * @return {string}
    */
   static extractOrigin(url) {
-    var parsedURL = url.asParsedURL();
+    const parsedURL = url.asParsedURL();
     return parsedURL ? parsedURL.securityOrigin() : '';
   }
 
@@ -139,12 +167,22 @@ Common.ParsedURL = class {
    * @return {string}
    */
   static extractExtension(url) {
-    var lastIndexOfDot = url.lastIndexOf('.');
-    var extension = lastIndexOfDot !== -1 ? url.substr(lastIndexOfDot + 1) : '';
-    var indexOfQuestionMark = extension.indexOf('?');
+    url = Common.ParsedURL.urlWithoutHash(url);
+    const indexOfQuestionMark = url.indexOf('?');
     if (indexOfQuestionMark !== -1)
-      extension = extension.substr(0, indexOfQuestionMark);
-    return extension;
+      url = url.substr(0, indexOfQuestionMark);
+    const lastIndexOfSlash = url.lastIndexOf('/');
+    if (lastIndexOfSlash !== -1)
+      url = url.substr(lastIndexOfSlash + 1);
+    const lastIndexOfDot = url.lastIndexOf('.');
+    if (lastIndexOfDot !== -1) {
+      url = url.substr(lastIndexOfDot + 1);
+      const lastIndexOfPercent = url.indexOf('%');
+      if (lastIndexOfPercent !== -1)
+        return url.substr(0, lastIndexOfPercent);
+      return url;
+    }
+    return '';
   }
 
   /**
@@ -152,8 +190,10 @@ Common.ParsedURL = class {
    * @return {string}
    */
   static extractName(url) {
-    var index = url.lastIndexOf('/');
-    return index !== -1 ? url.substr(index + 1) : url;
+    let index = url.lastIndexOf('/');
+    const pathAndQuery = index !== -1 ? url.substr(index + 1) : url;
+    index = pathAndQuery.indexOf('?');
+    return index < 0 ? pathAndQuery : pathAndQuery.substr(0, index);
   }
 
   /**
@@ -163,16 +203,16 @@ Common.ParsedURL = class {
    */
   static completeURL(baseURL, href) {
     // Return special URLs as-is.
-    var trimmedHref = href.trim();
+    const trimmedHref = href.trim();
     if (trimmedHref.startsWith('data:') || trimmedHref.startsWith('blob:') || trimmedHref.startsWith('javascript:'))
       return href;
 
     // Return absolute URLs as-is.
-    var parsedHref = trimmedHref.asParsedURL();
+    const parsedHref = trimmedHref.asParsedURL();
     if (parsedHref && parsedHref.scheme)
       return trimmedHref;
 
-    var parsedURL = baseURL.asParsedURL();
+    const parsedURL = baseURL.asParsedURL();
     if (!parsedURL)
       return null;
 
@@ -184,9 +224,9 @@ Common.ParsedURL = class {
       return parsedURL.scheme + ':' + href;
     }
 
-    var securityOrigin = parsedURL.securityOrigin();
-    var pathText = parsedURL.path;
-    var queryText = parsedURL.queryParams ? '?' + parsedURL.queryParams : '';
+    const securityOrigin = parsedURL.securityOrigin();
+    const pathText = parsedURL.path;
+    const queryText = parsedURL.queryParams ? '?' + parsedURL.queryParams : '';
 
     // Empty href resolves to a URL without fragment.
     if (!href.length)
@@ -198,8 +238,8 @@ Common.ParsedURL = class {
     if (href.charAt(0) === '?')
       return securityOrigin + pathText + href;
 
-    var hrefPath = href.match(/^[^#?]*/)[0];
-    var hrefSuffix = href.substring(hrefPath.length);
+    let hrefPath = href.match(/^[^#?]*/)[0];
+    const hrefSuffix = href.substring(hrefPath.length);
     if (hrefPath.charAt(0) !== '/')
       hrefPath = parsedURL.folderPathComponents + '/' + hrefPath;
     return securityOrigin + Runtime.normalizePath(hrefPath) + hrefSuffix;
@@ -210,10 +250,19 @@ Common.ParsedURL = class {
    * @return {!{url: string, lineNumber: (number|undefined), columnNumber: (number|undefined)}}
    */
   static splitLineAndColumn(string) {
-    var lineColumnRegEx = /(?::(\d+))?(?::(\d+))?$/;
-    var lineColumnMatch = lineColumnRegEx.exec(string);
-    var lineNumber;
-    var columnNumber;
+    // Only look for line and column numbers in the path to avoid matching port numbers.
+    const beforePathMatch = string.match(Common.ParsedURL._urlRegex());
+    let beforePath = '';
+    let pathAndAfter = string;
+    if (beforePathMatch) {
+      beforePath = beforePathMatch[1];
+      pathAndAfter = string.substring(beforePathMatch[1].length);
+    }
+
+    const lineColumnRegEx = /(?::(\d+))?(?::(\d+))?$/;
+    const lineColumnMatch = lineColumnRegEx.exec(pathAndAfter);
+    let lineNumber;
+    let columnNumber;
     console.assert(lineColumnMatch);
 
     if (typeof(lineColumnMatch[1]) === 'string') {
@@ -227,7 +276,7 @@ Common.ParsedURL = class {
     }
 
     return {
-      url: string.substring(0, string.length - lineColumnMatch[0].length),
+      url: beforePath + pathAndAfter.substring(0, pathAndAfter.length - lineColumnMatch[0].length),
       lineNumber: lineNumber,
       columnNumber: columnNumber
     };
@@ -324,7 +373,7 @@ Common.ParsedURL = class {
  * @return {?Common.ParsedURL}
  */
 String.prototype.asParsedURL = function() {
-  var parsedURL = new Common.ParsedURL(this.toString());
+  const parsedURL = new Common.ParsedURL(this.toString());
   if (parsedURL.isValid)
     return parsedURL;
   return null;

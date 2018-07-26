@@ -9,55 +9,36 @@ SDK.SecurityOriginManager = class extends SDK.SDKModel {
    * @param {!SDK.Target} target
    */
   constructor(target) {
-    super(SDK.SecurityOriginManager, target);
+    super(target);
 
-    this._securityOriginCounter = new Map();
+    /** @type {!Set<string>} */
+    this._securityOrigins = new Set();
     this._mainSecurityOrigin = '';
   }
 
   /**
-   * @param {!SDK.Target} target
-   * @return {!SDK.SecurityOriginManager}
+   * @param {!Set<string>} securityOrigins
    */
-  static fromTarget(target) {
-    var securityOriginManager =
-        /** @type {?SDK.SecurityOriginManager} */ (target.model(SDK.SecurityOriginManager));
-    if (!securityOriginManager)
-      securityOriginManager = new SDK.SecurityOriginManager(target);
-    return securityOriginManager;
-  }
+  updateSecurityOrigins(securityOrigins) {
+    const oldOrigins = this._securityOrigins;
+    this._securityOrigins = securityOrigins;
 
-  /**
-   * @param {string} securityOrigin
-   */
-  addSecurityOrigin(securityOrigin) {
-    var currentCount = this._securityOriginCounter.get(securityOrigin);
-    if (!currentCount) {
-      this._securityOriginCounter.set(securityOrigin, 1);
-      this.dispatchEventToListeners(SDK.SecurityOriginManager.Events.SecurityOriginAdded, securityOrigin);
-      return;
+    for (const origin of oldOrigins) {
+      if (!this._securityOrigins.has(origin))
+        this.dispatchEventToListeners(SDK.SecurityOriginManager.Events.SecurityOriginRemoved, origin);
     }
-    this._securityOriginCounter.set(securityOrigin, currentCount + 1);
-  }
 
-  /**
-   * @param {string} securityOrigin
-   */
-  removeSecurityOrigin(securityOrigin) {
-    var currentCount = this._securityOriginCounter.get(securityOrigin);
-    if (currentCount === 1) {
-      this._securityOriginCounter.delete(securityOrigin);
-      this.dispatchEventToListeners(SDK.SecurityOriginManager.Events.SecurityOriginRemoved, securityOrigin);
-      return;
+    for (const origin of this._securityOrigins) {
+      if (!oldOrigins.has(origin))
+        this.dispatchEventToListeners(SDK.SecurityOriginManager.Events.SecurityOriginAdded, origin);
     }
-    this._securityOriginCounter.set(securityOrigin, currentCount - 1);
   }
 
   /**
    * @return {!Array<string>}
    */
   securityOrigins() {
-    return this._securityOriginCounter.keysArray();
+    return this._securityOrigins.valuesArray();
   }
 
   /**
@@ -75,6 +56,8 @@ SDK.SecurityOriginManager = class extends SDK.SDKModel {
     this.dispatchEventToListeners(SDK.SecurityOriginManager.Events.MainSecurityOriginChanged, securityOrigin);
   }
 };
+
+SDK.SDKModel.register(SDK.SecurityOriginManager, SDK.Target.Capability.None, false);
 
 /** @enum {symbol} */
 SDK.SecurityOriginManager.Events = {

@@ -34,13 +34,11 @@
 Workspace.FileManager = class extends Common.Object {
   constructor() {
     super();
-    this._savedURLsSetting = Common.settings.createLocalSetting('savedURLs', {});
-
-    /** @type {!Object.<string, ?function(boolean)>} */
-    this._saveCallbacks = {};
+    /** @type {!Map<string, function(?{fileSystemPath: (string|undefined)})>} */
+    this._saveCallbacks = new Map();
     InspectorFrontendHost.events.addEventListener(InspectorFrontendHostAPI.Events.SavedURL, this._savedURL, this);
     InspectorFrontendHost.events.addEventListener(
-        InspectorFrontendHostAPI.Events.CanceledSaveURL, this._canceledSaveURL, this);
+        InspectorFrontendHostAPI.Events.CanceledSaveURL, this._canceledSavedURL, this);
     InspectorFrontendHost.events.addEventListener(
         InspectorFrontendHostAPI.Events.AppendedToURL, this._appendedToURL, this);
   }
@@ -49,55 +47,34 @@ Workspace.FileManager = class extends Common.Object {
    * @param {string} url
    * @param {string} content
    * @param {boolean} forceSaveAs
-   * @param {function(boolean)=} callback
+   * @return {!Promise<?{fileSystemPath: (string|undefined)}>}
    */
-  save(url, content, forceSaveAs, callback) {
+  save(url, content, forceSaveAs) {
     // Remove this url from the saved URLs while it is being saved.
-    var savedURLs = this._savedURLsSetting.get();
-    delete savedURLs[url];
-    this._savedURLsSetting.set(savedURLs);
-    this._saveCallbacks[url] = callback || null;
     InspectorFrontendHost.save(url, content, forceSaveAs);
+    return new Promise(resolve => this._saveCallbacks.set(url, resolve));
   }
 
   /**
    * @param {!Common.Event} event
    */
   _savedURL(event) {
-    var url = /** @type {string} */ (event.data);
-    var savedURLs = this._savedURLsSetting.get();
-    savedURLs[url] = true;
-    this._savedURLsSetting.set(savedURLs);
-    this.dispatchEventToListeners(Workspace.FileManager.Events.SavedURL, url);
-    this._invokeSaveCallback(url, true);
-  }
-
-  /**
-   * @param {string} url
-   * @param {boolean} accepted
-   */
-  _invokeSaveCallback(url, accepted) {
-    var callback = this._saveCallbacks[url];
-    delete this._saveCallbacks[url];
+    const url = /** @type {string} */ (event.data.url);
+    const callback = this._saveCallbacks.get(url);
+    this._saveCallbacks.delete(url);
     if (callback)
-      callback(accepted);
+      callback({fileSystemPath: /** @type {string} */ (event.data.fileSystemPath)});
   }
 
   /**
    * @param {!Common.Event} event
    */
-  _canceledSaveURL(event) {
-    var url = /** @type {string} */ (event.data);
-    this._invokeSaveCallback(url, false);
-  }
-
-  /**
-   * @param {string} url
-   * @return {boolean}
-   */
-  isURLSaved(url) {
-    var savedURLs = this._savedURLsSetting.get();
-    return savedURLs[url];
+  _canceledSavedURL(event) {
+    const url = /** @type {string} */ (event.data);
+    const callback = this._saveCallbacks.get(url);
+    this._saveCallbacks.delete(url);
+    if (callback)
+      callback(null);
   }
 
   /**
@@ -119,14 +96,13 @@ Workspace.FileManager = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _appendedToURL(event) {
-    var url = /** @type {string} */ (event.data);
+    const url = /** @type {string} */ (event.data);
     this.dispatchEventToListeners(Workspace.FileManager.Events.AppendedToURL, url);
   }
 };
 
 /** @enum {symbol} */
 Workspace.FileManager.Events = {
-  SavedURL: Symbol('SavedURL'),
   AppendedToURL: Symbol('AppendedToURL')
 };
 

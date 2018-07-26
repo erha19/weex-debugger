@@ -26,12 +26,42 @@ SDK.CSSMatchedStyles = class {
       animationsPayload) {
     this._cssModel = cssModel;
     this._node = node;
-    this._nodeStyles = [];
-    this._nodeForStyle = new Map();
-    this._inheritedStyles = new Set();
-    this._keyframes = [];
+    /** @type {!Map<!SDK.CSSStyleDeclaration, !SDK.DOMNode>} */
+    this._addedStyles = new Map();
     /** @type {!Map<!Protocol.DOM.NodeId, !Map<string, boolean>>} */
     this._matchingSelectors = new Map();
+    this._keyframes = [];
+    if (animationsPayload)
+      this._keyframes = animationsPayload.map(rule => new SDK.CSSKeyframesRule(cssModel, rule));
+
+    /** @type {!Map<!SDK.CSSStyleDeclaration, ?SDK.DOMNode>} */
+    this._nodeForStyle = new Map();
+    /** @type {!Set<!SDK.CSSStyleDeclaration>} */
+    this._inheritedStyles = new Set();
+    this._mainDOMCascade = this._buildMainCascade(inlinePayload, attributesPayload, matchedPayload, inheritedPayload);
+    this._pseudoDOMCascades = this._buildPseudoCascades(pseudoPayload);
+
+    /** @type {!Map<!SDK.CSSStyleDeclaration, !SDK.CSSMatchedStyles.DOMInheritanceCascade>} */
+    this._styleToDOMCascade = new Map();
+    for (const domCascade of Array.from(this._pseudoDOMCascades.values()).concat(this._mainDOMCascade)) {
+      for (const style of domCascade.styles())
+        this._styleToDOMCascade.set(style, domCascade);
+    }
+  }
+
+  /**
+   * @param {?Protocol.CSS.CSSStyle} inlinePayload
+   * @param {?Protocol.CSS.CSSStyle} attributesPayload
+   * @param {!Array.<!Protocol.CSS.RuleMatch>} matchedPayload
+   * @param {!Array.<!Protocol.CSS.InheritedStyleEntry>} inheritedPayload
+   * @return {!SDK.CSSMatchedStyles.DOMInheritanceCascade}
+   */
+  _buildMainCascade(inlinePayload, attributesPayload, matchedPayload, inheritedPayload) {
+    /** @type {!Array<!SDK.CSSMatchedStyles.NodeCascade>} */
+    const nodeCascades = [];
+
+    /** @type {!Array<!SDK.CSSStyleDeclaration>} */
+    const nodeStyles = [];
 
     /**
      * @this {SDK.CSSMatchedStyles}
@@ -39,98 +69,108 @@ SDK.CSSMatchedStyles = class {
     function addAttributesStyle() {
       if (!attributesPayload)
         return;
-      var style =
-          new SDK.CSSStyleDeclaration(cssModel, null, attributesPayload, SDK.CSSStyleDeclaration.Type.Attributes);
+      const style =
+          new SDK.CSSStyleDeclaration(this._cssModel, null, attributesPayload, SDK.CSSStyleDeclaration.Type.Attributes);
       this._nodeForStyle.set(style, this._node);
-      this._nodeStyles.push(style);
+      nodeStyles.push(style);
     }
 
     // Inline style has the greatest specificity.
     if (inlinePayload && this._node.nodeType() === Node.ELEMENT_NODE) {
-      var style = new SDK.CSSStyleDeclaration(cssModel, null, inlinePayload, SDK.CSSStyleDeclaration.Type.Inline);
+      const style =
+          new SDK.CSSStyleDeclaration(this._cssModel, null, inlinePayload, SDK.CSSStyleDeclaration.Type.Inline);
       this._nodeForStyle.set(style, this._node);
-      this._nodeStyles.push(style);
+      nodeStyles.push(style);
     }
 
     // Add rules in reverse order to match the cascade order.
-    var addedAttributesStyle;
-    for (var i = matchedPayload.length - 1; i >= 0; --i) {
-      var rule = new SDK.CSSStyleRule(cssModel, matchedPayload[i].rule);
+    let addedAttributesStyle;
+    for (let i = matchedPayload.length - 1; i >= 0; --i) {
+      const rule = new SDK.CSSStyleRule(this._cssModel, matchedPayload[i].rule);
       if ((rule.isInjected() || rule.isUserAgent()) && !addedAttributesStyle) {
         // Show element's Style Attributes after all author rules.
         addedAttributesStyle = true;
         addAttributesStyle.call(this);
       }
       this._nodeForStyle.set(rule.style, this._node);
-      this._nodeStyles.push(rule.style);
-      addMatchingSelectors.call(this, this._node, rule, matchedPayload[i].matchingSelectors);
+      nodeStyles.push(rule.style);
+      this._addMatchingSelectors(this._node, rule, matchedPayload[i].matchingSelectors);
     }
 
     if (!addedAttributesStyle)
       addAttributesStyle.call(this);
+    nodeCascades.push(new SDK.CSSMatchedStyles.NodeCascade(this, nodeStyles, false /* isInherited */));
 
     // Walk the node structure and identify styles with inherited properties.
-    var parentNode = this._node.parentNode;
-    for (var i = 0; parentNode && inheritedPayload && i < inheritedPayload.length; ++i) {
-      var entryPayload = inheritedPayload[i];
-      var inheritedInlineStyle = entryPayload.inlineStyle ?
-          new SDK.CSSStyleDeclaration(cssModel, null, entryPayload.inlineStyle, SDK.CSSStyleDeclaration.Type.Inline) :
+    let parentNode = this._node.parentNode;
+    for (let i = 0; parentNode && inheritedPayload && i < inheritedPayload.length; ++i) {
+      const inheritedStyles = [];
+      const entryPayload = inheritedPayload[i];
+      const inheritedInlineStyle = entryPayload.inlineStyle ?
+          new SDK.CSSStyleDeclaration(
+              this._cssModel, null, entryPayload.inlineStyle, SDK.CSSStyleDeclaration.Type.Inline) :
           null;
       if (inheritedInlineStyle && this._containsInherited(inheritedInlineStyle)) {
         this._nodeForStyle.set(inheritedInlineStyle, parentNode);
-        this._nodeStyles.push(inheritedInlineStyle);
+        inheritedStyles.push(inheritedInlineStyle);
         this._inheritedStyles.add(inheritedInlineStyle);
       }
 
-      var inheritedMatchedCSSRules = entryPayload.matchedCSSRules || [];
-      for (var j = inheritedMatchedCSSRules.length - 1; j >= 0; --j) {
-        var inheritedRule = new SDK.CSSStyleRule(cssModel, inheritedMatchedCSSRules[j].rule);
-        addMatchingSelectors.call(this, parentNode, inheritedRule, inheritedMatchedCSSRules[j].matchingSelectors);
+      const inheritedMatchedCSSRules = entryPayload.matchedCSSRules || [];
+      for (let j = inheritedMatchedCSSRules.length - 1; j >= 0; --j) {
+        const inheritedRule = new SDK.CSSStyleRule(this._cssModel, inheritedMatchedCSSRules[j].rule);
+        this._addMatchingSelectors(parentNode, inheritedRule, inheritedMatchedCSSRules[j].matchingSelectors);
         if (!this._containsInherited(inheritedRule.style))
           continue;
         this._nodeForStyle.set(inheritedRule.style, parentNode);
-        this._nodeStyles.push(inheritedRule.style);
+        inheritedStyles.push(inheritedRule.style);
         this._inheritedStyles.add(inheritedRule.style);
       }
       parentNode = parentNode.parentNode;
+      nodeCascades.push(new SDK.CSSMatchedStyles.NodeCascade(this, inheritedStyles, true /* isInherited */));
     }
 
-    // Set up pseudo styles map.
-    this._pseudoStyles = new Map();
-    if (pseudoPayload) {
-      for (var i = 0; i < pseudoPayload.length; ++i) {
-        var entryPayload = pseudoPayload[i];
-        // PseudoElement nodes are not created unless "content" css property is set.
-        var pseudoElement = this._node.pseudoElements().get(entryPayload.pseudoType) || null;
-        var pseudoStyles = [];
-        var rules = entryPayload.matches || [];
-        for (var j = rules.length - 1; j >= 0; --j) {
-          var pseudoRule = new SDK.CSSStyleRule(cssModel, rules[j].rule);
-          pseudoStyles.push(pseudoRule.style);
-          this._nodeForStyle.set(pseudoRule.style, pseudoElement);
-          if (pseudoElement)
-            addMatchingSelectors.call(this, pseudoElement, pseudoRule, rules[j].matchingSelectors);
-        }
-        this._pseudoStyles.set(entryPayload.pseudoType, pseudoStyles);
+    return new SDK.CSSMatchedStyles.DOMInheritanceCascade(nodeCascades);
+  }
+
+  /**
+   * @param {!Array.<!Protocol.CSS.PseudoElementMatches>} pseudoPayload
+   * @return {!Map<!Protocol.DOM.PseudoType, !SDK.CSSMatchedStyles.DOMInheritanceCascade>}
+   */
+  _buildPseudoCascades(pseudoPayload) {
+    /** @type {!Map<!Protocol.DOM.PseudoType, !SDK.CSSMatchedStyles.DOMInheritanceCascade>} */
+    const pseudoCascades = new Map();
+    if (!pseudoPayload)
+      return pseudoCascades;
+    for (let i = 0; i < pseudoPayload.length; ++i) {
+      const entryPayload = pseudoPayload[i];
+      // PseudoElement nodes are not created unless "content" css property is set.
+      const pseudoElement = this._node.pseudoElements().get(entryPayload.pseudoType) || null;
+      const pseudoStyles = [];
+      const rules = entryPayload.matches || [];
+      for (let j = rules.length - 1; j >= 0; --j) {
+        const pseudoRule = new SDK.CSSStyleRule(this._cssModel, rules[j].rule);
+        pseudoStyles.push(pseudoRule.style);
+        this._nodeForStyle.set(pseudoRule.style, pseudoElement);
+        if (pseudoElement)
+          this._addMatchingSelectors(pseudoElement, pseudoRule, rules[j].matchingSelectors);
       }
+      const nodeCascade = new SDK.CSSMatchedStyles.NodeCascade(this, pseudoStyles, false /* isInherited */);
+      pseudoCascades.set(entryPayload.pseudoType, new SDK.CSSMatchedStyles.DOMInheritanceCascade([nodeCascade]));
     }
+    return pseudoCascades;
+  }
 
-    if (animationsPayload)
-      this._keyframes = animationsPayload.map(rule => new SDK.CSSKeyframesRule(cssModel, rule));
-
-    this.resetActiveProperties();
-
-    /**
-     * @param {!SDK.DOMNode} node
-     * @param {!SDK.CSSStyleRule} rule
-     * @param {!Array<number>} matchingSelectorIndices
-     * @this {SDK.CSSMatchedStyles}
-     */
-    function addMatchingSelectors(node, rule, matchingSelectorIndices) {
-      for (var matchingSelectorIndex of matchingSelectorIndices) {
-        var selector = rule.selectors[matchingSelectorIndex];
-        this._setSelectorMatches(node, selector.text, true);
-      }
+  /**
+   * @param {!SDK.DOMNode} node
+   * @param {!SDK.CSSStyleRule} rule
+   * @param {!Array<number>} matchingSelectorIndices
+   * @this {SDK.CSSMatchedStyles}
+   */
+  _addMatchingSelectors(node, rule, matchingSelectorIndices) {
+    for (const matchingSelectorIndex of matchingSelectorIndices) {
+      const selector = rule.selectors[matchingSelectorIndex];
+      this._setSelectorMatches(node, selector.text, true);
     }
   }
 
@@ -153,7 +193,7 @@ SDK.CSSMatchedStyles = class {
    * @return {boolean}
    */
   hasMatchingSelectors(rule) {
-    var matchingSelectors = this.matchingSelectors(rule);
+    const matchingSelectors = this.matchingSelectors(rule);
     return matchingSelectors.length > 0 && this.mediaMatches(rule.style);
   }
 
@@ -162,14 +202,14 @@ SDK.CSSMatchedStyles = class {
    * @return {!Array<number>}
    */
   matchingSelectors(rule) {
-    var node = this.nodeForStyle(rule.style);
+    const node = this.nodeForStyle(rule.style);
     if (!node)
       return [];
-    var map = this._matchingSelectors.get(node.id);
+    const map = this._matchingSelectors.get(node.id);
     if (!map)
       return [];
-    var result = [];
-    for (var i = 0; i < rule.selectors.length; ++i) {
+    const result = [];
+    for (let i = 0; i < rule.selectors.length; ++i) {
       if (map.get(rule.selectors[i].text))
         result.push(i);
     }
@@ -181,46 +221,31 @@ SDK.CSSMatchedStyles = class {
    * @return {!Promise}
    */
   recomputeMatchingSelectors(rule) {
-    var node = this.nodeForStyle(rule.style);
+    const node = this.nodeForStyle(rule.style);
     if (!node)
       return Promise.resolve();
-    var promises = [];
-    for (var selector of rule.selectors)
+    const promises = [];
+    for (const selector of rule.selectors)
       promises.push(querySelector.call(this, node, selector.text));
     return Promise.all(promises);
 
     /**
      * @param {!SDK.DOMNode} node
      * @param {string} selectorText
-     * @return {!Promise}
      * @this {SDK.CSSMatchedStyles}
      */
-    function querySelector(node, selectorText) {
-      var ownerDocument = node.ownerDocument || null;
+    async function querySelector(node, selectorText) {
+      const ownerDocument = node.ownerDocument || null;
       // We assume that "matching" property does not ever change during the
       // MatchedStyleResult's lifetime.
-      var map = this._matchingSelectors.get(node.id);
+      const map = this._matchingSelectors.get(node.id);
       if ((map && map.has(selectorText)) || !ownerDocument)
-        return Promise.resolve();
+        return;
 
-      var resolve;
-      var promise = new Promise(fulfill => resolve = fulfill);
-      this._node.domModel().querySelectorAll(
-          ownerDocument.id, selectorText, onQueryComplete.bind(this, node, selectorText, resolve));
-      return promise;
-    }
+      const matchingNodeIds = await this._node.domModel().querySelectorAll(ownerDocument.id, selectorText);
 
-    /**
-     * @param {!SDK.DOMNode} node
-     * @param {string} selectorText
-     * @param {function()} callback
-     * @param {!Array.<!Protocol.DOM.NodeId>=} matchingNodeIds
-     * @this {SDK.CSSMatchedStyles}
-     */
-    function onQueryComplete(node, selectorText, callback, matchingNodeIds) {
       if (matchingNodeIds)
         this._setSelectorMatches(node, selectorText, matchingNodeIds.indexOf(node.id) !== -1);
-      callback();
     }
   }
 
@@ -230,7 +255,7 @@ SDK.CSSMatchedStyles = class {
    * @return {!Promise}
    */
   addNewRule(rule, node) {
-    this._nodeForStyle.set(rule.style, node);
+    this._addedStyles.set(rule.style, node);
     return this.recomputeMatchingSelectors(rule);
   }
 
@@ -240,7 +265,7 @@ SDK.CSSMatchedStyles = class {
    * @param {boolean} value
    */
   _setSelectorMatches(node, selectorText, value) {
-    var map = this._matchingSelectors.get(node.id);
+    let map = this._matchingSelectors.get(node.id);
     if (!map) {
       map = new Map();
       this._matchingSelectors.set(node.id, map);
@@ -253,8 +278,8 @@ SDK.CSSMatchedStyles = class {
    * @return {boolean}
    */
   mediaMatches(style) {
-    var media = style.parentRule ? style.parentRule.media : [];
-    for (var i = 0; media && i < media.length; ++i) {
+    const media = style.parentRule ? style.parentRule.media : [];
+    for (let i = 0; media && i < media.length; ++i) {
       if (!media[i].active())
         return false;
     }
@@ -265,7 +290,7 @@ SDK.CSSMatchedStyles = class {
    * @return {!Array<!SDK.CSSStyleDeclaration>}
    */
   nodeStyles() {
-    return this._nodeStyles;
+    return this._mainDOMCascade.styles();
   }
 
   /**
@@ -276,10 +301,19 @@ SDK.CSSMatchedStyles = class {
   }
 
   /**
-   * @return {!Map.<!Protocol.DOM.PseudoType, !Array<!SDK.CSSStyleDeclaration>>}
+   * @param {!Protocol.DOM.PseudoType} pseudoType
+   * @return {!Array<!SDK.CSSStyleDeclaration>}
    */
-  pseudoStyles() {
-    return this._pseudoStyles;
+  pseudoStyles(pseudoType) {
+    const domCascade = this._pseudoDOMCascades.get(pseudoType);
+    return domCascade ? domCascade.styles() : [];
+  }
+
+  /**
+   * @return {!Set<!Protocol.DOM.PseudoType>}
+   */
+  pseudoTypes() {
+    return new Set(this._pseudoDOMCascades.keys());
   }
 
   /**
@@ -287,9 +321,9 @@ SDK.CSSMatchedStyles = class {
    * @return {boolean}
    */
   _containsInherited(style) {
-    var properties = style.allProperties;
-    for (var i = 0; i < properties.length; ++i) {
-      var property = properties[i];
+    const properties = style.allProperties();
+    for (let i = 0; i < properties.length; ++i) {
+      const property = properties[i];
       // Does this style contain non-overridden inherited property?
       if (property.activeInStyle() && SDK.cssMetadata().isPropertyInherited(property.name))
         return true;
@@ -302,7 +336,36 @@ SDK.CSSMatchedStyles = class {
    * @return {?SDK.DOMNode}
    */
   nodeForStyle(style) {
-    return this._nodeForStyle.get(style) || null;
+    return this._addedStyles.get(style) || this._nodeForStyle.get(style) || null;
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @return {!Array<string>}
+   */
+  availableCSSVariables(style) {
+    const domCascade = this._styleToDOMCascade.get(style) || null;
+    return domCascade ? domCascade.availableCSSVariables(style) : [];
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @param {string} variableName
+   * @return {?string}
+   */
+  computeCSSVariable(style, variableName) {
+    const domCascade = this._styleToDOMCascade.get(style) || null;
+    return domCascade ? domCascade.computeCSSVariable(style, variableName) : null;
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @param {string} value
+   * @return {?string}
+   */
+  computeValue(style, value) {
+    const domCascade = this._styleToDOMCascade.get(style) || null;
+    return domCascade ? domCascade.computeValue(style, value) : null;
   }
 
   /**
@@ -318,113 +381,268 @@ SDK.CSSMatchedStyles = class {
    * @return {?SDK.CSSMatchedStyles.PropertyState}
    */
   propertyState(property) {
-    if (this._propertiesState.size === 0) {
-      this._computeActiveProperties(this._nodeStyles, this._propertiesState);
-      for (var pseudoElementStyles of this._pseudoStyles.valuesArray())
-        this._computeActiveProperties(pseudoElementStyles, this._propertiesState);
-    }
-    return this._propertiesState.get(property) || null;
+    const domCascade = this._styleToDOMCascade.get(property.ownerStyle);
+    return domCascade ? domCascade.propertyState(property) : null;
   }
 
   resetActiveProperties() {
+    this._mainDOMCascade.reset();
+    for (const domCascade of this._pseudoDOMCascades.values())
+      domCascade.reset();
+  }
+};
+
+SDK.CSSMatchedStyles.NodeCascade = class {
+  /**
+   * @param {!SDK.CSSMatchedStyles} matchedStyles
+   * @param {!Array<!SDK.CSSStyleDeclaration>} styles
+   * @param {boolean} isInherited
+   */
+  constructor(matchedStyles, styles, isInherited) {
+    this._matchedStyles = matchedStyles;
+    this._styles = styles;
+    this._isInherited = isInherited;
     /** @type {!Map<!SDK.CSSProperty, !SDK.CSSMatchedStyles.PropertyState>} */
     this._propertiesState = new Map();
+    /** @type {!Map.<string, !SDK.CSSProperty>} */
+    this._activeProperties = new Map();
   }
 
-  /**
-   * @param {!Array<!SDK.CSSStyleDeclaration>} styles
-   * @param {!Map<!SDK.CSSProperty, !SDK.CSSMatchedStyles.PropertyState>} result
-   */
-  _computeActiveProperties(styles, result) {
-    /** @type {!Set.<string>} */
-    var foundImportantProperties = new Set();
-    /** @type {!Map.<string, !Map<string, !SDK.CSSProperty>>} */
-    var propertyToEffectiveRule = new Map();
-    /** @type {!Map.<string, !SDK.DOMNode>} */
-    var inheritedPropertyToNode = new Map();
-    /** @type {!Set<string>} */
-    var allUsedProperties = new Set();
-    for (var i = 0; i < styles.length; ++i) {
-      var style = styles[i];
-      var rule = style.parentRule;
+  _computeActiveProperties() {
+    this._propertiesState.clear();
+    this._activeProperties.clear();
+
+    for (const style of this._styles) {
+      const rule = style.parentRule;
       // Compute cascade for CSSStyleRules only.
       if (rule && !(rule instanceof SDK.CSSStyleRule))
         continue;
-      if (rule && !this.hasMatchingSelectors(rule))
+      if (rule && !this._matchedStyles.hasMatchingSelectors(rule))
         continue;
 
-      /** @type {!Map<string, !SDK.CSSProperty>} */
-      var styleActiveProperties = new Map();
-      var allProperties = style.allProperties;
-      for (var j = 0; j < allProperties.length; ++j) {
-        var property = allProperties[j];
-
+      for (const property of style.allProperties()) {
         // Do not pick non-inherited properties from inherited styles.
-        var inherited = this.isInherited(style);
-        if (inherited && !SDK.cssMetadata().isPropertyInherited(property.name))
+        if (this._isInherited && !SDK.cssMetadata().isPropertyInherited(property.name))
           continue;
 
         if (!property.activeInStyle()) {
-          result.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+          this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
           continue;
         }
 
-        var canonicalName = SDK.cssMetadata().canonicalPropertyName(property.name);
-        if (foundImportantProperties.has(canonicalName)) {
-          result.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+        const canonicalName = SDK.cssMetadata().canonicalPropertyName(property.name);
+        const activeProperty = this._activeProperties.get(canonicalName);
+        if (activeProperty && (activeProperty.important || !property.important)) {
+          this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
           continue;
         }
 
-        if (!property.important && allUsedProperties.has(canonicalName)) {
-          result.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
-          continue;
-        }
-
-        var isKnownProperty = propertyToEffectiveRule.has(canonicalName);
-        var inheritedFromNode = inherited ? this.nodeForStyle(style) : null;
-        if (!isKnownProperty && inheritedFromNode && !inheritedPropertyToNode.has(canonicalName))
-          inheritedPropertyToNode.set(canonicalName, inheritedFromNode);
-
-        if (property.important) {
-          if (inherited && isKnownProperty && inheritedFromNode !== inheritedPropertyToNode.get(canonicalName)) {
-            result.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
-            continue;
-          }
-
-          foundImportantProperties.add(canonicalName);
-          if (isKnownProperty) {
-            var overloaded =
-                /** @type {!SDK.CSSProperty} */ (propertyToEffectiveRule.get(canonicalName).get(canonicalName));
-            result.set(overloaded, SDK.CSSMatchedStyles.PropertyState.Overloaded);
-            propertyToEffectiveRule.get(canonicalName).delete(canonicalName);
-          }
-        }
-
-        styleActiveProperties.set(canonicalName, property);
-        allUsedProperties.add(canonicalName);
-        propertyToEffectiveRule.set(canonicalName, styleActiveProperties);
-        result.set(property, SDK.CSSMatchedStyles.PropertyState.Active);
+        if (activeProperty)
+          this._propertiesState.set(activeProperty, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+        this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Active);
+        this._activeProperties.set(canonicalName, property);
       }
+    }
+  }
+};
 
-      // If every longhand of the shorthand is not active, then the shorthand is not active too.
-      for (var property of style.leadingProperties()) {
-        var canonicalName = SDK.cssMetadata().canonicalPropertyName(property.name);
-        if (!styleActiveProperties.has(canonicalName))
-          continue;
-        var longhands = style.longhandProperties(property.name);
-        if (!longhands.length)
-          continue;
-        var notUsed = true;
-        for (var longhand of longhands) {
-          var longhandCanonicalName = SDK.cssMetadata().canonicalPropertyName(longhand.name);
-          notUsed = notUsed && !styleActiveProperties.has(longhandCanonicalName);
-        }
-        if (!notUsed)
-          continue;
-        styleActiveProperties.delete(canonicalName);
-        allUsedProperties.delete(canonicalName);
-        result.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+SDK.CSSMatchedStyles.DOMInheritanceCascade = class {
+  /**
+   * @param {!Array<!SDK.CSSMatchedStyles.NodeCascade>} nodeCascades
+   */
+  constructor(nodeCascades) {
+    this._nodeCascades = nodeCascades;
+    /** @type {!Map<!SDK.CSSProperty, !SDK.CSSMatchedStyles.PropertyState>} */
+    this._propertiesState = new Map();
+    /** @type {!Map<!SDK.CSSMatchedStyles.NodeCascade, !Map<string, string>>} */
+    this._availableCSSVariables = new Map();
+    /** @type {!Map<!SDK.CSSMatchedStyles.NodeCascade, !Map<string, ?string>>} */
+    this._computedCSSVariables = new Map();
+    this._initialized = false;
+
+    /** @type {!Map<!SDK.CSSStyleDeclaration, !SDK.CSSMatchedStyles.NodeCascade>} */
+    this._styleToNodeCascade = new Map();
+    for (const nodeCascade of nodeCascades) {
+      for (const style of nodeCascade._styles)
+        this._styleToNodeCascade.set(style, nodeCascade);
+    }
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @return {!Array<string>}
+   */
+  availableCSSVariables(style) {
+    const nodeCascade = this._styleToNodeCascade.get(style);
+    if (!nodeCascade)
+      return [];
+    this._ensureInitialized();
+    return Array.from(this._availableCSSVariables.get(nodeCascade).keys());
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @param {string} variableName
+   * @return {?string}
+   */
+  computeCSSVariable(style, variableName) {
+    const nodeCascade = this._styleToNodeCascade.get(style);
+    if (!nodeCascade)
+      return null;
+    this._ensureInitialized();
+    const availableCSSVariables = this._availableCSSVariables.get(nodeCascade);
+    const computedCSSVariables = this._computedCSSVariables.get(nodeCascade);
+    return this._innerComputeCSSVariable(availableCSSVariables, computedCSSVariables, variableName);
+  }
+
+  /**
+   * @param {!SDK.CSSStyleDeclaration} style
+   * @param {string} value
+   * @return {?string}
+   */
+  computeValue(style, value) {
+    const nodeCascade = this._styleToNodeCascade.get(style);
+    if (!nodeCascade)
+      return null;
+    this._ensureInitialized();
+    const availableCSSVariables = this._availableCSSVariables.get(nodeCascade);
+    const computedCSSVariables = this._computedCSSVariables.get(nodeCascade);
+    return this._innerComputeValue(availableCSSVariables, computedCSSVariables, value);
+  }
+
+  /**
+   * @param {!Map<string, string>} availableCSSVariables
+   * @param {!Map<string, ?string>} computedCSSVariables
+   * @param {string} variableName
+   * @return {?string}
+   */
+  _innerComputeCSSVariable(availableCSSVariables, computedCSSVariables, variableName) {
+    if (!availableCSSVariables.has(variableName))
+      return null;
+    if (computedCSSVariables.has(variableName))
+      return computedCSSVariables.get(variableName);
+    // Set dummy value to avoid infinite recursion.
+    computedCSSVariables.set(variableName, null);
+    const definedValue = availableCSSVariables.get(variableName);
+    const computedValue = this._innerComputeValue(availableCSSVariables, computedCSSVariables, definedValue);
+    computedCSSVariables.set(variableName, computedValue);
+    return computedValue;
+  }
+
+  /**
+   * @param {!Map<string, string>} availableCSSVariables
+   * @param {!Map<string, ?string>} computedCSSVariables
+   * @param {string} value
+   * @return {?string}
+   */
+  _innerComputeValue(availableCSSVariables, computedCSSVariables, value) {
+    const results = TextUtils.TextUtils.splitStringByRegexes(value, [SDK.CSSMetadata.VariableRegex]);
+    const tokens = [];
+    for (const result of results) {
+      if (result.regexIndex === -1) {
+        tokens.push(result.value);
+        continue;
       }
+      // process var() function
+      const regexMatch = result.value.match(/^var\((--[a-zA-Z0-9-_]+)[,]?\s*(.*)\)$/);
+      if (!regexMatch)
+        return null;
+      const cssVariable = regexMatch[1];
+      const computedValue = this._innerComputeCSSVariable(availableCSSVariables, computedCSSVariables, cssVariable);
+      if (computedValue === null && !regexMatch[2])
+        return null;
+      if (computedValue === null)
+        tokens.push(regexMatch[2]);
+      else
+        tokens.push(computedValue);
+    }
+    return tokens.map(token => token.trim()).join(' ');
+  }
+
+  /**
+   * @return {!Array<!SDK.CSSStyleDeclaration>}
+   */
+  styles() {
+    return Array.from(this._styleToNodeCascade.keys());
+  }
+
+  /**
+   * @param {!SDK.CSSProperty} property
+   * @return {?SDK.CSSMatchedStyles.PropertyState}
+   */
+  propertyState(property) {
+    this._ensureInitialized();
+    return this._propertiesState.get(property) || null;
+  }
+
+  reset() {
+    this._initialized = false;
+    this._propertiesState.clear();
+    this._availableCSSVariables.clear();
+    this._computedCSSVariables.clear();
+  }
+
+  _ensureInitialized() {
+    if (this._initialized)
+      return;
+    this._initialized = true;
+
+    const activeProperties = new Map();
+    for (const nodeCascade of this._nodeCascades) {
+      nodeCascade._computeActiveProperties();
+      for (const entry of nodeCascade._propertiesState.entries()) {
+        const property = /** @type {!SDK.CSSProperty} */ (entry[0]);
+        const state = /** @type {!SDK.CSSMatchedStyles.PropertyState} */ (entry[1]);
+        if (state === SDK.CSSMatchedStyles.PropertyState.Overloaded) {
+          this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+          continue;
+        }
+        const canonicalName = SDK.cssMetadata().canonicalPropertyName(property.name);
+        if (activeProperties.has(canonicalName)) {
+          this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+          continue;
+        }
+        activeProperties.set(canonicalName, property);
+        this._propertiesState.set(property, SDK.CSSMatchedStyles.PropertyState.Active);
+      }
+    }
+    // If every longhand of the shorthand is not active, then the shorthand is not active too.
+    for (const entry of activeProperties.entries()) {
+      const canonicalName = /** @type {string} */ (entry[0]);
+      const shorthandProperty = /** @type {!SDK.CSSProperty} */ (entry[1]);
+      const shorthandStyle = shorthandProperty.ownerStyle;
+      const longhands = shorthandStyle.longhandProperties(shorthandProperty.name);
+      if (!longhands.length)
+        continue;
+      let hasActiveLonghands = false;
+      for (const longhand of longhands) {
+        const longhandCanonicalName = SDK.cssMetadata().canonicalPropertyName(longhand.name);
+        const longhandActiveProperty = activeProperties.get(longhandCanonicalName);
+        if (!longhandActiveProperty)
+          continue;
+        if (longhandActiveProperty.ownerStyle === shorthandStyle) {
+          hasActiveLonghands = true;
+          break;
+        }
+      }
+      if (hasActiveLonghands)
+        continue;
+      activeProperties.delete(canonicalName);
+      this._propertiesState.set(shorthandProperty, SDK.CSSMatchedStyles.PropertyState.Overloaded);
+    }
+
+    // Work inheritance chain backwards to compute visible CSS Variables.
+    const accumulatedCSSVariables = new Map();
+    for (let i = this._nodeCascades.length - 1; i >= 0; --i) {
+      const nodeCascade = this._nodeCascades[i];
+      for (const entry of nodeCascade._activeProperties.entries()) {
+        const propertyName = /** @type {string} */ (entry[0]);
+        const property = /** @type {!SDK.CSSProperty} */ (entry[1]);
+        if (propertyName.startsWith('--'))
+          accumulatedCSSVariables.set(propertyName, property.value);
+      }
+      this._availableCSSVariables.set(nodeCascade, new Map(accumulatedCSSVariables));
+      this._computedCSSVariables.set(nodeCascade, new Map());
     }
   }
 };

@@ -5,19 +5,19 @@
 Bindings.LiveLocation = function() {};
 
 Bindings.LiveLocation.prototype = {
-  update: function() {},
+  update() {},
 
   /**
    * @return {?Workspace.UILocation}
    */
-  uiLocation: function() {},
+  uiLocation() {},
 
-  dispose: function() {},
+  dispose() {},
 
   /**
    * @return {boolean}
    */
-  isBlackboxed: function() {}
+  isBlackboxed() {}
 };
 
 /**
@@ -90,7 +90,7 @@ Bindings.LiveLocationPool = class {
   }
 
   disposeAll() {
-    for (var location of this._locations)
+    for (const location of this._locations)
       location.dispose();
   }
 };

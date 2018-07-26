@@ -19,11 +19,13 @@
         },
         {
             "type": "@Common.Revealer",
-            "contextTypes": ["Common.Console"],
+            "contextTypes": [
+                "Common.Console"
+            ],
             "className": "Console.ConsolePanel.ConsoleRevealer"
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "actionId": "console.show",
             "className": "Console.ConsoleView.ActionDelegate",
             "bindings": [
@@ -33,7 +35,7 @@
             ]
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "category": "Console",
             "actionId": "console.clear",
             "title": "Clear console",
@@ -51,7 +53,7 @@
             ]
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "category": "Console",
             "actionId": "console.clear.history",
             "title": "Clear console history",
@@ -65,20 +67,33 @@
             "settingType": "boolean",
             "defaultValue": false,
             "options": [
-                { "value": true, "title": "Hide network messages" },
-                { "value": false, "title": "Show network messages" }
+                {
+                    "value": true,
+                    "title": "Hide network messages"
+                },
+                {
+                    "value": false,
+                    "title": "Show network messages"
+                }
             ]
         },
         {
             "type": "setting",
             "category": "Console",
-            "title": "Hide violations",
-            "settingName": "hideViolationMessages",
+            "title": "Selected context only",
+            "settingName": "selectedContextFilterEnabled",
             "settingType": "boolean",
-            "defaultValue": true,
+            "storageType": "session",
+            "defaultValue": false,
             "options": [
-                { "value": true, "title": "Hide violations" },
-                { "value": false, "title": "Show violations" }
+                {
+                    "value": true,
+                    "title": "Only show messages from the current context (top, iframe, worker, extension)"
+                },
+                {
+                    "value": false,
+                    "title": "Show messages from all contexts"
+                }
             ]
         },
         {
@@ -97,8 +112,14 @@
             "settingType": "boolean",
             "defaultValue": false,
             "options": [
-                { "value": true, "title": "Show timestamps" },
-                { "value": false, "title": "Hide timestamps" }
+                {
+                    "value": true,
+                    "title": "Show timestamps"
+                },
+                {
+                    "value": false,
+                    "title": "Hide timestamps"
+                }
             ]
         },
         {
@@ -109,22 +130,76 @@
             "settingType": "boolean",
             "defaultValue": true,
             "options": [
-                { "value": true, "title": "Autocomplete from history" },
-                { "value": false, "title": "Do not autocomplete from history" }
+                {
+                    "value": true,
+                    "title": "Autocomplete from history"
+                },
+                {
+                    "value": false,
+                    "title": "Do not autocomplete from history"
+                }
+            ]
+        },
+        {
+            "type": "setting",
+            "category": "Console",
+            "title": "Group similar",
+            "settingName": "consoleGroupSimilar",
+            "settingType": "boolean",
+            "defaultValue": true,
+            "options": [
+                {
+                    "value": true,
+                    "title": "Group similar messages in console"
+                },
+                {
+                    "value": false,
+                    "title": "Do not group similar messages in console"
+                }
+            ]
+        },
+        {
+            "type": "setting",
+            "category": "Console",
+            "title": "Eager evaluation",
+            "settingName": "consoleEagerEval",
+            "settingType": "boolean",
+            "defaultValue": true,
+            "options": [
+                {
+                    "value": true,
+                    "title": "Eagerly evaluate console prompt text"
+                },
+                {
+                    "value": false,
+                    "title": "Do not eagerly evaluate console prompt text"
+                }
             ]
         }
     ],
     "dependencies": [
-        "components", "ui_lazy"
+        "components",
+        "data_grid",
+        "object_ui",
+        "sdk",
+        "product_registry",
+        "formatter"
     ],
     "scripts": [
         "ConsoleContextSelector.js",
+        "ConsoleFilter.js",
+        "ConsolePinPane.js",
+        "ConsoleSidebar.js",
+        "ConsoleViewport.js",
         "ConsoleViewMessage.js",
         "ConsolePrompt.js",
         "ConsoleView.js",
         "ConsolePanel.js"
     ],
     "resources": [
+        "consoleContextSelector.css",
+        "consolePinPane.css",
+        "consoleSidebar.css",
         "consoleView.css"
     ]
 }

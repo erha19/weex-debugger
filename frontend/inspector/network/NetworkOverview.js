@@ -4,25 +4,16 @@
 /**
  * @unrestricted
  */
-Network.NetworkOverview = class extends UI.TimelineOverviewBase {
+Network.NetworkOverview = class extends PerfUI.TimelineOverviewBase {
   constructor() {
     super();
+    this._selectedFilmStripTime = -1;
     this.element.classList.add('network-overview');
 
     /** @type {number} */
     this._numBands = 1;
-    /** @type {number} */
-    this._windowStart = 0;
-    /** @type {number} */
-    this._windowEnd = 0;
-    /** @type {boolean} */
-    this._restoringWindow = false;
     /** @type {boolean} */
     this._updateScheduled = false;
-    /** @type {number} */
-    this._canvasWidth = 0;
-    /** @type {number} */
-    this._canvasHeight = 0;
 
     SDK.targetManager.addModelListener(
         SDK.ResourceTreeModel, SDK.ResourceTreeModel.Events.Load, this._loadEventFired, this);
@@ -33,7 +24,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
   }
 
   /**
-   * @param {?Components.FilmStripModel} filmStripModel
+   * @param {?SDK.FilmStripModel} filmStripModel
    */
   setFilmStripModel(filmStripModel) {
     this._filmStripModel = filmStripModel;
@@ -57,9 +48,9 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
    * @param {!Common.Event} event
    */
   _loadEventFired(event) {
-    var data = /** @type {number} */ (event.data);
-    if (data)
-      this._loadEvents.push(data * 1000);
+    const time = /** @type {number} */ (event.data.loadTime);
+    if (time)
+      this._loadEvents.push(time * 1000);
     this.scheduleUpdate();
   }
 
@@ -67,7 +58,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
    * @param {!Common.Event} event
    */
   _domContentLoadedEventFired(event) {
-    var data = /** @type {number} */ (event.data);
+    const data = /** @type {number} */ (event.data);
     if (data)
       this._domContentLoadedEvents.push(data * 1000);
     this.scheduleUpdate();
@@ -82,7 +73,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
       return -1;
     if (this._bandMap.has(connectionId))
       return /** @type {number} */ (this._bandMap.get(connectionId));
-    var result = this._nextBand++;
+    const result = this._nextBand++;
     this._bandMap.set(connectionId, result);
     return result;
   }
@@ -109,11 +100,11 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
    * @override
    */
   onResize() {
-    var width = this.element.offsetWidth;
-    var height = this.element.offsetHeight;
-    this._calculator.setDisplayWindow(width);
+    const width = this.element.offsetWidth;
+    const height = this.element.offsetHeight;
+    this.calculator().setDisplayWidth(width);
     this.resetCanvas();
-    var numBands = (((height - 1) / Network.NetworkOverview._bandHeight) - 1) | 0;
+    const numBands = (((height - 1) / Network.NetworkOverview._bandHeight) - 1) | 0;
     this._numBands = (numBands > 0) ? numBands : 1;
     this.scheduleUpdate();
   }
@@ -122,9 +113,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
    * @override
    */
   reset() {
-    this._windowStart = 0;
-    this._windowEnd = 0;
-    /** @type {?Components.FilmStripModel} */
+    /** @type {?SDK.FilmStripModel} */
     this._filmStripModel = null;
 
     /** @type {number} */
@@ -164,45 +153,37 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
   update() {
     this._updateScheduled = false;
 
-    var newBoundary =
-        new Network.NetworkTimeBoundary(this._calculator.minimumBoundary(), this._calculator.maximumBoundary());
+    const calculator = this.calculator();
+
+    const newBoundary = new Network.NetworkTimeBoundary(calculator.minimumBoundary(), calculator.maximumBoundary());
     if (!this._lastBoundary || !newBoundary.equals(this._lastBoundary)) {
-      var span = this._calculator.boundarySpan();
+      const span = calculator.boundarySpan();
       while (this._span < span)
         this._span *= 1.25;
-      this._calculator.setBounds(this._calculator.minimumBoundary(), this._calculator.minimumBoundary() + this._span);
-      this._lastBoundary =
-          new Network.NetworkTimeBoundary(this._calculator.minimumBoundary(), this._calculator.maximumBoundary());
-      if (this._windowStart || this._windowEnd) {
-        this._restoringWindow = true;
-        var startTime = this._calculator.minimumBoundary();
-        var totalTime = this._calculator.boundarySpan();
-        var left = (this._windowStart - startTime) / totalTime;
-        var right = (this._windowEnd - startTime) / totalTime;
-        this._restoringWindow = false;
-      }
+
+      calculator.setBounds(calculator.minimumBoundary(), calculator.minimumBoundary() + this._span);
+      this._lastBoundary = new Network.NetworkTimeBoundary(calculator.minimumBoundary(), calculator.maximumBoundary());
     }
 
-    var context = this._canvas.getContext('2d');
-    var calculator = this._calculator;
-    var linesByType = {};
-    var paddingTop = 2;
+    const context = this.context();
+    const linesByType = {};
+    const paddingTop = 2;
 
     /**
      * @param {string} type
      * @param {string} strokeStyle
      */
     function drawLines(type, strokeStyle) {
-      var lines = linesByType[type];
+      const lines = linesByType[type];
       if (!lines)
         return;
-      var n = lines.length;
+      const n = lines.length;
       context.beginPath();
       context.strokeStyle = strokeStyle;
-      for (var i = 0; i < n;) {
-        var y = lines[i++] * Network.NetworkOverview._bandHeight + paddingTop;
-        var startTime = lines[i++];
-        var endTime = lines[i++];
+      for (let i = 0; i < n;) {
+        const y = lines[i++] * Network.NetworkOverview._bandHeight + paddingTop;
+        const startTime = lines[i++];
+        let endTime = lines[i++];
         if (endTime === Number.MAX_VALUE)
           endTime = calculator.maximumBoundary();
         context.moveTo(calculator.computePosition(startTime), y);
@@ -218,7 +199,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
      * @param {number} end
      */
     function addLine(type, y, start, end) {
-      var lines = linesByType[type];
+      let lines = linesByType[type];
       if (!lines) {
         lines = [];
         linesByType[type] = lines;
@@ -226,22 +207,22 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
       lines.push(y, start, end);
     }
 
-    var requests = this._requestsList;
-    var n = requests.length;
-    for (var i = 0; i < n; ++i) {
-      var request = requests[i];
-      var band = this._bandId(request.connectionId);
-      var y = (band === -1) ? 0 : (band % this._numBands + 1);
-      var timeRanges =
-          Network.RequestTimingView.calculateRequestTimeRanges(request, this._calculator.minimumBoundary());
-      for (var j = 0; j < timeRanges.length; ++j) {
-        var type = timeRanges[j].name;
+    const requests = this._requestsList;
+    const n = requests.length;
+    for (let i = 0; i < n; ++i) {
+      const request = requests[i];
+      const band = this._bandId(request.connectionId);
+      const y = (band === -1) ? 0 : (band % this._numBands + 1);
+      const timeRanges =
+          Network.RequestTimingView.calculateRequestTimeRanges(request, this.calculator().minimumBoundary());
+      for (let j = 0; j < timeRanges.length; ++j) {
+        const type = timeRanges[j].name;
         if (band !== -1 || type === Network.RequestTimeRangeNames.Total)
           addLine(type, y, timeRanges[j].start * 1000, timeRanges[j].end * 1000);
       }
     }
 
-    context.clearRect(0, 0, this._canvas.width, this._canvas.height);
+    context.clearRect(0, 0, this.width(), this.height());
     context.save();
     context.scale(window.devicePixelRatio, window.devicePixelRatio);
     context.lineWidth = 2;
@@ -258,12 +239,12 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
     drawLines(Network.RequestTimeRangeNames.Waiting, '#00C853');
     drawLines(Network.RequestTimeRangeNames.Receiving, '#03A9F4');
 
-    var height = this.element.offsetHeight;
+    const height = this.element.offsetHeight;
     context.lineWidth = 1;
     context.beginPath();
     context.strokeStyle = '#8080FF';  // Keep in sync with .network-blue-divider CSS rule.
-    for (var i = this._domContentLoadedEvents.length - 1; i >= 0; --i) {
-      var x = Math.round(calculator.computePosition(this._domContentLoadedEvents[i])) + 0.5;
+    for (let i = this._domContentLoadedEvents.length - 1; i >= 0; --i) {
+      const x = Math.round(calculator.computePosition(this._domContentLoadedEvents[i])) + 0.5;
       context.moveTo(x, 0);
       context.lineTo(x, height);
     }
@@ -271,8 +252,8 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
 
     context.beginPath();
     context.strokeStyle = '#FF8080';  // Keep in sync with .network-red-divider CSS rule.
-    for (var i = this._loadEvents.length - 1; i >= 0; --i) {
-      var x = Math.round(calculator.computePosition(this._loadEvents[i])) + 0.5;
+    for (let i = this._loadEvents.length - 1; i >= 0; --i) {
+      const x = Math.round(calculator.computePosition(this._loadEvents[i])) + 0.5;
       context.moveTo(x, 0);
       context.lineTo(x, height);
     }
@@ -282,7 +263,7 @@ Network.NetworkOverview = class extends UI.TimelineOverviewBase {
       context.lineWidth = 2;
       context.beginPath();
       context.strokeStyle = '#FCCC49';  // Keep in sync with .network-frame-divider CSS rule.
-      var x = Math.round(calculator.computePosition(this._selectedFilmStripTime));
+      const x = Math.round(calculator.computePosition(this._selectedFilmStripTime));
       context.moveTo(x, 0);
       context.lineTo(x, height);
       context.stroke();

@@ -3,16 +3,17 @@
 // found in the LICENSE file.
 /**
  * @implements {Common.App}
- * @implements {SDK.TargetManager.Observer}
+ * @implements {SDK.SDKModelObserver<!SDK.ScreenCaptureModel>}
  * @unrestricted
  */
 Screencast.ScreencastApp = class {
   constructor() {
-    this._enabledSetting = Common.settings.createSetting('screencastEnabled', false);
+    this._enabledSetting = Common.settings.createSetting('screencastEnabled', true);
     this._toggleButton = new UI.ToolbarToggle(Common.UIString('Toggle screencast'), 'largeicon-phone');
     this._toggleButton.setToggled(this._enabledSetting.get());
-    this._toggleButton.addEventListener('click', this._toggleButtonClicked, this);
-    SDK.targetManager.observeTargets(this);
+    this._toggleButton.setEnabled(false);
+    this._toggleButton.addEventListener(UI.ToolbarButton.Events.Click, this._toggleButtonClicked, this);
+    SDK.targetManager.observeModels(SDK.ScreenCaptureModel, this);
   }
 
   /**
@@ -29,8 +30,9 @@ Screencast.ScreencastApp = class {
    * @param {!Document} document
    */
   presentUI(document) {
-    var rootView = new UI.RootView();
-    this._rootSplitWidget = new UI.SplitWidget(false, true, 'InspectorView.screencastSplitViewState', 800, 300);
+    const rootView = new UI.RootView();
+
+    this._rootSplitWidget = new UI.SplitWidget(false, true, 'InspectorView.screencastSplitViewState', 300, 300);
     this._rootSplitWidget.setVertical(true);
     this._rootSplitWidget.setSecondIsSidebar(true);
     this._rootSplitWidget.show(rootView.element);
@@ -38,46 +40,40 @@ Screencast.ScreencastApp = class {
 
     this._rootSplitWidget.setSidebarWidget(UI.inspectorView);
     rootView.attachToDocument(document);
+    rootView.focus();
   }
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.ScreenCaptureModel} screenCaptureModel
    */
-  targetAdded(target) {
-    if (this._target)
+  modelAdded(screenCaptureModel) {
+    if (this._screenCaptureModel)
       return;
-    this._target = target;
-
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    if (resourceTreeModel) {
-      this._screencastView = new Screencast.ScreencastView(target, resourceTreeModel);
-      this._rootSplitWidget.setMainWidget(this._screencastView);
-      this._screencastView.initialize();
-    } else {
-      this._toggleButton.setEnabled(false);
-    }
+    this._screenCaptureModel = screenCaptureModel;
+    this._toggleButton.setEnabled(true);
+    this._screencastView = new Screencast.ScreencastView(screenCaptureModel);
+    this._rootSplitWidget.setMainWidget(this._screencastView);
+    this._screencastView.initialize();
     this._onScreencastEnabledChanged();
   }
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.ScreenCaptureModel} screenCaptureModel
    */
-  targetRemoved(target) {
-    if (this._target === target) {
-      delete this._target;
-      if (!this._screencastView)
-        return;
-      this._toggleButton.setEnabled(false);
-      this._screencastView.detach();
-      delete this._screencastView;
-      this._onScreencastEnabledChanged();
-    }
+  modelRemoved(screenCaptureModel) {
+    if (this._screenCaptureModel !== screenCaptureModel)
+      return;
+    delete this._screenCaptureModel;
+    this._toggleButton.setEnabled(false);
+    this._screencastView.detach();
+    delete this._screencastView;
+    this._onScreencastEnabledChanged();
   }
 
   _toggleButtonClicked() {
-    var enabled = !this._toggleButton.toggled();
+    const enabled = !this._toggleButton.toggled();
     this._enabledSetting.set(enabled);
     this._onScreencastEnabledChanged();
   }
@@ -85,7 +81,7 @@ Screencast.ScreencastApp = class {
   _onScreencastEnabledChanged() {
     if (!this._rootSplitWidget)
       return;
-    var enabled = this._enabledSetting.get() && this._screencastView;
+    const enabled = this._enabledSetting.get() && this._screencastView;
     this._toggleButton.setToggled(enabled);
     if (enabled)
       this._rootSplitWidget.showBoth();

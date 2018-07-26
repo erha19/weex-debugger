@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 /**
- * @implements {SDK.TargetManager.Observer}
+ * @implements {SDK.SDKModelObserver<!SDK.ResourceTreeModel>}
  * @unrestricted
  */
 Resources.AppManifestView = class extends UI.VBox {
@@ -10,16 +10,27 @@ Resources.AppManifestView = class extends UI.VBox {
     super(true);
     this.registerRequiredCSS('resources/appManifestView.css');
 
+    this._emptyView = new UI.EmptyWidget(Common.UIString('No manifest detected'));
+    const p = this._emptyView.appendParagraph();
+    const linkElement = UI.XLink.create(
+        'https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/?utm_source=devtools',
+        Common.UIString('Read more about the web manifest'));
+    p.appendChild(UI.formatLocalized('A web manifest allows you to control how your app behaves when launched and displayed to the user. %s', [linkElement]));
+
+    this._emptyView.show(this.contentElement);
+    this._emptyView.hideWidget();
+
     this._reportView = new UI.ReportView(Common.UIString('App Manifest'));
     this._reportView.show(this.contentElement);
+    this._reportView.hideWidget();
 
     this._errorsSection = this._reportView.appendSection(Common.UIString('Errors and warnings'));
     this._identitySection = this._reportView.appendSection(Common.UIString('Identity'));
-    var toolbar = this._identitySection.createToolbar();
+    const toolbar = this._identitySection.createToolbar();
     toolbar.renderAsLinks();
-    var addToHomeScreen =
+    const addToHomeScreen =
         new UI.ToolbarButton(Common.UIString('Add to homescreen'), undefined, Common.UIString('Add to homescreen'));
-    addToHomeScreen.addEventListener('click', this._addToHomescreen.bind(this));
+    addToHomeScreen.addEventListener(UI.ToolbarButton.Events.Click, this._addToHomescreen, this);
     toolbar.appendToolbarItem(addToHomeScreen);
 
     this._presentationSection = this._reportView.appendSection(Common.UIString('Presentation'));
@@ -30,29 +41,26 @@ Resources.AppManifestView = class extends UI.VBox {
 
     this._startURLField = this._presentationSection.appendField(Common.UIString('Start URL'));
 
-    var themeColorField = this._presentationSection.appendField(Common.UIString('Theme color'));
-    this._themeColorSwatch = UI.ColorSwatch.create();
+    const themeColorField = this._presentationSection.appendField(Common.UIString('Theme color'));
+    this._themeColorSwatch = InlineEditor.ColorSwatch.create();
     themeColorField.appendChild(this._themeColorSwatch);
 
-    var backgroundColorField = this._presentationSection.appendField(Common.UIString('Background color'));
-    this._backgroundColorSwatch = UI.ColorSwatch.create();
+    const backgroundColorField = this._presentationSection.appendField(Common.UIString('Background color'));
+    this._backgroundColorSwatch = InlineEditor.ColorSwatch.create();
     backgroundColorField.appendChild(this._backgroundColorSwatch);
 
     this._orientationField = this._presentationSection.appendField(Common.UIString('Orientation'));
     this._displayField = this._presentationSection.appendField(Common.UIString('Display'));
 
-    SDK.targetManager.observeTargets(this, SDK.Target.Capability.DOM);
+    SDK.targetManager.observeModels(SDK.ResourceTreeModel, this);
   }
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.ResourceTreeModel} resourceTreeModel
    */
-  targetAdded(target) {
+  modelAdded(resourceTreeModel) {
     if (this._resourceTreeModel)
-      return;
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    if (!resourceTreeModel)
       return;
     this._resourceTreeModel = resourceTreeModel;
     this._updateManifest();
@@ -61,10 +69,9 @@ Resources.AppManifestView = class extends UI.VBox {
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.ResourceTreeModel} resourceTreeModel
    */
-  targetRemoved(target) {
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
+  modelRemoved(resourceTreeModel) {
     if (!this._resourceTreeModel || this._resourceTreeModel !== resourceTreeModel)
       return;
     resourceTreeModel.removeEventListener(SDK.ResourceTreeModel.Events.MainFrameNavigated, this._updateManifest, this);
@@ -81,45 +88,55 @@ Resources.AppManifestView = class extends UI.VBox {
    * @param {!Array<!Protocol.Page.AppManifestError>} errors
    */
   _renderManifest(url, data, errors) {
-    this._reportView.setURL(Components.Linkifier.linkifyURLAsNode(url));
+    if (!data && !errors.length) {
+      this._emptyView.showWidget();
+      this._reportView.hideWidget();
+      return;
+    }
+    this._emptyView.hideWidget();
+    this._reportView.showWidget();
+
+    this._reportView.setURL(Components.Linkifier.linkifyURL(url));
     this._errorsSection.clearContent();
     this._errorsSection.element.classList.toggle('hidden', !errors.length);
-    for (var error of errors) {
+    for (const error of errors) {
       this._errorsSection.appendRow().appendChild(
-          createLabel(error.message, error.critical ? 'smallicon-error' : 'smallicon-warning'));
+          UI.createLabel(error.message, error.critical ? 'smallicon-error' : 'smallicon-warning'));
     }
 
     if (!data)
-      data = '{}';
+      return;
 
-    var parsedManifest = JSON.parse(data);
+    if (data.charCodeAt(0) === 0xFEFF)
+      data = data.slice(1);  // Trim the BOM as per https://tools.ietf.org/html/rfc7159#section-8.1.
+
+    const parsedManifest = JSON.parse(data);
     this._nameField.textContent = stringProperty('name');
     this._shortNameField.textContent = stringProperty('short_name');
     this._startURLField.removeChildren();
-    var startURL = stringProperty('start_url');
+    const startURL = stringProperty('start_url');
     if (startURL) {
-      this._startURLField.appendChild(Components.linkifyResourceAsNode(
-          /** @type {string} */ (Common.ParsedURL.completeURL(url, startURL)), undefined, undefined, undefined,
-          undefined, startURL));
+      const completeURL = /** @type {string} */ (Common.ParsedURL.completeURL(url, startURL));
+      this._startURLField.appendChild(Components.Linkifier.linkifyURL(completeURL, {text: startURL}));
     }
 
     this._themeColorSwatch.classList.toggle('hidden', !stringProperty('theme_color'));
-    var themeColor = Common.Color.parse(stringProperty('theme_color') || 'white') || Common.Color.parse('white');
+    const themeColor = Common.Color.parse(stringProperty('theme_color') || 'white') || Common.Color.parse('white');
     this._themeColorSwatch.setColor(/** @type {!Common.Color} */ (themeColor));
     this._backgroundColorSwatch.classList.toggle('hidden', !stringProperty('background_color'));
-    var backgroundColor =
+    const backgroundColor =
         Common.Color.parse(stringProperty('background_color') || 'white') || Common.Color.parse('white');
     this._backgroundColorSwatch.setColor(/** @type {!Common.Color} */ (backgroundColor));
 
     this._orientationField.textContent = stringProperty('orientation');
     this._displayField.textContent = stringProperty('display');
 
-    var icons = parsedManifest['icons'] || [];
+    const icons = parsedManifest['icons'] || [];
     this._iconsSection.clearContent();
-    for (var icon of icons) {
-      var title = (icon['sizes'] || '') + '\n' + (icon['type'] || '');
-      var field = this._iconsSection.appendField(title);
-      var imageElement = field.createChild('img');
+    for (const icon of icons) {
+      const title = (icon['sizes'] || '') + '\n' + (icon['type'] || '');
+      const field = this._iconsSection.appendField(title);
+      const imageElement = field.createChild('img');
       imageElement.style.maxWidth = '200px';
       imageElement.style.maxHeight = '200px';
       imageElement.src = Common.ParsedURL.completeURL(url, icon['src']);
@@ -130,15 +147,18 @@ Resources.AppManifestView = class extends UI.VBox {
      * @return {string}
      */
     function stringProperty(name) {
-      var value = parsedManifest[name];
+      const value = parsedManifest[name];
       if (typeof value !== 'string')
         return '';
       return value;
     }
   }
 
-  _addToHomescreen() {
-    var target = SDK.targetManager.mainTarget();
+  /**
+   * @param {!Common.Event} event
+   */
+  _addToHomescreen(event) {
+    const target = SDK.targetManager.mainTarget();
     if (target && target.hasBrowserCapability()) {
       target.pageAgent().requestAppBanner();
       Common.console.show();

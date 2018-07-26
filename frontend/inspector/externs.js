@@ -28,7 +28,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// WebKit Web Facing API
+// Blink Web Facing API
 
 /**
  * @param {!Object} object
@@ -91,19 +91,23 @@ Array.prototype.sortNumbers = function() {};
 /**
  * @param {!S} object
  * @param {function(!S,!T):number=} comparator
+ * @param {number=} left
+ * @param {number=} right
  * @return {number}
  * @this {Array.<T>}
  * @template S
  */
-Array.prototype.lowerBound = function(object, comparator) {};
+Array.prototype.lowerBound = function(object, comparator, left, right) {};
 /**
  * @param {!S} object
  * @param {function(!S,!T):number=} comparator
+ * @param {number=} left
+ * @param {number=} right
  * @return {number}
  * @this {Array.<T>}
  * @template S
  */
-Array.prototype.upperBound = function(object, comparator) {};
+Array.prototype.upperBound = function(object, comparator, left, right) {};
 /**
  * @param {!S} value
  * @param {function(!S,!T):number} comparator
@@ -182,6 +186,24 @@ Array.prototype.intersectOrdered = function(array, comparator) {};
  */
 Array.prototype.mergeOrdered = function(array, comparator) {};
 
+/**
+ * @param {number} object
+ * @param {function(number, number):number=} comparator
+ * @param {number=} left
+ * @param {number=} right
+ * @return {number}
+ */
+Int32Array.prototype.lowerBound = function(object, comparator, left, right) {};
+
+// TODO(luoe): remove these BigInt types once closure supports them.
+/**
+ * @param {number|string} value
+ */
+const BigInt = function(value) {};
+
+/** @typedef {*} */
+const bigint = null;
+
 // File System API
 /**
  * @constructor
@@ -199,7 +221,7 @@ DOMFileSystem.prototype.root = null;
  */
 window.domAutomationController;
 
-var DevToolsHost = function() {};
+const DevToolsHost = function() {};
 
 /** @typedef {{type:string, id:(number|undefined),
               label:(string|undefined), enabled:(boolean|undefined), checked:(boolean|undefined),
@@ -210,12 +232,6 @@ DevToolsHost.ContextMenuDescriptor;
  * @return {number}
  */
 DevToolsHost.zoomFactor = function() {};
-
-/**
- * @param {string} origin
- * @param {string} script
- */
-DevToolsHost.setInjectedScriptForOrigin = function(origin, script) {};
 
 /**
  * @param {string} text
@@ -251,9 +267,14 @@ DevToolsHost.getSelectionBackgroundColor = function() {};
 DevToolsHost.getSelectionForegroundColor = function() {};
 
 /**
- * @return {boolean}
+ * @return {string}
  */
-DevToolsHost.isUnderTest = function() {};
+DevToolsHost.getInactiveSelectionBackgroundColor = function() {};
+
+/**
+ * @return {string}
+ */
+DevToolsHost.getInactiveSelectionForegroundColor = function() {};
 
 /**
  * @return {boolean}
@@ -275,12 +296,6 @@ DevToolsHost.upgradeDraggedFileSystemPermissions = function(fileSystem) {};
 /** Extensions API */
 
 /** @constructor */
-function AuditCategory() {
-}
-/** @constructor */
-function AuditResult() {
-}
-/** @constructor */
 function EventSink() {
 }
 /** @constructor */
@@ -296,7 +311,7 @@ function PanelWithSidebar() {
 function Resource() {
 }
 
-var extensionServer;
+let extensionServer;
 
 /**
  * @constructor
@@ -316,7 +331,7 @@ function ExtensionReloadOptions() {
   this.userAgent = '';
 }
 
-var Adb = {};
+const Adb = {};
 /** @typedef {{id: string, name: string, url: string, attached: boolean}} */
 Adb.Page;
 /** @typedef {{id: string, adbBrowserChromeVersion: string, compatibleVersion: boolean, adbBrowserName: string, source: string, adbBrowserVersion: string, pages: !Array<!Adb.Page>}} */
@@ -331,6 +346,21 @@ Adb.PortForwardingRule;
 Adb.DevicePortForwardingStatus;
 /** @typedef {!Object<string, !Adb.DevicePortForwardingStatus>} */
 Adb.PortForwardingStatus;
+/** @typedef {!Array<string>} */
+Adb.NetworkDiscoveryConfig;
+/**
+ * @typedef {!{
+ *   discoverUsbDevices: boolean,
+ *   portForwardingEnabled: boolean,
+ *   portForwardingConfig: !Adb.PortForwardingConfig,
+ *   networkDiscoveryEnabled: boolean,
+ *   networkDiscoveryConfig: !Adb.NetworkDiscoveryConfig
+ * }}
+ */
+Adb.Config;
+
+/** @const */
+const module = {};
 
 /**
  * @constructor
@@ -344,34 +374,16 @@ diff_match_patch.prototype = {
    * @param {string} text2
    * @return {!Array.<!{0: number, 1: string}>}
    */
-  diff_main: function(text1, text2) {}
+  diff_main: function(text1, text2) {},
+
+  /**
+   * @param {!Array.<!{0: number, 1: string}>} diff
+   */
+  diff_cleanupSemantic(diff) {}
 };
 
 /** @constructor */
-function Path2D() {
-}
-Path2D.prototype = {
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} w
-   * @param {number} h
-   */
-  rect: function(x, y, w, h) {},
-  /**
-   * @param {number} x
-   * @param {number} y
-   */
-  moveTo: function(x, y) {},
-  /**
-   * @param {number} x
-   * @param {number} y
-   */
-  lineTo: function(x, y) {}
-};
-
-/** @constructor */
-var Doc = function() {};
+const Doc = function() {};
 Doc.prototype = {
   /** @type {number} */
   scrollLeft: 0,
@@ -380,7 +392,7 @@ Doc.prototype = {
 };
 
 /** @constructor */
-var CodeMirror = function(element, config) {};
+const CodeMirror = function(element, config) {};
 CodeMirror.on = function(obj, type, handler) {};
 CodeMirror.prototype = {
   /** @type {!Doc} */
@@ -398,6 +410,8 @@ CodeMirror.prototype = {
    */
   addOverlay: function(spec, options) {},
   addWidget: function(pos, node, scroll, vert, horiz) {},
+  /** @param {boolean=} isClosed bv */
+  changeGeneration: function(isClosed) {},
   charCoords: function(pos, mode) {},
   clearGutter: function(gutterID) {},
   clearHistory: function() {},
@@ -466,7 +480,8 @@ CodeMirror.prototype = {
   indentLine: function(n, dir, aggressive) {},
   indentSelection: function(how) {},
   indexFromPos: function(coords) {},
-  isClean: function() {},
+  /** @param {number=} generation */
+  isClean: function(generation) {},
   iterLinkedDocs: function(f) {},
   lastLine: function() {},
   lineCount: function() {},
@@ -514,7 +529,7 @@ CodeMirror.prototype = {
   setHistory: function(histData) {},
   setLine: function(line, text) {},
   setOption: function(option, value) {},
-  setSelection: function(anchor, head) {},
+  setSelection: function(anchor, head, options) {},
   /**
    * @param {number=} primaryIndex
    * @param {?Object=} config
@@ -527,9 +542,9 @@ CodeMirror.prototype = {
   undo: function() {},
   unlinkDoc: function(other) {}
 };
-/** @type {!{cursorDiv: Element}} */
+/** @type {!{cursorDiv: Element, lineSpace: Element}} */
 CodeMirror.prototype.display;
-/** @type {!{mode: string}} */
+/** @type {!{mode: string, lineWrapping: boolean}} */
 CodeMirror.prototype.options;
 /** @type {!Object} */
 CodeMirror.Pass;
@@ -541,6 +556,37 @@ CodeMirror.getMode = function(options, spec) {};
 CodeMirror.overlayMode = function(mode1, mode2, squashSpans) {};
 CodeMirror.defineMode = function(modeName, modeConstructor) {};
 CodeMirror.startState = function(mode) {};
+CodeMirror.copyState = function(mode, state) {};
+CodeMirror.inputStyles = {};
+CodeMirror.inputStyles.textarea = class {
+  constructor() {
+    /** @type {!HTMLTextAreaElement} */
+    this.textarea;
+    this.prevInput = '';
+    this.composing = false;
+    this.contextMenuPending = false;
+    /** @type {!CodeMirror} */
+    this.cm;
+  }
+  /**
+   * @param {!Object} display
+   */
+  init(display) {
+  }
+
+  /**
+   * @param {boolean=} typing
+   */
+  reset(typing) {
+  }
+
+  /**
+   * @return {boolean}
+   */
+  poll() {
+    return false;
+  }
+};
 
 /** @typedef {{canceled: boolean, from: !CodeMirror.Pos, to: !CodeMirror.Pos, text: string, origin: string, cancel: function()}} */
 CodeMirror.BeforeChangeObject;
@@ -561,12 +607,6 @@ CodeMirror.Pos.prototype.ch;
  * @return {number}
  */
 CodeMirror.cmpPos = function(pos1, pos2) {};
-
-/**
- * @param {string} mode
- * @param {?} definition
- */
-CodeMirror.defineSimpleMode = function(mode, definition) {};
 
 /** @constructor */
 CodeMirror.StringStream = function(line) {
@@ -615,14 +655,14 @@ CodeMirror.keyMap;
 /** @type {{scrollLeft: number, scrollTop: number}} */
 CodeMirror.doc;
 
+/**
+ * @param {string} mime
+ * @param {string} mode
+ */
+CodeMirror.defineMIME = function(mime, mode) {};
+
 /** @type {boolean} */
 window.dispatchStandaloneTestRunnerMessages;
-
-/**
- * @param {*} obj
- * @return {boolean}
- */
-ArrayBuffer.isView = function(obj) {};
 
 /**
  * @param {Array.<Object>} keyframes
@@ -630,6 +670,20 @@ ArrayBuffer.isView = function(obj) {};
  * @return {Object}
  */
 Element.prototype.animate = function(keyframes, timing) {};
+
+/**
+ * @param {...!Node} nodes
+ * @return {undefined}
+ * @see https://dom.spec.whatwg.org/#dom-parentnode-append
+ */
+Element.prototype.append = function(nodes) {};
+
+/**
+ * @param {...!Node} nodes
+ * @return {undefined}
+ * @see https://dom.spec.whatwg.org/#dom-parentnode-prepend
+ */
+Element.prototype.prepend = function(nodes) {};
 
 /**
  * @override
@@ -640,13 +694,29 @@ Element.prototype.animate = function(keyframes, timing) {};
  */
 Element.prototype.addEventListener = function(type, listener, options) {};
 
-var acorn = {
+/**
+ * @override
+ * @param {string} type
+ * @param {(!EventListener|!function (!Event): (boolean|undefined)|null)} listener
+ * @param {(boolean|!{capture: (boolean|undefined), once: (boolean|undefined), passive: (boolean|undefined)})=} options
+ * @this {EventTarget}
+ */
+Element.prototype.removeEventListener = function(type, listener, options) {};
+
+const acorn = {
   /**
    * @param {string} text
    * @param {Object.<string, boolean>} options
    * @return {!ESTree.Node}
    */
   parse: function(text, options) {},
+
+  /**
+   * @param {string} text
+   * @param {Object.<string, boolean>} options
+   * @return {!ESTree.Node}
+   */
+  parse_dammit: function(text, options) {},
 
   /**
    * @param {string} text
@@ -667,7 +737,7 @@ var acorn = {
   }
 };
 
-var Acorn = {};
+const Acorn = {};
 /**
  * @constructor
  */
@@ -701,7 +771,7 @@ Acorn.Comment;
  */
 Acorn.TokenOrComment;
 
-var ESTree = {};
+const ESTree = {};
 
 /**
  * @constructor
@@ -733,6 +803,20 @@ ESTree.Node = function() {
   this.argument;
   /** @type {(string|undefined)} */
   this.operator;
+  /** @type {(!ESTree.Node|undefined)} */
+  this.right;
+  /** @type {(!ESTree.Node|undefined)} */
+  this.left;
+  /** @type {(string|undefined)} */
+  this.kind;
+  /** @type {(!ESTree.Node|undefined)} */
+  this.property;
+  /** @type {(!ESTree.Node|undefined)} */
+  this.object;
+  /** @type {(string|undefined)} */
+  this.raw;
+  /** @type {(boolean|undefined)} */
+  this.computed;
 };
 
 /**
@@ -744,42 +828,6 @@ ESTree.TemplateLiteralNode = function() {
   this.quasis;
   /** @type {!Array.<!ESTree.Node>} */
   this.expressions;
-};
-
-var Gonzales = {};
-var gonzales = {
-  /**
-   * @param {string} text
-   * @param {!Object=} options
-   * @return {!Gonzales.Node}
-   */
-  parse: function(text, options) {},
-};
-
-/**
- * @constructor
- */
-Gonzales.Location = function() {
-  /** @type {number} */
-  this.line;
-  /** @type {number} */
-  this.column;
-};
-
-/**
- * @constructor
- */
-Gonzales.Node = function() {
-  /** @type {string} */
-  this.type;
-  /** @type {string} */
-  this.syntax;
-  /** @type {!Gonzales.Location} */
-  this.start;
-  /** @type {!Gonzales.Location} */
-  this.end;
-  /** @type {(string|!Array<!Gonzales.Node>)} */
-  this.content;
 };
 
 /**
@@ -795,7 +843,7 @@ DOMException.ABORT_ERR;
  * @constructor
  * @param {!Object} params
  */
-var Terminal = function(params) {};
+const Terminal = function(params) {};
 
 Terminal.prototype = {
   fit: function() {},
@@ -806,49 +854,197 @@ Terminal.prototype = {
   on: function(eventName, handler) {}
 };
 
-// Module namespaces.
-var Accessibility = {};
-var Animation = {};
-var Audits = {};
-var Audits2 = {};
-var Audits2Worker = {};
-var Bindings = {};
-var CmModes = {};
-var Common = {};
-var Components = {};
-var Console = {};
-var Devices = {};
-var Diff = {};
-var Elements = {};
-var Emulation = {};
-var Extensions = {};
-var FormatterWorker = {};
-var Gonzales = {};
-var HeapSnapshotWorker = {};
-var Host = {};
-var LayerViewer = {};
-var Layers = {};
-var Main = {};
-var Network = {};
-var Persistence = {};
-var Platform = {};
-var Profiler = {};
-var Resources = {};
-var Sass = {};
-var Screencast = {};
-var SDK = {};
-var Security = {};
-var Services = {};
-var Settings = {};
-var Snippets = {};
-var SourceFrame = {};
-var Sources = {};
-var Terminal = {};
-var TextEditor = {};
-var Timeline = {};
-var TimelineModel = {};
-var ToolboxBootstrap = {};
-var UI = {};
-var UtilitySharedWorker = {};
-var WorkerService = {};
-var Workspace = {};
+/**
+ * @param {string} context
+ * @return {!Console}
+ */
+Console.prototype.context = function(context) {};
+
+
+/**
+ * @param {!Array<string>|string} strings
+ * @param {...*} vararg
+ * @return {string}
+ */
+const ls = function(strings, vararg) {};
+
+/**
+ * @constructor
+ * @param {function(!Array<*>)} callback
+ */
+const ResizeObserver = function(callback) {};
+
+
+// Lighthouse Report Renderer
+
+/**
+ * @constructor
+ * @param {!Document} document
+ */
+const DOM = function(document) {};
+
+/**
+ * @constructor
+ * @param {!DOM} dom
+ */
+const ReportRenderer = function(dom) {};
+
+ReportRenderer.prototype = {
+  /**
+   * @param {!ReportRenderer.ReportJSON} report
+   * @param {!Element} container Parent element to render the report into.
+   */
+  renderReport: function(report, container) {},
+
+  /**
+   * @param {!Document|!Element} context
+   */
+  setTemplateContext: function(context) {},
+
+};
+
+/**
+ * @typedef {{
+ *     rawValue: (number|boolean|undefined),
+ *     id: string,
+ *     title: string,
+ *     description: string,
+ *     explanation: (string|undefined),
+ *     errorMessage: (string|undefined),
+ *     displayValue: (string|Array<string|number>|undefined),
+ *     scoreDisplayMode: string,
+ *     error: boolean,
+ *     score: (number|null),
+ *     details: (!DetailsRenderer.DetailsJSON|undefined),
+ * }}
+ */
+ReportRenderer.AuditResultJSON;
+
+/**
+ * @typedef {{
+ *     id: string,
+ *     score: (number|null),
+ *     weight: number,
+ *     group: (string|undefined),
+ *     result: ReportRenderer.AuditResultJSON
+ * }}
+ */
+ReportRenderer.AuditJSON;
+
+/**
+ * @typedef {{
+ *     title: string,
+ *     id: string,
+ *     score: (number|null),
+ *     description: (string|undefined),
+ *     manualDescription: string,
+ *     auditRefs: !Array<!ReportRenderer.AuditJSON>
+ * }}
+ */
+ReportRenderer.CategoryJSON;
+
+/**
+ * @typedef {{
+ *     title: string,
+ *     description: (string|undefined),
+ * }}
+ */
+ReportRenderer.GroupJSON;
+
+/**
+ * @typedef {{
+ *     lighthouseVersion: string,
+ *     userAgent: string,
+ *     fetchTime: string,
+ *     timing: {total: number},
+ *     requestedUrl: string,
+ *     finalUrl: string,
+ *     runWarnings: (!Array<string>|undefined),
+ *     artifacts: {traces: {defaultPass: {traceEvents: !Array}}},
+ *     audits: !Object<string, !ReportRenderer.AuditResultJSON>,
+ *     categories: !Object<string, !ReportRenderer.CategoryJSON>,
+ *     categoryGroups: !Object<string, !ReportRenderer.GroupJSON>,
+ * }}
+ */
+ReportRenderer.ReportJSON;
+
+/**
+ * @typedef {{
+ *     traces: {defaultPass: {traceEvents: !Array}},
+ * }}
+ */
+ReportRenderer.RunnerResultArtifacts;
+
+/**
+ * @typedef {{
+ *     lhr: !ReportRenderer.ReportJSON,
+ *     artifacts: ReportRenderer.RunnerResultArtifacts,
+ *     report: string
+ * }}
+ */
+ReportRenderer.RunnerResult;
+
+
+/**
+ * @constructor
+ * @param {!DOM} dom
+ * @param {!DetailsRenderer} detailsRenderer
+ */
+const CategoryRenderer = function(dom, detailsRenderer) {};
+
+
+/**
+ * @constructor
+ * @param {!DOM} dom
+ */
+const DetailsRenderer = function(dom) {};
+
+DetailsRenderer.prototype = {
+  /**
+   * @param {!DetailsRenderer.NodeDetailsJSON} item
+   * @return {!Element}
+   */
+  renderNode: function(item) {},
+};
+
+/**
+ * @typedef {{
+ *     type: string,
+ *     value: (string|number|undefined),
+ *     summary: (DetailsRenderer.OpportunitySummary|undefined),
+ *     granularity: (number|undefined),
+ *     displayUnit: (string|undefined)
+ * }}
+ */
+DetailsRenderer.DetailsJSON;
+
+/**
+ * @typedef {{
+ *     type: string,
+ *     path: (string|undefined),
+ *     selector: (string|undefined),
+ *     snippet:(string|undefined)
+ * }}
+ */
+DetailsRenderer.NodeDetailsJSON;
+
+/** @typedef {{
+ *     wastedMs: (number|undefined),
+ *     wastedBytes: (number|undefined),
+ * }}
+ */
+DetailsRenderer.OpportunitySummary;
+
+
+// Clipboard API
+
+/** @constructor */
+const Clipboard = function() {};
+/**
+ * @param {string} data
+ * @return {!Promise}
+ */
+Clipboard.prototype.writeText = function(data) {};
+
+/** @type {Clipboard} */
+Navigator.prototype.clipboard;

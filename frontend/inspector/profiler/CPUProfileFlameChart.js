@@ -29,26 +29,22 @@
  */
 
 /**
- * @implements {UI.FlameChartDataProvider}
+ * @implements {PerfUI.FlameChartDataProvider}
  * @unrestricted
  */
 Profiler.ProfileFlameChartDataProvider = class {
-  /**
-   * @param {?SDK.Target} target
-   */
-  constructor(target) {
-    UI.FlameChartDataProvider.call(this);
-    this._target = target;
+  constructor() {
+    PerfUI.FlameChartDataProvider.call(this);
     this._colorGenerator = Profiler.ProfileFlameChartDataProvider.colorGenerator();
   }
 
   /**
-   * @return {!UI.FlameChart.ColorGenerator}
+   * @return {!Common.Color.Generator}
    */
   static colorGenerator() {
     if (!Profiler.ProfileFlameChartDataProvider._colorGenerator) {
-      var colorGenerator = new UI.FlameChart.ColorGenerator(
-          {min: 30, max: 330}, {min: 50, max: 80, count: 5}, {min: 80, max: 90, count: 3});
+      const colorGenerator =
+          new Common.Color.Generator({min: 30, max: 330}, {min: 50, max: 80, count: 5}, {min: 80, max: 90, count: 3});
 
       colorGenerator.setColorForID('(idle)', 'hsl(0, 0%, 94%)');
       colorGenerator.setColorForID('(program)', 'hsl(0, 0%, 80%)');
@@ -56,30 +52,6 @@ Profiler.ProfileFlameChartDataProvider = class {
       Profiler.ProfileFlameChartDataProvider._colorGenerator = colorGenerator;
     }
     return Profiler.ProfileFlameChartDataProvider._colorGenerator;
-  }
-
-  /**
-   * @override
-   * @return {number}
-   */
-  barHeight() {
-    return 15;
-  }
-
-  /**
-   * @override
-   * @return {number}
-   */
-  textBaseline() {
-    return 4;
-  }
-
-  /**
-   * @override
-   * @return {number}
-   */
-  textPadding() {
-    return 2;
   }
 
   /**
@@ -118,14 +90,14 @@ Profiler.ProfileFlameChartDataProvider = class {
 
   /**
    * @override
-   * @return {?UI.FlameChart.TimelineData}
+   * @return {?PerfUI.FlameChart.TimelineData}
    */
   timelineData() {
     return this._timelineData || this._calculateTimelineData();
   }
 
   /**
-   * @return {!UI.FlameChart.TimelineData}
+   * @return {!PerfUI.FlameChart.TimelineData}
    */
   _calculateTimelineData() {
     throw 'Not implemented.';
@@ -155,7 +127,7 @@ Profiler.ProfileFlameChartDataProvider = class {
    * @return {string}
    */
   entryTitle(entryIndex) {
-    var node = this._entryNodes[entryIndex];
+    const node = this._entryNodes[entryIndex];
     return UI.beautifyFunctionName(node.functionName);
   }
 
@@ -166,10 +138,10 @@ Profiler.ProfileFlameChartDataProvider = class {
    */
   entryFont(entryIndex) {
     if (!this._font) {
-      this._font = (this.barHeight() - 4) + 'px ' + Host.fontFamily();
+      this._font = '11px ' + Host.fontFamily();
       this._boldFont = 'bold ' + this._font;
     }
-    var node = this._entryNodes[entryIndex];
+    const node = this._entryNodes[entryIndex];
     return node.deoptReason ? this._boldFont : this._font;
   }
 
@@ -179,7 +151,7 @@ Profiler.ProfileFlameChartDataProvider = class {
    * @return {string}
    */
   entryColor(entryIndex) {
-    var node = this._entryNodes[entryIndex];
+    const node = this._entryNodes[entryIndex];
     // For idle and program, we want different 'shades of gray', so we fallback to functionName as scriptId = 0
     // For rest of nodes e.g eval scripts, if url is empty then scriptId will be guaranteed to be non-zero
     return this._colorGenerator.colorForID(node.url || (node.scriptId !== '0' ? node.scriptId : node.functionName));
@@ -211,14 +183,6 @@ Profiler.ProfileFlameChartDataProvider = class {
 
   /**
    * @override
-   * @return {number}
-   */
-  paddingLeft() {
-    return 0;
-  }
-
-  /**
-   * @override
    * @param {number} entryIndex
    * @return {string}
    */
@@ -235,7 +199,7 @@ Profiler.ProfileFlameChartDataProvider = class {
 Profiler.CPUProfileFlameChart = class extends UI.VBox {
   /**
    * @param {!UI.SearchableView} searchableView
-   * @param {!UI.FlameChartDataProvider} dataProvider
+   * @param {!PerfUI.FlameChartDataProvider} dataProvider
    */
   constructor(searchableView, dataProvider) {
     super();
@@ -245,10 +209,13 @@ Profiler.CPUProfileFlameChart = class extends UI.VBox {
     this._overviewPane = new Profiler.CPUProfileFlameChart.OverviewPane(dataProvider);
     this._overviewPane.show(this.element);
 
-    this._mainPane = new UI.FlameChart(dataProvider, this._overviewPane);
+    this._mainPane = new PerfUI.FlameChart(dataProvider, this._overviewPane);
+    this._mainPane.setBarHeight(15);
+    this._mainPane.setTextBaseline(4);
+    this._mainPane.setTextPadding(2);
     this._mainPane.show(this.element);
-    this._mainPane.addEventListener(UI.FlameChart.Events.EntrySelected, this._onEntrySelected, this);
-    this._overviewPane.addEventListener(UI.OverviewGrid.Events.WindowChanged, this._onWindowChanged, this);
+    this._mainPane.addEventListener(PerfUI.FlameChart.Events.EntrySelected, this._onEntrySelected, this);
+    this._overviewPane.addEventListener(PerfUI.OverviewGrid.Events.WindowChanged, this._onWindowChanged, this);
     this._dataProvider = dataProvider;
     this._searchResults = [];
   }
@@ -264,9 +231,9 @@ Profiler.CPUProfileFlameChart = class extends UI.VBox {
    * @param {!Common.Event} event
    */
   _onWindowChanged(event) {
-    var windowLeft = event.data.windowTimeLeft;
-    var windowRight = event.data.windowTimeRight;
-    this._mainPane.setWindowTimes(windowLeft, windowRight);
+    const windowLeft = event.data.windowTimeLeft;
+    const windowRight = event.data.windowTimeRight;
+    this._mainPane.setWindowTimes(windowLeft, windowRight, /* animate */ true);
   }
 
   /**
@@ -281,7 +248,7 @@ Profiler.CPUProfileFlameChart = class extends UI.VBox {
    * @param {!Common.Event} event
    */
   _onEntrySelected(event) {
-    this.dispatchEventToListeners(UI.FlameChart.Events.EntrySelected, event.data);
+    this.dispatchEventToListeners(PerfUI.FlameChart.Events.EntrySelected, event.data);
   }
 
   update() {
@@ -296,12 +263,12 @@ Profiler.CPUProfileFlameChart = class extends UI.VBox {
    * @param {boolean=} jumpBackwards
    */
   performSearch(searchConfig, shouldJump, jumpBackwards) {
-    var matcher = createPlainTextSearchRegex(searchConfig.query, searchConfig.caseSensitive ? '' : 'i');
+    const matcher = createPlainTextSearchRegex(searchConfig.query, searchConfig.caseSensitive ? '' : 'i');
 
-    var selectedEntryIndex = this._searchResultIndex !== -1 ? this._searchResults[this._searchResultIndex] : -1;
+    const selectedEntryIndex = this._searchResultIndex !== -1 ? this._searchResults[this._searchResultIndex] : -1;
     this._searchResults = [];
-    var entriesCount = this._dataProvider._entryNodes.length;
-    for (var index = 0; index < entriesCount; ++index) {
+    const entriesCount = this._dataProvider._entryNodes.length;
+    for (let index = 0; index < entriesCount; ++index) {
       if (this._dataProvider.entryTitle(index).match(matcher))
         this._searchResults.push(index);
     }
@@ -363,7 +330,7 @@ Profiler.CPUProfileFlameChart = class extends UI.VBox {
 };
 
 /**
- * @implements {UI.TimelineGrid.Calculator}
+ * @implements {PerfUI.TimelineGrid.Calculator}
  * @unrestricted
  */
 Profiler.CPUProfileFlameChart.OverviewCalculator = class {
@@ -372,19 +339,11 @@ Profiler.CPUProfileFlameChart.OverviewCalculator = class {
   }
 
   /**
-   * @override
-   * @return {number}
-   */
-  paddingLeft() {
-    return 0;
-  }
-
-  /**
    * @param {!Profiler.CPUProfileFlameChart.OverviewPane} overviewPane
    */
   _updateBoundaries(overviewPane) {
     this._minimumBoundaries = overviewPane._dataProvider.minimumBoundary();
-    var totalTime = overviewPane._dataProvider.totalTime();
+    const totalTime = overviewPane._dataProvider.totalTime();
     this._maximumBoundaries = this._minimumBoundaries + totalTime;
     this._xScaleFactor = overviewPane._overviewContainer.clientWidth / totalTime;
   }
@@ -442,24 +401,24 @@ Profiler.CPUProfileFlameChart.OverviewCalculator = class {
 };
 
 /**
- * @implements {UI.FlameChartDelegate}
+ * @implements {PerfUI.FlameChartDelegate}
  * @unrestricted
  */
 Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
   /**
-   * @param {!UI.FlameChartDataProvider} dataProvider
+   * @param {!PerfUI.FlameChartDataProvider} dataProvider
    */
   constructor(dataProvider) {
     super();
     this.element.classList.add('cpu-profile-flame-chart-overview-pane');
     this._overviewContainer = this.element.createChild('div', 'cpu-profile-flame-chart-overview-container');
-    this._overviewGrid = new UI.OverviewGrid('cpu-profile-flame-chart');
+    this._overviewGrid = new PerfUI.OverviewGrid('cpu-profile-flame-chart');
     this._overviewGrid.element.classList.add('fill');
     this._overviewCanvas = this._overviewContainer.createChild('canvas', 'cpu-profile-flame-chart-overview-canvas');
     this._overviewContainer.appendChild(this._overviewGrid.element);
     this._overviewCalculator = new Profiler.CPUProfileFlameChart.OverviewCalculator(dataProvider);
     this._dataProvider = dataProvider;
-    this._overviewGrid.addEventListener(UI.OverviewGrid.Events.WindowChanged, this._onWindowChanged, this);
+    this._overviewGrid.addEventListener(PerfUI.OverviewGrid.Events.WindowChanged, this._onWindowChanged, this);
   }
 
   /**
@@ -467,7 +426,7 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
    * @param {number} windowStartTime
    * @param {number} windowEndTime
    */
-  requestWindowTimes(windowStartTime, windowEndTime) {
+  windowChanged(windowStartTime, windowEndTime) {
     this._selectRange(windowStartTime, windowEndTime);
   }
 
@@ -480,12 +439,20 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
   }
 
   /**
+   * @override
+   * @param {!PerfUI.FlameChart} flameChart
+   * @param {?PerfUI.FlameChart.Group} group
+   */
+  updateSelectedGroup(flameChart, group) {
+  }
+
+  /**
    * @param {number} timeLeft
    * @param {number} timeRight
    */
   _selectRange(timeLeft, timeRight) {
-    var startTime = this._dataProvider.minimumBoundary();
-    var totalTime = this._dataProvider.totalTime();
+    const startTime = this._dataProvider.minimumBoundary();
+    const totalTime = this._dataProvider.totalTime();
     this._overviewGrid.setWindow((timeLeft - startTime) / totalTime, (timeRight - startTime) / totalTime);
   }
 
@@ -493,17 +460,17 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
    * @param {!Common.Event} event
    */
   _onWindowChanged(event) {
-    var startTime = this._dataProvider.minimumBoundary();
-    var totalTime = this._dataProvider.totalTime();
-    var data = {
+    const startTime = this._dataProvider.minimumBoundary();
+    const totalTime = this._dataProvider.totalTime();
+    const data = {
       windowTimeLeft: startTime + this._overviewGrid.windowLeft() * totalTime,
       windowTimeRight: startTime + this._overviewGrid.windowRight() * totalTime
     };
-    this.dispatchEventToListeners(UI.OverviewGrid.Events.WindowChanged, data);
+    this.dispatchEventToListeners(PerfUI.OverviewGrid.Events.WindowChanged, data);
   }
 
   /**
-   * @return {?UI.FlameChart.TimelineData}
+   * @return {?PerfUI.FlameChart.TimelineData}
    */
   _timelineData() {
     return this._dataProvider.timelineData();
@@ -524,33 +491,33 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
 
   update() {
     this._updateTimerId = 0;
-    var timelineData = this._timelineData();
+    const timelineData = this._timelineData();
     if (!timelineData)
       return;
     this._resetCanvas(
-        this._overviewContainer.clientWidth, this._overviewContainer.clientHeight - UI.FlameChart.DividersBarHeight);
+        this._overviewContainer.clientWidth, this._overviewContainer.clientHeight - PerfUI.FlameChart.HeaderHeight);
     this._overviewCalculator._updateBoundaries(this);
     this._overviewGrid.updateDividers(this._overviewCalculator);
     this._drawOverviewCanvas();
   }
 
   _drawOverviewCanvas() {
-    var canvasWidth = this._overviewCanvas.width;
-    var canvasHeight = this._overviewCanvas.height;
-    var drawData = this._calculateDrawData(canvasWidth);
-    var context = this._overviewCanvas.getContext('2d');
-    var ratio = window.devicePixelRatio;
-    var offsetFromBottom = ratio;
-    var lineWidth = 1;
-    var yScaleFactor = canvasHeight / (this._dataProvider.maxStackDepth() * 1.1);
+    const canvasWidth = this._overviewCanvas.width;
+    const canvasHeight = this._overviewCanvas.height;
+    const drawData = this._calculateDrawData(canvasWidth);
+    const context = this._overviewCanvas.getContext('2d');
+    const ratio = window.devicePixelRatio;
+    const offsetFromBottom = ratio;
+    const lineWidth = 1;
+    const yScaleFactor = canvasHeight / (this._dataProvider.maxStackDepth() * 1.1);
     context.lineWidth = lineWidth;
     context.translate(0.5, 0.5);
     context.strokeStyle = 'rgba(20,0,0,0.4)';
     context.fillStyle = 'rgba(214,225,254,0.8)';
     context.moveTo(-lineWidth, canvasHeight + lineWidth);
     context.lineTo(-lineWidth, Math.round(canvasHeight - drawData[0] * yScaleFactor - offsetFromBottom));
-    var value;
-    for (var x = 0; x < canvasWidth; ++x) {
+    let value;
+    for (let x = 0; x < canvasWidth; ++x) {
       value = Math.round(canvasHeight - drawData[x] * yScaleFactor - offsetFromBottom);
       context.lineTo(x, value);
     }
@@ -566,22 +533,22 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
    * @return {!Uint8Array}
    */
   _calculateDrawData(width) {
-    var dataProvider = this._dataProvider;
-    var timelineData = this._timelineData();
-    var entryStartTimes = timelineData.entryStartTimes;
-    var entryTotalTimes = timelineData.entryTotalTimes;
-    var entryLevels = timelineData.entryLevels;
-    var length = entryStartTimes.length;
-    var minimumBoundary = this._dataProvider.minimumBoundary();
+    const dataProvider = this._dataProvider;
+    const timelineData = this._timelineData();
+    const entryStartTimes = timelineData.entryStartTimes;
+    const entryTotalTimes = timelineData.entryTotalTimes;
+    const entryLevels = timelineData.entryLevels;
+    const length = entryStartTimes.length;
+    const minimumBoundary = this._dataProvider.minimumBoundary();
 
-    var drawData = new Uint8Array(width);
-    var scaleFactor = width / dataProvider.totalTime();
+    const drawData = new Uint8Array(width);
+    const scaleFactor = width / dataProvider.totalTime();
 
-    for (var entryIndex = 0; entryIndex < length; ++entryIndex) {
-      var start = Math.floor((entryStartTimes[entryIndex] - minimumBoundary) * scaleFactor);
-      var finish =
+    for (let entryIndex = 0; entryIndex < length; ++entryIndex) {
+      const start = Math.floor((entryStartTimes[entryIndex] - minimumBoundary) * scaleFactor);
+      const finish =
           Math.floor((entryStartTimes[entryIndex] - minimumBoundary + entryTotalTimes[entryIndex]) * scaleFactor);
-      for (var x = start; x <= finish; ++x)
+      for (let x = start; x <= finish; ++x)
         drawData[x] = Math.max(drawData[x], entryLevels[entryIndex] + 1);
     }
     return drawData;
@@ -592,7 +559,7 @@ Profiler.CPUProfileFlameChart.OverviewPane = class extends UI.VBox {
    * @param {number} height
    */
   _resetCanvas(width, height) {
-    var ratio = window.devicePixelRatio;
+    const ratio = window.devicePixelRatio;
     this._overviewCanvas.width = width * ratio;
     this._overviewCanvas.height = height * ratio;
     this._overviewCanvas.style.width = width + 'px';

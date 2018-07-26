@@ -24,66 +24,76 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @unrestricted
- */
-Resources.DOMStorageItemsView = class extends UI.SimpleView {
+Resources.DOMStorageItemsView = class extends Resources.StorageItemsView {
+  /**
+   * @param {!Resources.DOMStorage} domStorage
+   */
   constructor(domStorage) {
-    super(Common.UIString('DOM Storage'));
+    super(Common.UIString('DOM Storage'), 'domStoragePanel');
 
-    this.domStorage = domStorage;
+    this._domStorage = domStorage;
 
     this.element.classList.add('storage-view', 'table');
 
-    this.deleteButton = new UI.ToolbarButton(Common.UIString('Delete'), 'largeicon-delete');
-    this.deleteButton.setVisible(false);
-    this.deleteButton.addEventListener('click', this._deleteButtonClicked, this);
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+      {id: 'key', title: Common.UIString('Key'), sortable: false, editable: true, longText: true, weight: 50},
+      {id: 'value', title: Common.UIString('Value'), sortable: false, editable: true, longText: true, weight: 50}
+    ]);
+    this._dataGrid = new DataGrid.DataGrid(columns, this._editingCallback.bind(this), this._deleteCallback.bind(this));
+    this._dataGrid.addEventListener(
+        DataGrid.DataGrid.Events.SelectedNode,
+        event => this._previewEntry(/** @type {!DataGrid.DataGridNode} */ (event.data)));
+    this._dataGrid.addEventListener(DataGrid.DataGrid.Events.DeselectedNode, event => this._previewEntry(null));
+    this._dataGrid.setStriped(true);
+    this._dataGrid.setName('DOMStorageItemsView');
 
-    this.refreshButton = new UI.ToolbarButton(Common.UIString('Refresh'), 'largeicon-refresh');
-    this.refreshButton.addEventListener('click', this._refreshButtonClicked, this);
+    this._splitWidget = new UI.SplitWidget(false, false);
+    this._splitWidget.show(this.element);
+    this._splitWidget.setSecondIsSidebar(true);
 
-    this.domStorage.addEventListener(
-        Resources.DOMStorage.Events.DOMStorageItemsCleared, this._domStorageItemsCleared, this);
-    this.domStorage.addEventListener(
-        Resources.DOMStorage.Events.DOMStorageItemRemoved, this._domStorageItemRemoved, this);
-    this.domStorage.addEventListener(Resources.DOMStorage.Events.DOMStorageItemAdded, this._domStorageItemAdded, this);
-    this.domStorage.addEventListener(
-        Resources.DOMStorage.Events.DOMStorageItemUpdated, this._domStorageItemUpdated, this);
+    this._previewPanel = new UI.VBox();
+    const resizer = this._previewPanel.element.createChild('div', 'preview-panel-resizer');
+    this._splitWidget.setMainWidget(this._dataGrid.asWidget());
+    this._splitWidget.setSidebarWidget(this._previewPanel);
+    this._splitWidget.installResizer(resizer);
+
+    /** @type {?UI.Widget} */
+    this._preview = null;
+    /** @type {?string} */
+    this._previewValue = null;
+
+    this._showPreview(null, null);
+
+    this._eventListeners = [];
+    this.setStorage(domStorage);
   }
 
   /**
-   * @override
-   * @return {!Array.<!UI.ToolbarItem>}
+   * @param {!Resources.DOMStorage} domStorage
    */
-  syncToolbarItems() {
-    return [this.refreshButton, this.deleteButton];
+  setStorage(domStorage) {
+    Common.EventTarget.removeEventListeners(this._eventListeners);
+    this._domStorage = domStorage;
+    this._eventListeners = [
+      this._domStorage.addEventListener(
+          Resources.DOMStorage.Events.DOMStorageItemsCleared, this._domStorageItemsCleared, this),
+      this._domStorage.addEventListener(
+          Resources.DOMStorage.Events.DOMStorageItemRemoved, this._domStorageItemRemoved, this),
+      this._domStorage.addEventListener(
+          Resources.DOMStorage.Events.DOMStorageItemAdded, this._domStorageItemAdded, this),
+      this._domStorage.addEventListener(
+          Resources.DOMStorage.Events.DOMStorageItemUpdated, this._domStorageItemUpdated, this),
+    ];
+    this.refreshItems();
   }
 
-  /**
-   * @override
-   */
-  wasShown() {
-    this._update();
-  }
-
-  /**
-   * @override
-   */
-  willHide() {
-    this.deleteButton.setVisible(false);
-  }
-
-  /**
-   * @param {!Common.Event} event
-   */
-  _domStorageItemsCleared(event) {
+  _domStorageItemsCleared() {
     if (!this.isShowing() || !this._dataGrid)
       return;
 
     this._dataGrid.rootNode().removeChildren();
     this._dataGrid.addCreationNode(false);
-    this.deleteButton.setVisible(false);
-    event.consume(true);
+    this.setCanDeleteSelected(false);
   }
 
   /**
@@ -93,17 +103,15 @@ Resources.DOMStorageItemsView = class extends UI.SimpleView {
     if (!this.isShowing() || !this._dataGrid)
       return;
 
-    var storageData = event.data;
-    var rootNode = this._dataGrid.rootNode();
-    var children = rootNode.children;
+    const storageData = event.data;
+    const rootNode = this._dataGrid.rootNode();
+    const children = rootNode.children;
 
-    event.consume(true);
-
-    for (var i = 0; i < children.length; ++i) {
-      var childNode = children[i];
+    for (let i = 0; i < children.length; ++i) {
+      const childNode = children[i];
       if (childNode.data.key === storageData.key) {
         rootNode.removeChild(childNode);
-        this.deleteButton.setVisible(children.length > 1);
+        this.setCanDeleteSelected(children.length > 1);
         return;
       }
     }
@@ -116,19 +124,16 @@ Resources.DOMStorageItemsView = class extends UI.SimpleView {
     if (!this.isShowing() || !this._dataGrid)
       return;
 
-    var storageData = event.data;
-    var rootNode = this._dataGrid.rootNode();
-    var children = rootNode.children;
+    const storageData = event.data;
+    const rootNode = this._dataGrid.rootNode();
+    const children = rootNode.children;
 
-    event.consume(true);
-    this.deleteButton.setVisible(true);
-
-    for (var i = 0; i < children.length; ++i) {
+    for (let i = 0; i < children.length; ++i) {
       if (children[i].data.key === storageData.key)
         return;
     }
 
-    var childNode = new UI.DataGridNode({key: storageData.key, value: storageData.value}, false);
+    const childNode = new DataGrid.DataGridNode({key: storageData.key, value: storageData.value}, false);
     rootNode.insertChild(childNode, children.length - 1);
   }
 
@@ -139,89 +144,77 @@ Resources.DOMStorageItemsView = class extends UI.SimpleView {
     if (!this.isShowing() || !this._dataGrid)
       return;
 
-    var storageData = event.data;
-    var rootNode = this._dataGrid.rootNode();
-    var children = rootNode.children;
-
-    event.consume(true);
-
-    var keyFound = false;
-    for (var i = 0; i < children.length; ++i) {
-      var childNode = children[i];
-      if (childNode.data.key === storageData.key) {
-        if (keyFound) {
-          rootNode.removeChild(childNode);
-          return;
-        }
-        keyFound = true;
-        if (childNode.data.value !== storageData.value) {
-          childNode.data.value = storageData.value;
-          childNode.refresh();
-          childNode.select();
-          childNode.reveal();
-        }
-        this.deleteButton.setVisible(true);
-      }
-    }
-  }
-
-  _update() {
-    this.detachChildWidgets();
-    this.domStorage.getItems(this._showDOMStorageItems.bind(this));
-  }
-
-  _showDOMStorageItems(error, items) {
-    if (error)
+    const storageData = event.data;
+    const childNode = this._dataGrid.rootNode().children.find(child => child.data.key === storageData.key);
+    if (!childNode || childNode.data.value === storageData.value)
       return;
 
-    this._dataGrid = this._dataGridForDOMStorageItems(items);
-    this._dataGrid.asWidget().show(this.element);
-    this.deleteButton.setVisible(this._dataGrid.rootNode().children.length > 1);
+    childNode.data.value = storageData.value;
+    childNode.refresh();
+    if (!childNode.selected)
+      return;
+    this._previewEntry(childNode);
+    this.setCanDeleteSelected(true);
   }
 
-  _dataGridForDOMStorageItems(items) {
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-      {id: 'key', title: Common.UIString('Key'), sortable: false, editable: true, weight: 50},
-      {id: 'value', title: Common.UIString('Value'), sortable: false, editable: true, weight: 50}
-    ]);
-
-    var nodes = [];
-
-    var keys = [];
-    var length = items.length;
-    for (var i = 0; i < items.length; i++) {
-      var key = items[i][0];
-      var value = items[i][1];
-      var node = new UI.DataGridNode({key: key, value: value}, false);
-      node.selectable = true;
-      nodes.push(node);
-      keys.push(key);
+  /**
+   * @param {!Array<!Array<string>>} items
+   */
+  _showDOMStorageItems(items) {
+    const rootNode = this._dataGrid.rootNode();
+    let selectedKey = null;
+    for (const node of rootNode.children) {
+      if (!node.selected)
+        continue;
+      selectedKey = node.data.key;
+      break;
     }
-
-    var dataGrid = new UI.DataGrid(columns, this._editingCallback.bind(this), this._deleteCallback.bind(this));
-    dataGrid.setName('DOMStorageItemsView');
-    length = nodes.length;
-    for (var i = 0; i < length; ++i)
-      dataGrid.rootNode().appendChild(nodes[i]);
-    dataGrid.addCreationNode(false);
-    if (length > 0)
-      nodes[0].selected = true;
-    return dataGrid;
+    rootNode.removeChildren();
+    let selectedNode = null;
+    const filteredItems = item => `${item[0]} ${item[1]}`;
+    for (const item of this.filter(items, filteredItems)) {
+      const key = item[0];
+      const value = item[1];
+      const node = new DataGrid.DataGridNode({key: key, value: value}, false);
+      node.selectable = true;
+      rootNode.appendChild(node);
+      if (!selectedNode || key === selectedKey)
+        selectedNode = node;
+    }
+    if (selectedNode)
+      selectedNode.selected = true;
+    this._dataGrid.addCreationNode(false);
+    this.setCanDeleteSelected(!!selectedNode);
   }
 
-  _deleteButtonClicked(event) {
+  /**
+   * @override
+   */
+  deleteSelectedItem() {
     if (!this._dataGrid || !this._dataGrid.selectedNode)
       return;
 
     this._deleteCallback(this._dataGrid.selectedNode);
   }
 
-  _refreshButtonClicked(event) {
-    this._update();
+  /**
+   * @override
+   */
+  refreshItems() {
+    this._domStorage.getItems().then(items => items && this._showDOMStorageItems(items));
+  }
+
+  /**
+   * @override
+   */
+  deleteAllItems() {
+    this._domStorage.clear();
+    // explicitly clear the view because the event won't be fired when it has no items
+    this._domStorageItemsCleared();
   }
 
   _editingCallback(editingNode, columnIdentifier, oldText, newText) {
-    var domStorage = this.domStorage;
+    const domStorage = this._domStorage;
     if (columnIdentifier === 'key') {
       if (typeof oldText === 'string')
         domStorage.removeItem(oldText);
@@ -233,13 +226,13 @@ Resources.DOMStorageItemsView = class extends UI.SimpleView {
   }
 
   /**
-   * @param {!UI.DataGridNode} masterNode
+   * @param {!DataGrid.DataGridNode} masterNode
    */
   _removeDupes(masterNode) {
-    var rootNode = this._dataGrid.rootNode();
-    var children = rootNode.children;
-    for (var i = children.length - 1; i >= 0; --i) {
-      var childNode = children[i];
+    const rootNode = this._dataGrid.rootNode();
+    const children = rootNode.children;
+    for (let i = children.length - 1; i >= 0; --i) {
+      const childNode = children[i];
       if ((childNode.data.key === masterNode.data.key) && (masterNode !== childNode))
         rootNode.removeChild(childNode);
     }
@@ -249,7 +242,43 @@ Resources.DOMStorageItemsView = class extends UI.SimpleView {
     if (!node || node.isCreationNode)
       return;
 
-    if (this.domStorage)
-      this.domStorage.removeItem(node.data.key);
+    if (this._domStorage)
+      this._domStorage.removeItem(node.data.key);
+  }
+
+  /**
+   * @param {?UI.Widget} preview
+   * @param {?string} value
+   */
+  _showPreview(preview, value) {
+    if (this._preview && this._previewValue === value)
+      return;
+    if (this._preview)
+      this._preview.detach();
+    if (!preview)
+      preview = new UI.EmptyWidget(Common.UIString('Select a value to preview'));
+    this._previewValue = value;
+    this._preview = preview;
+    preview.show(this._previewPanel.contentElement);
+  }
+
+  /**
+   * @param {?DataGrid.DataGridNode} entry
+   */
+  async _previewEntry(entry) {
+    const value = entry && entry.data && entry.data.value;
+    if (!value) {
+      this._showPreview(null, value);
+      return;
+    }
+    const protocol = this._domStorage.isLocalStorage ? 'localstorage' : 'sessionstorage';
+    const url = `${protocol}://${entry.key}`;
+    const provider =
+        Common.StaticContentProvider.fromString(url, Common.resourceTypes.XHR, /** @type {string} */ (value));
+    const preview = await SourceFrame.PreviewFactory.createPreview(provider, 'text/plain');
+    // Selection could've changed while the preview was loaded
+    if (!entry.selected)
+      return;
+    this._showPreview(preview, value);
   }
 };

@@ -26,18 +26,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-// FIXME: This performance optimization should be moved to blink so that all developers could enjoy it.
-// console is retrieved with V8Window.getAttribute method which is slow. Here we copy it to a js variable for faster access.
-console = console;
-console.__originalAssert = console.assert;
-console.assert = function(value, message) {
-  if (value)
-    return;
-  console.__originalAssert(value, message);
-};
 
 /** @typedef {Array|NodeList|Arguments|{length: number}} */
-var ArrayLike;
+let ArrayLike;
 
 /**
  * @param {number} m
@@ -53,8 +44,8 @@ function mod(m, n) {
  * @return {!Array.<number>}
  */
 String.prototype.findAll = function(string) {
-  var matches = [];
-  var i = this.indexOf(string);
+  const matches = [];
+  let i = this.indexOf(string);
   while (i !== -1) {
     matches.push(i);
     i = this.indexOf(string, i + string.length);
@@ -89,7 +80,7 @@ String.prototype.isWhitespace = function() {
  * @return {!Array.<number>}
  */
 String.prototype.computeLineEndings = function() {
-  var endings = this.findAll('\n');
+  const endings = this.findAll('\n');
   endings.push(this.length);
   return endings;
 };
@@ -99,8 +90,8 @@ String.prototype.computeLineEndings = function() {
  * @return {string}
  */
 String.prototype.escapeCharacters = function(chars) {
-  var foundChar = false;
-  for (var i = 0; i < chars.length; ++i) {
+  let foundChar = false;
+  for (let i = 0; i < chars.length; ++i) {
     if (this.indexOf(chars.charAt(i)) !== -1) {
       foundChar = true;
       break;
@@ -110,8 +101,8 @@ String.prototype.escapeCharacters = function(chars) {
   if (!foundChar)
     return String(this);
 
-  var result = '';
-  for (var i = 0; i < this.length; ++i) {
+  let result = '';
+  for (let i = 0; i < this.length; ++i) {
     if (chars.indexOf(this.charAt(i)) !== -1)
       result += '\\';
     result += this.charAt(i);
@@ -132,6 +123,24 @@ String.regexSpecialCharacters = function() {
  */
 String.prototype.escapeForRegExp = function() {
   return this.escapeCharacters(String.regexSpecialCharacters());
+};
+
+/**
+ * @param {string} query
+ * @return {!RegExp}
+ */
+String.filterRegex = function(query) {
+  const toEscape = String.regexSpecialCharacters();
+  let regexString = '';
+  for (let i = 0; i < query.length; ++i) {
+    let c = query.charAt(i);
+    if (toEscape.indexOf(c) !== -1)
+      c = '\\' + c;
+    if (i)
+      regexString += '[^\\0' + c + ']*';
+    regexString += c;
+  }
+  return new RegExp(regexString, 'i');
 };
 
 /**
@@ -171,8 +180,14 @@ String.prototype.collapseWhitespace = function() {
 String.prototype.trimMiddle = function(maxLength) {
   if (this.length <= maxLength)
     return String(this);
-  var leftHalf = maxLength >> 1;
-  var rightHalf = maxLength - leftHalf - 1;
+  let leftHalf = maxLength >> 1;
+  let rightHalf = maxLength - leftHalf - 1;
+  if (this.codePointAt(this.length - rightHalf - 1) >= 0x10000) {
+    --rightHalf;
+    ++leftHalf;
+  }
+  if (leftHalf > 0 && this.codePointAt(leftHalf - 1) >= 0x10000)
+    --leftHalf;
   return this.substr(0, leftHalf) + '\u2026' + this.substr(this.length - rightHalf, rightHalf);
 };
 
@@ -191,7 +206,7 @@ String.prototype.trimEnd = function(maxLength) {
  * @return {string}
  */
 String.prototype.trimURL = function(baseURLDomain) {
-  var result = this.replace(/^(https|http|file):\/\//i, '');
+  let result = this.replace(/^(https|http|file):\/\//i, '');
   if (baseURLDomain) {
     if (result.toLowerCase().startsWith(baseURLDomain.toLowerCase()))
       result = result.substr(baseURLDomain.length);
@@ -222,7 +237,7 @@ String.prototype.compareTo = function(other) {
  * @return {string}
  */
 String.prototype.removeURLFragment = function() {
-  var fragmentIndex = this.indexOf('#');
+  let fragmentIndex = this.indexOf('#');
   if (fragmentIndex === -1)
     fragmentIndex = this.length;
   return this.substring(0, fragmentIndex);
@@ -238,13 +253,13 @@ String.hashCode = function(string) {
   // Hash algorithm for substrings is described in "Über die Komplexität der Multiplikation in
   // eingeschränkten Branchingprogrammmodellen" by Woelfe.
   // http://opendatastructures.org/versions/edition-0.1d/ods-java/node33.html#SECTION00832000000000000000
-  var p = ((1 << 30) * 4 - 5);  // prime: 2^32 - 5
-  var z = 0x5033d967;           // 32 bits from random.org
-  var z2 = 0x59d2f15d;          // random odd 32 bit number
-  var s = 0;
-  var zi = 1;
-  for (var i = 0; i < string.length; i++) {
-    var xi = string.charCodeAt(i) * z2;
+  const p = ((1 << 30) * 4 - 5);  // prime: 2^32 - 5
+  const z = 0x5033d967;           // 32 bits from random.org
+  const z2 = 0x59d2f15d;          // random odd 32 bit number
+  let s = 0;
+  let zi = 1;
+  for (let i = 0; i < string.length; i++) {
+    const xi = string.charCodeAt(i) * z2;
     s = (s + zi * xi) % p;
     zi = (zi * z) % p;
   }
@@ -258,7 +273,7 @@ String.hashCode = function(string) {
  * @return {boolean}
  */
 String.isDigitAt = function(string, index) {
-  var c = string.charCodeAt(index);
+  const c = string.charCodeAt(index);
   return (48 <= c && c <= 57);
 };
 
@@ -273,15 +288,15 @@ String.prototype.toBase64 = function() {
   function encodeBits(b) {
     return b < 26 ? b + 65 : b < 52 ? b + 71 : b < 62 ? b - 4 : b === 62 ? 43 : b === 63 ? 47 : 65;
   }
-  var encoder = new TextEncoder();
-  var data = encoder.encode(this.toString());
-  var n = data.length;
-  var encoded = '';
+  const encoder = new TextEncoder();
+  const data = encoder.encode(this.toString());
+  const n = data.length;
+  let encoded = '';
   if (n === 0)
     return encoded;
-  var shift;
-  var v = 0;
-  for (var i = 0; i < n; i++) {
+  let shift;
+  let v = 0;
+  for (let i = 0; i < n; i++) {
     shift = i % 3;
     v |= data[i] << (16 >>> shift & 24);
     if (shift === 2) {
@@ -303,8 +318,8 @@ String.prototype.toBase64 = function() {
  * @return {number}
  */
 String.naturalOrderComparator = function(a, b) {
-  var chunk = /^\d+|^\D+/;
-  var chunka, chunkb, anum, bnum;
+  const chunk = /^\d+|^\D+/;
+  let chunka, chunkb, anum, bnum;
   while (1) {
     if (a) {
       if (!b)
@@ -324,7 +339,7 @@ String.naturalOrderComparator = function(a, b) {
     if (bnum && !anum)
       return 1;
     if (anum && bnum) {
-      var diff = chunka - chunkb;
+      const diff = chunka - chunkb;
       if (diff)
         return diff;
       if (chunka.length !== chunkb.length) {
@@ -387,7 +402,7 @@ Number.gcd = function(a, b) {
 Number.toFixedIfFloating = function(value) {
   if (!value || isNaN(value))
     return value;
-  var number = Number(value);
+  const number = Number(value);
   return number % 1 ? number.toFixed(3) : String(number);
 };
 
@@ -413,31 +428,6 @@ Date.prototype.toISO8601Compact = function() {
       leadZero(this.getHours()) + leadZero(this.getMinutes()) + leadZero(this.getSeconds());
 };
 
-/**
- * @return {string}
- */
-Date.prototype.toConsoleTime = function() {
-  /**
-   * @param {number} x
-   * @return {string}
-   */
-  function leadZero2(x) {
-    return (x > 9 ? '' : '0') + x;
-  }
-
-  /**
-   * @param {number} x
-   * @return {string}
-   */
-  function leadZero3(x) {
-    return '0'.repeat(3 - x.toString().length) + x;
-  }
-
-  return this.getFullYear() + '-' + leadZero2(this.getMonth() + 1) + '-' + leadZero2(this.getDate()) + ' ' +
-      leadZero2(this.getHours()) + ':' + leadZero2(this.getMinutes()) + ':' + leadZero2(this.getSeconds()) + '.' +
-      leadZero3(this.getMilliseconds());
-};
-
 Object.defineProperty(Array.prototype, 'remove', {
   /**
    * @param {!T} value
@@ -447,14 +437,14 @@ Object.defineProperty(Array.prototype, 'remove', {
    * @template T
    */
   value: function(value, firstOnly) {
-    var index = this.indexOf(value);
+    let index = this.indexOf(value);
     if (index === -1)
       return false;
     if (firstOnly) {
       this.splice(index, 1);
       return true;
     }
-    for (var i = index + 1, n = this.length; i < n; ++i) {
+    for (let i = index + 1, n = this.length; i < n; ++i) {
       if (this[i] !== value)
         this[index++] = this[i];
     }
@@ -470,7 +460,7 @@ Object.defineProperty(Array.prototype, 'pushAll', {
    * @template T
    */
   value: function(array) {
-    for (var i = 0; i < array.length; ++i)
+    for (let i = 0; i < array.length; ++i)
       this.push(array[i]);
   }
 });
@@ -483,8 +473,8 @@ Object.defineProperty(Array.prototype, 'rotate', {
    * @template T
    */
   value: function(index) {
-    var result = [];
-    for (var i = index; i < index + this.length; ++i)
+    const result = [];
+    for (let i = index; i < index + this.length; ++i)
       result.push(this[i % this.length]);
     return result;
   }
@@ -511,39 +501,39 @@ Object.defineProperty(Array.prototype, 'sortNumbers', {
 Object.defineProperty(Uint32Array.prototype, 'sort', {value: Array.prototype.sort});
 
 (function() {
-  var partition = {
-    /**
+const partition = {
+  /**
      * @this {Array.<number>}
      * @param {function(number, number): number} comparator
      * @param {number} left
      * @param {number} right
      * @param {number} pivotIndex
      */
-    value: function(comparator, left, right, pivotIndex) {
-      function swap(array, i1, i2) {
-        var temp = array[i1];
-        array[i1] = array[i2];
-        array[i2] = temp;
-      }
-
-      var pivotValue = this[pivotIndex];
-      swap(this, right, pivotIndex);
-      var storeIndex = left;
-      for (var i = left; i < right; ++i) {
-        if (comparator(this[i], pivotValue) < 0) {
-          swap(this, storeIndex, i);
-          ++storeIndex;
-        }
-      }
-      swap(this, right, storeIndex);
-      return storeIndex;
+  value: function(comparator, left, right, pivotIndex) {
+    function swap(array, i1, i2) {
+      const temp = array[i1];
+      array[i1] = array[i2];
+      array[i2] = temp;
     }
-  };
-  Object.defineProperty(Array.prototype, 'partition', partition);
-  Object.defineProperty(Uint32Array.prototype, 'partition', partition);
 
-  var sortRange = {
-    /**
+    const pivotValue = this[pivotIndex];
+    swap(this, right, pivotIndex);
+    let storeIndex = left;
+    for (let i = left; i < right; ++i) {
+      if (comparator(this[i], pivotValue) < 0) {
+        swap(this, storeIndex, i);
+        ++storeIndex;
+      }
+    }
+    swap(this, right, storeIndex);
+    return storeIndex;
+  }
+};
+Object.defineProperty(Array.prototype, 'partition', partition);
+Object.defineProperty(Uint32Array.prototype, 'partition', partition);
+
+const sortRange = {
+  /**
      * @param {function(number, number): number} comparator
      * @param {number} leftBound
      * @param {number} rightBound
@@ -552,26 +542,26 @@ Object.defineProperty(Uint32Array.prototype, 'sort', {value: Array.prototype.sor
      * @return {!Array.<number>}
      * @this {Array.<number>}
      */
-    value: function(comparator, leftBound, rightBound, sortWindowLeft, sortWindowRight) {
-      function quickSortRange(array, comparator, left, right, sortWindowLeft, sortWindowRight) {
-        if (right <= left)
-          return;
-        var pivotIndex = Math.floor(Math.random() * (right - left)) + left;
-        var pivotNewIndex = array.partition(comparator, left, right, pivotIndex);
-        if (sortWindowLeft < pivotNewIndex)
-          quickSortRange(array, comparator, left, pivotNewIndex - 1, sortWindowLeft, sortWindowRight);
-        if (pivotNewIndex < sortWindowRight)
-          quickSortRange(array, comparator, pivotNewIndex + 1, right, sortWindowLeft, sortWindowRight);
-      }
-      if (leftBound === 0 && rightBound === (this.length - 1) && sortWindowLeft === 0 && sortWindowRight >= rightBound)
-        this.sort(comparator);
-      else
-        quickSortRange(this, comparator, leftBound, rightBound, sortWindowLeft, sortWindowRight);
-      return this;
+  value: function(comparator, leftBound, rightBound, sortWindowLeft, sortWindowRight) {
+    function quickSortRange(array, comparator, left, right, sortWindowLeft, sortWindowRight) {
+      if (right <= left)
+        return;
+      const pivotIndex = Math.floor(Math.random() * (right - left)) + left;
+      const pivotNewIndex = array.partition(comparator, left, right, pivotIndex);
+      if (sortWindowLeft < pivotNewIndex)
+        quickSortRange(array, comparator, left, pivotNewIndex - 1, sortWindowLeft, sortWindowRight);
+      if (pivotNewIndex < sortWindowRight)
+        quickSortRange(array, comparator, pivotNewIndex + 1, right, sortWindowLeft, sortWindowRight);
     }
-  };
-  Object.defineProperty(Array.prototype, 'sortRange', sortRange);
-  Object.defineProperty(Uint32Array.prototype, 'sortRange', sortRange);
+    if (leftBound === 0 && rightBound === (this.length - 1) && sortWindowLeft === 0 && sortWindowRight >= rightBound)
+      this.sort(comparator);
+    else
+      quickSortRange(this, comparator, leftBound, rightBound, sortWindowLeft, sortWindowRight);
+    return this;
+  }
+};
+Object.defineProperty(Array.prototype, 'sortRange', sortRange);
+Object.defineProperty(Uint32Array.prototype, 'sortRange', sortRange);
 })();
 
 Object.defineProperty(Array.prototype, 'stableSort', {
@@ -587,28 +577,28 @@ Object.defineProperty(Array.prototype, 'stableSort', {
     }
     comparator = comparator || defaultComparator;
 
-    var indices = new Array(this.length);
-    for (var i = 0; i < this.length; ++i)
+    const indices = new Array(this.length);
+    for (let i = 0; i < this.length; ++i)
       indices[i] = i;
-    var self = this;
+    const self = this;
     /**
      * @param {number} a
      * @param {number} b
      * @return {number}
      */
     function indexComparator(a, b) {
-      var result = comparator(self[a], self[b]);
+      const result = comparator(self[a], self[b]);
       return result ? result : a - b;
     }
     indices.sort(indexComparator);
 
-    for (var i = 0; i < this.length; ++i) {
+    for (let i = 0; i < this.length; ++i) {
       if (indices[i] < 0 || i === indices[i])
         continue;
-      var cyclical = i;
-      var saved = this[i];
+      let cyclical = i;
+      const saved = this[i];
       while (true) {
-        var next = indices[cyclical];
+        const next = indices[cyclical];
         indices[cyclical] = -1;
         if (next === i) {
           this[cyclical] = saved;
@@ -639,10 +629,10 @@ Object.defineProperty(Array.prototype, 'qselect', {
       };
     }
 
-    var low = 0;
-    var high = this.length - 1;
+    let low = 0;
+    let high = this.length - 1;
     for (;;) {
-      var pivotPosition = this.partition(comparator, low, high, Math.floor((high + low) / 2));
+      const pivotPosition = this.partition(comparator, low, high, Math.floor((high + low) / 2));
       if (pivotPosition === k)
         return this[k];
       else if (pivotPosition > k)
@@ -675,10 +665,10 @@ Object.defineProperty(Array.prototype, 'lowerBound', {
       return a < b ? -1 : (a > b ? 1 : 0);
     }
     comparator = comparator || defaultComparator;
-    var l = left || 0;
-    var r = right !== undefined ? right : this.length;
+    let l = left || 0;
+    let r = right !== undefined ? right : this.length;
     while (l < r) {
-      var m = (l + r) >> 1;
+      const m = (l + r) >> 1;
       if (comparator(object, this[m]) > 0)
         l = m + 1;
       else
@@ -710,10 +700,10 @@ Object.defineProperty(Array.prototype, 'upperBound', {
       return a < b ? -1 : (a > b ? 1 : 0);
     }
     comparator = comparator || defaultComparator;
-    var l = left || 0;
-    var r = right !== undefined ? right : this.length;
+    let l = left || 0;
+    let r = right !== undefined ? right : this.length;
     while (l < r) {
-      var m = (l + r) >> 1;
+      const m = (l + r) >> 1;
       if (comparator(object, this[m]) >= 0)
         l = m + 1;
       else
@@ -727,6 +717,10 @@ Object.defineProperty(Uint32Array.prototype, 'lowerBound', {value: Array.prototy
 
 Object.defineProperty(Uint32Array.prototype, 'upperBound', {value: Array.prototype.upperBound});
 
+Object.defineProperty(Int32Array.prototype, 'lowerBound', {value: Array.prototype.lowerBound});
+
+Object.defineProperty(Int32Array.prototype, 'upperBound', {value: Array.prototype.upperBound});
+
 Object.defineProperty(Float64Array.prototype, 'lowerBound', {value: Array.prototype.lowerBound});
 
 Object.defineProperty(Array.prototype, 'binaryIndexOf', {
@@ -738,7 +732,7 @@ Object.defineProperty(Array.prototype, 'binaryIndexOf', {
    * @template T,S
    */
   value: function(value, comparator) {
-    var index = this.lowerBound(value, comparator);
+    const index = this.lowerBound(value, comparator);
     return index < this.length && comparator(value, this[index]) === 0 ? index : -1;
   }
 });
@@ -751,8 +745,8 @@ Object.defineProperty(Array.prototype, 'select', {
    * @template T
    */
   value: function(field) {
-    var result = new Array(this.length);
-    for (var i = 0; i < this.length; ++i)
+    const result = new Array(this.length);
+    for (let i = 0; i < this.length; ++i)
       result[i] = this[i][field];
     return result;
   }
@@ -779,11 +773,11 @@ Object.defineProperty(Array.prototype, 'peekLast', {
    * @template T
    */
   function mergeOrIntersect(array1, array2, comparator, mergeNotIntersect) {
-    var result = [];
-    var i = 0;
-    var j = 0;
+    const result = [];
+    let i = 0;
+    let j = 0;
     while (i < array1.length && j < array2.length) {
-      var compareValue = comparator(array1[i], array2[j]);
+      const compareValue = comparator(array1[i], array2[j]);
       if (mergeNotIntersect || !compareValue)
         result.push(compareValue <= 0 ? array1[i] : array2[j]);
       if (compareValue <= 0)
@@ -842,10 +836,11 @@ String.sprintf = function(format, var_arg) {
  * @return {!Array.<!Object>}
  */
 String.tokenizeFormatString = function(format, formatters) {
-  var tokens = [];
-  var substitutionIndex = 0;
+  const tokens = [];
 
   function addStringToken(str) {
+    if (!str)
+      return;
     if (tokens.length && tokens[tokens.length - 1].type === 'string')
       tokens[tokens.length - 1].value += str;
     else
@@ -856,61 +851,51 @@ String.tokenizeFormatString = function(format, formatters) {
     tokens.push({type: 'specifier', specifier: specifier, precision: precision, substitutionIndex: substitutionIndex});
   }
 
-  var index = 0;
-  for (var precentIndex = format.indexOf('%', index); precentIndex !== -1; precentIndex = format.indexOf('%', index)) {
-    if (format.length === index)  // unescaped % sign at the end of the format string.
-      break;
-    addStringToken(format.substring(index, precentIndex));
-    index = precentIndex + 1;
-
-    if (format[index] === '%') {
-      // %% escape sequence.
-      addStringToken('%');
-      ++index;
-      continue;
-    }
-
-    if (String.isDigitAt(format, index)) {
-      // The first character is a number, it might be a substitution index.
-      var number = parseInt(format.substring(index), 10);
-      while (String.isDigitAt(format, index))
-        ++index;
-
-      // If the number is greater than zero and ends with a "$",
-      // then this is a substitution index.
-      if (number > 0 && format[index] === '$') {
-        substitutionIndex = (number - 1);
-        ++index;
-      }
-    }
-
-    var precision = -1;
-    if (format[index] === '.') {
-      // This is a precision specifier. If no digit follows the ".",
-      // then the precision should be zero.
-      ++index;
-      precision = parseInt(format.substring(index), 10);
-      if (isNaN(precision))
-        precision = 0;
-
-      while (String.isDigitAt(format, index))
-        ++index;
-    }
-
-    if (!(format[index] in formatters)) {
-      addStringToken(format.substring(precentIndex, index + 1));
-      ++index;
-      continue;
-    }
-
-    addSpecifierToken(format[index], precision, substitutionIndex);
-
-    ++substitutionIndex;
-    ++index;
+  function addAnsiColor(code) {
+    const types = {3: 'color', 9: 'colorLight', 4: 'bgColor', 10: 'bgColorLight'};
+    const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'lightGray', '', 'default'];
+    const colorCodesLight =
+        ['darkGray', 'lightRed', 'lightGreen', 'lightYellow', 'lightBlue', 'lightMagenta', 'lightCyan', 'white', ''];
+    const colors = {color: colorCodes, colorLight: colorCodesLight, bgColor: colorCodes, bgColorLight: colorCodesLight};
+    const type = types[Math.floor(code / 10)];
+    if (!type)
+      return;
+    const color = colors[type][code % 10];
+    if (!color)
+      return;
+    tokens.push({
+      type: 'specifier',
+      specifier: 'c',
+      value: {description: (type.startsWith('bg') ? 'background : ' : 'color: ') + color}
+    });
   }
 
-  addStringToken(format.substring(index));
+  let textStart = 0;
+  let substitutionIndex = 0;
+  const re =
+      new RegExp(`%%|%(?:(\\d+)\\$)?(?:\\.(\\d*))?([${Object.keys(formatters).join('')}])|\\u001b\\[(\\d+)m`, 'g');
+  for (let match = re.exec(format); !!match; match = re.exec(format)) {
+    const matchStart = match.index;
+    if (matchStart > textStart)
+      addStringToken(format.substring(textStart, matchStart));
 
+    if (match[0] === '%%') {
+      addStringToken('%');
+    } else if (match[0].startsWith('%')) {
+      // eslint-disable-next-line no-unused-vars
+      const [_, substitionString, precisionString, specifierString] = match;
+      if (substitionString && Number(substitionString) > 0)
+        substitutionIndex = Number(substitionString) - 1;
+      const precision = precisionString ? Number(precisionString) : -1;
+      addSpecifierToken(specifierString, precision, substitutionIndex);
+      ++substitutionIndex;
+    } else {
+      const code = Number(match[4]);
+      addAnsiColor(code);
+    }
+    textStart = matchStart + match[0].length;
+  }
+  addStringToken(format.substring(textStart));
   return tokens;
 };
 
@@ -965,7 +950,7 @@ String.vsprintf = function(format, substitutions) {
  * @template T, Q
  */
 String.format = function(format, substitutions, formatters, initialValue, append, tokenizedFormat) {
-  if (!format || !substitutions || !substitutions.length)
+  if (!format || ((!substitutions || !substitutions.length) && format.search(/\u001b\[(\d+)m/) === -1))
     return {formattedResult: append(initialValue, format), unusedSubstitutions: substitutions};
 
   function prettyFunctionName() {
@@ -980,12 +965,12 @@ String.format = function(format, substitutions, formatters, initialValue, append
     console.error(prettyFunctionName() + ': ' + msg);
   }
 
-  var result = initialValue;
-  var tokens = tokenizedFormat || String.tokenizeFormatString(format, formatters);
-  var usedSubstitutionIndexes = {};
+  let result = initialValue;
+  const tokens = tokenizedFormat || String.tokenizeFormatString(format, formatters);
+  const usedSubstitutionIndexes = {};
 
-  for (var i = 0; i < tokens.length; ++i) {
-    var token = tokens[i];
+  for (let i = 0; i < tokens.length; ++i) {
+    const token = tokens[i];
 
     if (token.type === 'string') {
       result = append(result, token.value);
@@ -997,7 +982,7 @@ String.format = function(format, substitutions, formatters, initialValue, append
       continue;
     }
 
-    if (token.substitutionIndex >= substitutions.length) {
+    if (!token.value && token.substitutionIndex >= substitutions.length) {
       // If there are not enough substitutions for the current substitutionIndex
       // just output the format specifier literally and move on.
       error(
@@ -1007,20 +992,21 @@ String.format = function(format, substitutions, formatters, initialValue, append
       continue;
     }
 
-    usedSubstitutionIndexes[token.substitutionIndex] = true;
+    if (!token.value)
+      usedSubstitutionIndexes[token.substitutionIndex] = true;
 
     if (!(token.specifier in formatters)) {
       // Encountered an unsupported format character, treat as a string.
       warn('unsupported format character \u201C' + token.specifier + '\u201D. Treating as a string.');
-      result = append(result, substitutions[token.substitutionIndex]);
+      result = append(result, token.value ? '' : substitutions[token.substitutionIndex]);
       continue;
     }
 
-    result = append(result, formatters[token.specifier](substitutions[token.substitutionIndex], token));
+    result = append(result, formatters[token.specifier](token.value || substitutions[token.substitutionIndex], token));
   }
 
-  var unusedSubstitutions = [];
-  for (var i = 0; i < substitutions.length; ++i) {
+  const unusedSubstitutions = [];
+  for (let i = 0; i < substitutions.length; ++i) {
     if (i in usedSubstitutionIndexes)
       continue;
     unusedSubstitutions.push(substitutions[i]);
@@ -1036,8 +1022,8 @@ String.format = function(format, substitutions, formatters, initialValue, append
  * @return {!RegExp}
  */
 function createSearchRegex(query, caseSensitive, isRegex) {
-  var regexFlags = caseSensitive ? 'g' : 'gi';
-  var regexObject;
+  const regexFlags = caseSensitive ? 'g' : 'gi';
+  let regexObject;
 
   if (isRegex) {
     try {
@@ -1060,10 +1046,10 @@ function createSearchRegex(query, caseSensitive, isRegex) {
  */
 function createPlainTextSearchRegex(query, flags) {
   // This should be kept the same as the one in StringUtil.cpp.
-  var regexSpecialCharacters = String.regexSpecialCharacters();
-  var regex = '';
-  for (var i = 0; i < query.length; ++i) {
-    var c = query.charAt(i);
+  const regexSpecialCharacters = String.regexSpecialCharacters();
+  let regex = '';
+  for (let i = 0; i < query.length; ++i) {
+    const c = query.charAt(i);
     if (regexSpecialCharacters.indexOf(c) !== -1)
       regex += '\\';
     regex += c;
@@ -1077,9 +1063,9 @@ function createPlainTextSearchRegex(query, flags) {
  * @return {number}
  */
 function countRegexMatches(regex, content) {
-  var text = content;
-  var result = 0;
-  var match;
+  let text = content;
+  let result = 0;
+  let match;
   while (text && (match = regex.exec(text))) {
     if (match[0].length > 0)
       ++result;
@@ -1102,8 +1088,8 @@ function spacesPadding(spacesCount) {
  * @return {string}
  */
 function numberToStringWithSpacesPadding(value, symbolsCount) {
-  var numberString = value.toString();
-  var paddingLength = Math.max(0, symbolsCount - numberString.length);
+  const numberString = value.toString();
+  const paddingLength = Math.max(0, symbolsCount - numberString.length);
   return spacesPadding(paddingLength) + numberString;
 }
 
@@ -1116,11 +1102,21 @@ Set.prototype.valuesArray = function() {
 };
 
 /**
+ * @return {?T}
+ * @template T
+ */
+Set.prototype.firstValue = function() {
+  if (!this.size)
+    return null;
+  return this.values().next().value;
+};
+
+/**
  * @param {!Iterable<T>|!Array<!T>} iterable
  * @template T
  */
 Set.prototype.addAll = function(iterable) {
-  for (var e of iterable)
+  for (const e of iterable)
     this.add(e);
 };
 
@@ -1130,7 +1126,7 @@ Set.prototype.addAll = function(iterable) {
  * @template T
  */
 Set.prototype.containsAll = function(iterable) {
-  for (var e of iterable) {
+  for (const e of iterable) {
     if (!this.has(e))
       return false;
   }
@@ -1142,7 +1138,7 @@ Set.prototype.containsAll = function(iterable) {
  * @template T
  */
 Map.prototype.remove = function(key) {
-  var value = this.get(key);
+  const value = this.get(key);
   this.delete(key);
   return value;
 };
@@ -1165,9 +1161,9 @@ Map.prototype.keysArray = function() {
  * @return {!Multimap<!KEY, !VALUE>}
  */
 Map.prototype.inverse = function() {
-  var result = new Multimap();
-  for (var key of this.keys()) {
-    var value = this.get(key);
+  const result = new Multimap();
+  for (const key of this.keys()) {
+    const value = this.get(key);
     result.set(value, key);
   }
   return result;
@@ -1177,7 +1173,7 @@ Map.prototype.inverse = function() {
  * @constructor
  * @template K, V
  */
-var Multimap = function() {
+var Multimap = function() {  // eslint-disable-line
   /** @type {!Map.<K, !Set.<!V>>} */
   this._map = new Map();
 };
@@ -1188,7 +1184,7 @@ Multimap.prototype = {
    * @param {V} value
    */
   set: function(key, value) {
-    var set = this._map.get(key);
+    let set = this._map.get(key);
     if (!set) {
       set = new Set();
       this._map.set(key, set);
@@ -1198,13 +1194,10 @@ Multimap.prototype = {
 
   /**
    * @param {K} key
-   * @return {!Set.<!V>}
+   * @return {!Set<!V>}
    */
   get: function(key) {
-    var result = this._map.get(key);
-    if (!result)
-      result = new Set();
-    return result;
+    return this._map.get(key) || new Set();
   },
 
   /**
@@ -1221,7 +1214,7 @@ Multimap.prototype = {
    * @return {boolean}
    */
   hasValue: function(key, value) {
-    var set = this._map.get(key);
+    const set = this._map.get(key);
     if (!set)
       return false;
     return set.has(value);
@@ -1237,18 +1230,22 @@ Multimap.prototype = {
   /**
    * @param {K} key
    * @param {V} value
+   * @return {boolean}
    */
-  remove: function(key, value) {
-    var values = this.get(key);
-    values.delete(value);
+  delete: function(key, value) {
+    const values = this.get(key);
+    if (!values)
+      return false;
+    const result = values.delete(value);
     if (!values.size)
       this._map.delete(key);
+    return result;
   },
 
   /**
    * @param {K} key
    */
-  removeAll: function(key) {
+  deleteAll: function(key) {
     this._map.delete(key);
   },
 
@@ -1263,9 +1260,9 @@ Multimap.prototype = {
    * @return {!Array.<!V>}
    */
   valuesArray: function() {
-    var result = [];
-    var keys = this.keysArray();
-    for (var i = 0; i < keys.length; ++i)
+    const result = [];
+    const keys = this.keysArray();
+    for (let i = 0; i < keys.length; ++i)
       result.pushAll(this.get(keys[i]).valuesArray());
     return result;
   },
@@ -1295,71 +1292,13 @@ function loadXHR(url) {
       successCallback(xhr.responseText);
     }
 
-    var xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.withCredentials = false;
     xhr.open('GET', url, true);
     xhr.onreadystatechange = onReadyStateChanged;
     xhr.send(null);
   }
 }
-
-/**
- * @unrestricted
- */
-var CallbackBarrier = class {
-  constructor() {
-    this._pendingIncomingCallbacksCount = 0;
-  }
-
-  /**
-   * @param {function(...)=} userCallback
-   * @return {function(...)}
-   */
-  createCallback(userCallback) {
-    console.assert(
-        !this._outgoingCallback, 'CallbackBarrier.createCallback() is called after CallbackBarrier.callWhenDone()');
-    ++this._pendingIncomingCallbacksCount;
-    return this._incomingCallback.bind(this, userCallback);
-  }
-
-  /**
-   * @param {function()} callback
-   */
-  callWhenDone(callback) {
-    console.assert(!this._outgoingCallback, 'CallbackBarrier.callWhenDone() is called multiple times');
-    this._outgoingCallback = callback;
-    if (!this._pendingIncomingCallbacksCount)
-      this._outgoingCallback();
-  }
-
-  /**
-   * @return {!Promise.<undefined>}
-   */
-  donePromise() {
-    return new Promise(promiseConstructor.bind(this));
-
-    /**
-     * @param {function()} success
-     * @this {CallbackBarrier}
-     */
-    function promiseConstructor(success) {
-      this.callWhenDone(success);
-    }
-  }
-
-  /**
-   * @param {function(...)=} userCallback
-   */
-  _incomingCallback(userCallback) {
-    console.assert(this._pendingIncomingCallbacksCount > 0);
-    if (userCallback) {
-      var args = Array.prototype.slice.call(arguments, 1);
-      userCallback.apply(null, args);
-    }
-    if (!--this._pendingIncomingCallbacksCount && this._outgoingCallback)
-      this._outgoingCallback();
-  }
-};
 
 /**
  * @param {*} value
@@ -1372,7 +1311,8 @@ function suppressUnused(value) {
  * @return {number}
  */
 self.setImmediate = function(callback) {
-  Promise.resolve().then(callback);
+  const args = [...arguments].slice(1);
+  Promise.resolve().then(() => callback(...args));
   return 0;
 };
 
@@ -1408,19 +1348,19 @@ Promise.prototype.catchException = function(defaultValue) {
  * @this {Map<number, VALUE>}
  */
 Map.prototype.diff = function(other, isEqual) {
-  var leftKeys = this.keysArray();
-  var rightKeys = other.keysArray();
+  const leftKeys = this.keysArray();
+  const rightKeys = other.keysArray();
   leftKeys.sort((a, b) => a - b);
   rightKeys.sort((a, b) => a - b);
 
-  var removed = [];
-  var added = [];
-  var equal = [];
-  var leftIndex = 0;
-  var rightIndex = 0;
+  const removed = [];
+  const added = [];
+  const equal = [];
+  let leftIndex = 0;
+  let rightIndex = 0;
   while (leftIndex < leftKeys.length && rightIndex < rightKeys.length) {
-    var leftKey = leftKeys[leftIndex];
-    var rightKey = rightKeys[rightIndex];
+    const leftKey = leftKeys[leftIndex];
+    const rightKey = rightKeys[rightIndex];
     if (leftKey === rightKey && isEqual(this.get(leftKey), other.get(rightKey))) {
       equal.push(this.get(leftKey));
       ++leftIndex;
@@ -1436,12 +1376,47 @@ Map.prototype.diff = function(other, isEqual) {
     ++rightIndex;
   }
   while (leftIndex < leftKeys.length) {
-    var leftKey = leftKeys[leftIndex++];
+    const leftKey = leftKeys[leftIndex++];
     removed.push(this.get(leftKey));
   }
   while (rightIndex < rightKeys.length) {
-    var rightKey = rightKeys[rightIndex++];
+    const rightKey = rightKeys[rightIndex++];
     added.push(other.get(rightKey));
   }
   return {added: added, removed: removed, equal: equal};
 };
+
+/**
+ * TODO: move into its own module
+ * @param {function()} callback
+ * @suppressGlobalPropertiesCheck
+ */
+function runOnWindowLoad(callback) {
+  /**
+   * @suppressGlobalPropertiesCheck
+   */
+  function windowLoaded() {
+    self.removeEventListener('DOMContentLoaded', windowLoaded, false);
+    callback();
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive')
+    callback();
+  else
+    self.addEventListener('DOMContentLoaded', windowLoaded, false);
+}
+
+const _singletonSymbol = Symbol('singleton');
+
+/**
+ * @template T
+ * @param {function(new:T, ...)} constructorFunction
+ * @return {!T}
+ */
+function singleton(constructorFunction) {
+  if (_singletonSymbol in constructorFunction)
+    return constructorFunction[_singletonSymbol];
+  const instance = new constructorFunction();
+  constructorFunction[_singletonSymbol] = instance;
+  return instance;
+}

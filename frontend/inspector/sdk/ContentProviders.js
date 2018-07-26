@@ -59,11 +59,19 @@ SDK.CompilerSourceMappingContentProvider = class {
 
   /**
    * @override
+   * @return {!Promise<boolean>}
+   */
+  contentEncoded() {
+    return Promise.resolve(false);
+  }
+
+  /**
+   * @override
    * @return {!Promise<?string>}
    */
   requestContent() {
-    var callback;
-    var promise = new Promise(fulfill => callback = fulfill);
+    let callback;
+    const promise = new Promise(fulfill => callback = fulfill);
     SDK.multitargetNetworkManager.loadResource(this._sourceURL, contentLoaded.bind(this));
     return promise;
 
@@ -91,21 +99,12 @@ SDK.CompilerSourceMappingContentProvider = class {
    * @param {string} query
    * @param {boolean} caseSensitive
    * @param {boolean} isRegex
-   * @param {function(!Array.<!Common.ContentProvider.SearchMatch>)} callback
+   * @return {!Promise<!Array<!Common.ContentProvider.SearchMatch>>}
    */
-  searchInContent(query, caseSensitive, isRegex, callback) {
-    this.requestContent().then(contentLoaded);
-
-    /**
-     * @param {?string} content
-     */
-    function contentLoaded(content) {
-      if (typeof content !== 'string') {
-        callback([]);
-        return;
-      }
-
-      callback(Common.ContentProvider.performSearchInContent(content, query, caseSensitive, isRegex));
-    }
+  async searchInContent(query, caseSensitive, isRegex) {
+    const content = await this.requestContent();
+    if (typeof content !== 'string')
+      return [];
+    return Common.ContentProvider.performSearchInContent(content, query, caseSensitive, isRegex);
   }
 };

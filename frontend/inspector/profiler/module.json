@@ -3,27 +3,21 @@
         {
             "type": "view",
             "location": "panel",
-            "id": "profiles",
-            "title": "Profiles",
+            "id": "heap_profiler",
+            "title": "Memory",
             "order": 60,
-            "className": "Profiler.ProfilesPanel"
+            "className": "Profiler.HeapProfilerPanel"
         },
         {
             "type": "@UI.ContextMenu.Provider",
-            "contextTypes": ["SDK.RemoteObject"],
-            "className": "Profiler.ProfilesPanel.ContextMenuProvider"
+            "contextTypes": [
+                "SDK.RemoteObject"
+            ],
+            "className": "Profiler.HeapProfilerPanel"
         },
         {
             "type": "setting",
-            "category": "Profiler",
-            "title": "Record heap allocation stack traces",
-            "settingName": "recordAllocationStacks",
-            "settingType": "boolean",
-            "defaultValue": false
-        },
-        {
-            "type": "setting",
-            "category": "Profiler",
+            "category": "Performance",
             "title": "High resolution CPU profiling",
             "settingName": "highResolutionCpuProfiling",
             "settingType": "boolean",
@@ -31,20 +25,43 @@
         },
         {
             "type": "setting",
-            "category": "Profiler",
+            "category": "Performance",
             "title": "Show native functions in JS Profile",
             "settingName": "showNativeFunctionsInJSProfile",
             "settingType": "boolean",
-            "defaultValue": false
+            "defaultValue": true
         },
         {
-            "type": "@UI.ActionDelegate",
-            "actionId": "profiler.toggle-recording",
+            "type": "action",
+            "actionId": "profiler.heap-toggle-recording",
             "iconClass": "largeicon-start-recording",
             "toggledIconClass": "largeicon-stop-recording",
             "toggleWithRedColor": true,
-            "contextTypes": ["Profiler.ProfilesPanel"],
-            "className": "Profiler.ProfilesPanel.RecordActionDelegate",
+            "contextTypes": [
+                "Profiler.HeapProfilerPanel"
+            ],
+            "className": "Profiler.HeapProfilerPanel",
+            "bindings": [
+                {
+                    "platform": "windows,linux",
+                    "shortcut": "Ctrl+E"
+                },
+                {
+                    "platform": "mac",
+                    "shortcut": "Meta+E"
+                }
+            ]
+        },
+        {
+            "type": "action",
+            "actionId": "profiler.js-toggle-recording",
+            "iconClass": "largeicon-start-recording",
+            "toggledIconClass": "largeicon-stop-recording",
+            "toggleWithRedColor": true,
+            "contextTypes": [
+                "Profiler.JSProfilerPanel"
+            ],
+            "className": "Profiler.JSProfilerPanel",
             "bindings": [
                 {
                     "platform": "windows,linux",
@@ -59,10 +76,14 @@
     ],
     "dependencies": [
         "components",
-        "components_lazy",
-        "ui_lazy"
+        "perf_ui",
+        "data_grid",
+        "heap_snapshot_model",
+        "object_ui"
     ],
     "scripts": [
+        "ProfileType.js",
+        "ProfileHeader.js",
         "ProfilesPanel.js",
         "ProfileView.js",
         "ProfileDataGrid.js",
@@ -71,17 +92,18 @@
         "CPUProfileFlameChart.js",
         "CPUProfileView.js",
         "HeapProfileView.js",
-        "HeapSnapshotCommon.js",
         "HeapSnapshotProxy.js",
         "HeapSnapshotDataGrids.js",
         "HeapSnapshotGridNodes.js",
         "HeapSnapshotView.js",
+        "HeapProfilerPanel.js",
+        "IsolateSelector.js",
         "ProfileLauncherView.js",
-        "ProfileTypeRegistry.js",
-        "TargetsComboBoxController.js"
+        "ProfileTypeRegistry.js"
     ],
     "resources": [
         "heapProfiler.css",
+        "profileLauncherView.css",
         "profilesPanel.css",
         "profilesSidebarTree.css"
     ]

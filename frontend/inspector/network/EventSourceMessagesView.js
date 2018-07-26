@@ -14,18 +14,19 @@ Network.EventSourceMessagesView = class extends UI.VBox {
     this.element.classList.add('event-source-messages-view');
     this._request = request;
 
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
       {id: 'id', title: Common.UIString('Id'), sortable: true, weight: 8},
       {id: 'type', title: Common.UIString('Type'), sortable: true, weight: 8},
       {id: 'data', title: Common.UIString('Data'), sortable: false, weight: 88},
       {id: 'time', title: Common.UIString('Time'), sortable: true, weight: 8}
     ]);
 
-    this._dataGrid = new UI.SortableDataGrid(columns);
+    this._dataGrid = new DataGrid.SortableDataGrid(columns);
+    this._dataGrid.setStriped(true);
     this._dataGrid.setStickToBottom(true);
-    this._dataGrid.markColumnAsSortedBy('time', UI.DataGrid.Order.Ascending);
+    this._dataGrid.markColumnAsSortedBy('time', DataGrid.DataGrid.Order.Ascending);
     this._sortItems();
-    this._dataGrid.addEventListener(UI.DataGrid.Events.SortingChanged, this._sortItems, this);
+    this._dataGrid.addEventListener(DataGrid.DataGrid.Events.SortingChanged, this._sortItems, this);
 
     this._dataGrid.setName('EventSourceMessagesView');
     this._dataGrid.asWidget().show(this.element);
@@ -36,8 +37,8 @@ Network.EventSourceMessagesView = class extends UI.VBox {
    */
   wasShown() {
     this._dataGrid.rootNode().removeChildren();
-    var messages = this._request.eventSourceMessages();
-    for (var i = 0; i < messages.length; ++i)
+    const messages = this._request.eventSourceMessages();
+    for (let i = 0; i < messages.length; ++i)
       this._dataGrid.insertChild(new Network.EventSourceMessageNode(messages[i]));
 
     this._request.addEventListener(SDK.NetworkRequest.Events.EventSourceMessageAdded, this._messageAdded, this);
@@ -54,15 +55,15 @@ Network.EventSourceMessagesView = class extends UI.VBox {
    * @param {!Common.Event} event
    */
   _messageAdded(event) {
-    var message = /** @type {!SDK.NetworkRequest.EventSourceMessage} */ (event.data);
+    const message = /** @type {!SDK.NetworkRequest.EventSourceMessage} */ (event.data);
     this._dataGrid.insertChild(new Network.EventSourceMessageNode(message));
   }
 
   _sortItems() {
-    var sortColumnId = this._dataGrid.sortColumnId();
+    const sortColumnId = this._dataGrid.sortColumnId();
     if (!sortColumnId)
       return;
-    var comparator = Network.EventSourceMessageNode.Comparators[sortColumnId];
+    const comparator = Network.EventSourceMessageNode.Comparators[sortColumnId];
     if (!comparator)
       return;
     this._dataGrid.sortNodes(comparator, !this._dataGrid.isSortOrderAscending());
@@ -72,15 +73,15 @@ Network.EventSourceMessagesView = class extends UI.VBox {
 /**
  * @unrestricted
  */
-Network.EventSourceMessageNode = class extends UI.SortableDataGridNode {
+Network.EventSourceMessageNode = class extends DataGrid.SortableDataGridNode {
   /**
    * @param {!SDK.NetworkRequest.EventSourceMessage} message
    */
   constructor(message) {
-    var time = new Date(message.time * 1000);
-    var timeText = ('0' + time.getHours()).substr(-2) + ':' + ('0' + time.getMinutes()).substr(-2) + ':' +
+    const time = new Date(message.time * 1000);
+    const timeText = ('0' + time.getHours()).substr(-2) + ':' + ('0' + time.getMinutes()).substr(-2) + ':' +
         ('0' + time.getSeconds()).substr(-2) + '.' + ('00' + time.getMilliseconds()).substr(-3);
-    var timeNode = createElement('div');
+    const timeNode = createElement('div');
     timeNode.createTextChild(timeText);
     timeNode.title = time.toLocaleString();
     super({id: message.eventId, type: message.eventName, data: message.data, time: timeNode});
@@ -95,12 +96,12 @@ Network.EventSourceMessageNode = class extends UI.SortableDataGridNode {
  * @return {number}
  */
 Network.EventSourceMessageNodeComparator = function(field, a, b) {
-  var aValue = a._message[field];
-  var bValue = b._message[field];
+  const aValue = a._message[field];
+  const bValue = b._message[field];
   return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
 };
 
-/** @type {!Object.<string, !UI.SortableDataGrid.NodeComparator>} */
+/** @type {!Object.<string, function(!Network.EventSourceMessageNode, !Network.EventSourceMessageNode):number>} */
 Network.EventSourceMessageNode.Comparators = {
   'id': Network.EventSourceMessageNodeComparator.bind(null, 'eventId'),
   'type': Network.EventSourceMessageNodeComparator.bind(null, 'eventName'),

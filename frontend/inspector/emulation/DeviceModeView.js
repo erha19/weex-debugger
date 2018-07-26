@@ -12,7 +12,8 @@ Emulation.DeviceModeView = class extends UI.VBox {
     this.registerRequiredCSS('emulation/deviceModeView.css');
     UI.Tooltip.addNativeOverrideContainer(this.contentElement);
 
-    this._model = new Emulation.DeviceModeModel(this._updateUI.bind(this));
+    this._model = self.singleton(Emulation.DeviceModeModel);
+    this._model.addEventListener(Emulation.DeviceModeModel.Events.Updated, this._updateUI, this);
     this._mediaInspector = new Emulation.MediaQueryInspector(
         () => this._model.appliedDeviceSize().width, this._model.setWidth.bind(this._model));
     this._showMediaInspectorSetting = Common.settings.moduleSetting('showMediaQueryInspector');
@@ -77,16 +78,16 @@ Emulation.DeviceModeView = class extends UI.VBox {
   }
 
   _populatePresetsContainer() {
-    var sizes = [320, 375, 425, 768, 1024, 1440, 2560];
-    var titles = [
+    const sizes = [320, 375, 425, 768, 1024, 1440, 2560];
+    const titles = [
       Common.UIString('Mobile S'), Common.UIString('Mobile M'), Common.UIString('Mobile L'), Common.UIString('Tablet'),
       Common.UIString('Laptop'), Common.UIString('Laptop L'), Common.UIString('4K')
     ];
     this._presetBlocks = [];
-    var inner = this._responsivePresetsContainer.createChild('div', 'device-mode-presets-container-inner');
-    for (var i = sizes.length - 1; i >= 0; --i) {
-      var outer = inner.createChild('div', 'fill device-mode-preset-bar-outer');
-      var block = outer.createChild('div', 'device-mode-preset-bar');
+    const inner = this._responsivePresetsContainer.createChild('div', 'device-mode-presets-container-inner');
+    for (let i = sizes.length - 1; i >= 0; --i) {
+      const outer = inner.createChild('div', 'fill device-mode-preset-bar-outer');
+      const block = outer.createChild('div', 'device-mode-preset-bar');
       block.createChild('span').textContent = titles[i] + ' \u2013 ' + sizes[i] + 'px';
       block.addEventListener('click', applySize.bind(this, sizes[i]), false);
       block.__width = sizes[i];
@@ -100,7 +101,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
      */
     function applySize(width, e) {
       this._model.emulate(Emulation.DeviceModeModel.Type.Responsive, null, null);
-      this._model.setSizeAndScaleToFit(width, 0);
+      this._model.setWidthAndScaleToFit(width);
       e.consume();
     }
   }
@@ -112,9 +113,9 @@ Emulation.DeviceModeView = class extends UI.VBox {
    * @return {!UI.ResizerWidget}
    */
   _createResizer(element, widthFactor, heightFactor) {
-    var resizer = new UI.ResizerWidget();
+    const resizer = new UI.ResizerWidget();
     resizer.addElement(element);
-    var cursor = widthFactor ? 'ew-resize' : 'ns-resize';
+    let cursor = widthFactor ? 'ew-resize' : 'ns-resize';
     if (widthFactor * heightFactor > 0)
       cursor = 'nwse-resize';
     if (widthFactor * heightFactor < 0)
@@ -132,7 +133,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
    */
   _onResizeStart(event) {
     this._slowPositionStart = null;
-    /** @type {!Size} */
+    /** @type {!UI.Size} */
     this._resizeStart = this._model.screenRect().size();
   }
 
@@ -145,8 +146,8 @@ Emulation.DeviceModeView = class extends UI.VBox {
     if (event.data.shiftKey !== !!this._slowPositionStart)
       this._slowPositionStart = event.data.shiftKey ? {x: event.data.currentX, y: event.data.currentY} : null;
 
-    var cssOffsetX = event.data.currentX - event.data.startX;
-    var cssOffsetY = event.data.currentY - event.data.startY;
+    let cssOffsetX = event.data.currentX - event.data.startX;
+    let cssOffsetY = event.data.currentY - event.data.startY;
     if (this._slowPositionStart) {
       cssOffsetX =
           (event.data.currentX - this._slowPositionStart.x) / 10 + this._slowPositionStart.x - event.data.startX;
@@ -155,16 +156,16 @@ Emulation.DeviceModeView = class extends UI.VBox {
     }
 
     if (widthFactor) {
-      var dipOffsetX = cssOffsetX * UI.zoomManager.zoomFactor();
-      var newWidth = this._resizeStart.width + dipOffsetX * widthFactor;
+      const dipOffsetX = cssOffsetX * UI.zoomManager.zoomFactor();
+      let newWidth = this._resizeStart.width + dipOffsetX * widthFactor;
       newWidth = Math.round(newWidth / this._model.scale());
       if (newWidth >= Emulation.DeviceModeModel.MinDeviceSize && newWidth <= Emulation.DeviceModeModel.MaxDeviceSize)
         this._model.setWidth(newWidth);
     }
 
     if (heightFactor) {
-      var dipOffsetY = cssOffsetY * UI.zoomManager.zoomFactor();
-      var newHeight = this._resizeStart.height + dipOffsetY * heightFactor;
+      const dipOffsetY = cssOffsetY * UI.zoomManager.zoomFactor();
+      let newHeight = this._resizeStart.height + dipOffsetY * heightFactor;
       newHeight = Math.round(newHeight / this._model.scale());
       if (newHeight >= Emulation.DeviceModeModel.MinDeviceSize && newHeight <= Emulation.DeviceModeModel.MaxDeviceSize)
         this._model.setHeight(newHeight);
@@ -182,7 +183,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
   _updateUI() {
     /**
      * @param {!Element} element
-     * @param {!Common.Rect} rect
+     * @param {!UI.Rect} rect
      */
     function applyRect(element, rect) {
       element.style.left = rect.left + 'px';
@@ -194,13 +195,13 @@ Emulation.DeviceModeView = class extends UI.VBox {
     if (!this.isShowing())
       return;
 
-    var zoomFactor = UI.zoomManager.zoomFactor();
-    var callDoResize = false;
-    var showRulers = this._showRulersSetting.get() && this._model.type() !== Emulation.DeviceModeModel.Type.None;
-    var contentAreaResized = false;
-    var updateRulers = false;
+    const zoomFactor = UI.zoomManager.zoomFactor();
+    let callDoResize = false;
+    const showRulers = this._showRulersSetting.get() && this._model.type() !== Emulation.DeviceModeModel.Type.None;
+    let contentAreaResized = false;
+    let updateRulers = false;
 
-    var cssScreenRect = this._model.screenRect().scale(1 / zoomFactor);
+    const cssScreenRect = this._model.screenRect().scale(1 / zoomFactor);
     if (!cssScreenRect.isEqual(this._cachedCssScreenRect)) {
       applyRect(this._screenArea, cssScreenRect);
       updateRulers = true;
@@ -208,14 +209,14 @@ Emulation.DeviceModeView = class extends UI.VBox {
       this._cachedCssScreenRect = cssScreenRect;
     }
 
-    var cssVisiblePageRect = this._model.visiblePageRect().scale(1 / zoomFactor);
+    const cssVisiblePageRect = this._model.visiblePageRect().scale(1 / zoomFactor);
     if (!cssVisiblePageRect.isEqual(this._cachedCssVisiblePageRect)) {
       applyRect(this._pageArea, cssVisiblePageRect);
       callDoResize = true;
       this._cachedCssVisiblePageRect = cssVisiblePageRect;
     }
 
-    var outlineRect = this._model.outlineRect().scale(1 / zoomFactor);
+    const outlineRect = this._model.outlineRect().scale(1 / zoomFactor);
     if (!outlineRect.isEqual(this._cachedOutlineRect)) {
       applyRect(this._outlineImage, outlineRect);
       callDoResize = true;
@@ -223,7 +224,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
     }
     this._contentClip.classList.toggle('device-mode-outline-visible', !!this._model.outlineImage());
 
-    var resizable = this._model.type() === Emulation.DeviceModeModel.Type.Responsive;
+    const resizable = this._model.type() === Emulation.DeviceModeModel.Type.Responsive;
     if (resizable !== this._cachedResizable) {
       this._rightResizerElement.classList.toggle('hidden', !resizable);
       this._leftResizerElement.classList.toggle('hidden', !resizable);
@@ -233,7 +234,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
       this._cachedResizable = resizable;
     }
 
-    var mediaInspectorVisible =
+    const mediaInspectorVisible =
         this._showMediaInspectorSetting.get() && this._model.type() !== Emulation.DeviceModeModel.Type.None;
     if (mediaInspectorVisible !== this._cachedMediaInspectorVisible) {
       if (mediaInspectorVisible)
@@ -262,7 +263,7 @@ Emulation.DeviceModeView = class extends UI.VBox {
     if (this._model.scale() !== this._cachedScale) {
       updateRulers = true;
       callDoResize = true;
-      for (var block of this._presetBlocks)
+      for (const block of this._presetBlocks)
         block.style.width = block.__width * this._model.scale() + 'px';
       this._cachedScale = this._model.scale();
     }
@@ -307,18 +308,30 @@ Emulation.DeviceModeView = class extends UI.VBox {
     element.classList.toggle('hidden', !success);
   }
 
+  /**
+   * @param {!Element} element
+   */
+  setNonEmulatedAvailableSize(element) {
+    if (this._model.type() !== Emulation.DeviceModeModel.Type.None)
+      return;
+    const zoomFactor = UI.zoomManager.zoomFactor();
+    const rect = element.getBoundingClientRect();
+    const availableSize = new UI.Size(Math.max(rect.width * zoomFactor, 1), Math.max(rect.height * zoomFactor, 1));
+    this._model.setAvailableSize(availableSize, availableSize);
+  }
+
   _contentAreaResized() {
-    var zoomFactor = UI.zoomManager.zoomFactor();
-    var rect = this._contentArea.getBoundingClientRect();
-    var availableSize = new Size(Math.max(rect.width * zoomFactor, 1), Math.max(rect.height * zoomFactor, 1));
-    var preferredSize = new Size(
+    const zoomFactor = UI.zoomManager.zoomFactor();
+    const rect = this._contentArea.getBoundingClientRect();
+    const availableSize = new UI.Size(Math.max(rect.width * zoomFactor, 1), Math.max(rect.height * zoomFactor, 1));
+    const preferredSize = new UI.Size(
         Math.max((rect.width - 2 * this._handleWidth) * zoomFactor, 1),
         Math.max((rect.height - this._handleHeight) * zoomFactor, 1));
     this._model.setAvailableSize(availableSize, preferredSize);
   }
 
   _measureHandles() {
-    var hidden = this._rightResizerElement.classList.contains('hidden');
+    const hidden = this._rightResizerElement.classList.contains('hidden');
     this._rightResizerElement.classList.toggle('hidden', false);
     this._bottomResizerElement.classList.toggle('hidden', false);
     this._handleWidth = this._rightResizerElement.offsetWidth;
@@ -359,114 +372,116 @@ Emulation.DeviceModeView = class extends UI.VBox {
     this._model.emulate(Emulation.DeviceModeModel.Type.None, null, null);
   }
 
-  captureScreenshot() {
-    var mainTarget = SDK.targetManager.mainTarget();
-    if (!mainTarget)
+  /**
+   * @return {!Promise}
+   */
+  async captureScreenshot() {
+    SDK.OverlayModel.muteHighlight();
+    const screenshot = await this._model.captureScreenshot(false);
+    SDK.OverlayModel.unmuteHighlight();
+    if (screenshot === null)
       return;
-    SDK.DOMModel.muteHighlight();
 
-    var zoomFactor = UI.zoomManager.zoomFactor();
-    var rect = this._contentArea.getBoundingClientRect();
-    var availableSize = new Size(Math.max(rect.width * zoomFactor, 1), Math.max(rect.height * zoomFactor, 1));
-    var outlineVisible = this._model.deviceOutlineSetting().get();
+    const pageImage = new Image();
+    pageImage.src = 'data:image/png;base64,' + screenshot;
+    pageImage.onload = async () => {
+      const scale = pageImage.naturalWidth / this._model.screenRect().width;
+      const outlineRect = this._model.outlineRect().scale(scale);
+      const screenRect = this._model.screenRect().scale(scale);
+      const visiblePageRect = this._model.visiblePageRect().scale(scale);
+      const contentLeft = screenRect.left + visiblePageRect.left - outlineRect.left;
+      const contentTop = screenRect.top + visiblePageRect.top - outlineRect.top;
 
-    if (availableSize.width < this._model.screenRect().width ||
-        availableSize.height < this._model.screenRect().height) {
-      UI.inspectorView.minimize();
-      this._model.deviceOutlineSetting().set(false);
-    }
-
-    mainTarget.pageAgent().captureScreenshot(screenshotCaptured.bind(this));
-
-    /**
-     * @param {?Protocol.Error} error
-     * @param {string} content
-     * @this {Emulation.DeviceModeView}
-     */
-    function screenshotCaptured(error, content) {
-      this._model.deviceOutlineSetting().set(outlineVisible);
-      var dpr = window.devicePixelRatio;
-      var outlineRect = this._model.outlineRect().scale(dpr);
-      var screenRect = this._model.screenRect().scale(dpr);
-      screenRect.left -= outlineRect.left;
-      screenRect.top -= outlineRect.top;
-      var visiblePageRect = this._model.visiblePageRect().scale(dpr);
-      visiblePageRect.left += screenRect.left;
-      visiblePageRect.top += screenRect.top;
-      outlineRect.left = 0;
-      outlineRect.top = 0;
-
-      SDK.DOMModel.unmuteHighlight();
-      UI.inspectorView.restore();
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      // Create a canvas to splice the images together.
-      var canvas = createElement('canvas');
-      var ctx = canvas.getContext('2d');
-      canvas.width = outlineRect.width;
-      canvas.height = outlineRect.height;
+      const canvas = createElement('canvas');
+      canvas.width = Math.floor(outlineRect.width);
+      canvas.height = Math.floor(outlineRect.height);
+      const ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = false;
 
-      var promise = Promise.resolve();
       if (this._model.outlineImage())
-        promise = promise.then(paintImage.bind(null, this._model.outlineImage(), outlineRect));
-      promise = promise.then(drawBorder);
+        await this._paintImage(ctx, this._model.outlineImage(), outlineRect.relativeTo(outlineRect));
       if (this._model.screenImage())
-        promise = promise.then(paintImage.bind(null, this._model.screenImage(), screenRect));
-      promise.then(paintScreenshot.bind(this));
+        await this._paintImage(ctx, this._model.screenImage(), screenRect.relativeTo(outlineRect));
+      ctx.drawImage(pageImage, Math.floor(contentLeft), Math.floor(contentTop));
+      this._saveScreenshot(canvas);
+    };
+  }
 
-      /**
-       * @param {string} src
-       * @param {!Common.Rect} rect
-       * @return {!Promise<undefined>}
-       */
-      function paintImage(src, rect) {
-        var callback;
-        var promise = new Promise(fulfill => callback = fulfill);
-        var image = new Image();
-        image.crossOrigin = 'Anonymous';
-        image.srcset = src;
-        image.onload = onImageLoad;
-        image.onerror = callback;
-        return promise;
+  /**
+   * @return {!Promise}
+   */
+  async captureFullSizeScreenshot() {
+    SDK.OverlayModel.muteHighlight();
+    const screenshot = await this._model.captureScreenshot(true);
+    SDK.OverlayModel.unmuteHighlight();
+    if (screenshot === null)
+      return;
+    return this._saveScreenshotBase64(screenshot);
+  }
 
-        function onImageLoad() {
-          ctx.drawImage(image, rect.left, rect.top, rect.width, rect.height);
-          callback();
-        }
-      }
+  /**
+   * @param {!Protocol.Page.Viewport=} clip
+   * @return {!Promise}
+   */
+  async captureAreaScreenshot(clip) {
+    SDK.OverlayModel.muteHighlight();
+    const screenshot = await this._model.captureScreenshot(false, clip);
+    SDK.OverlayModel.unmuteHighlight();
+    if (screenshot === null)
+      return;
+    return this._saveScreenshotBase64(screenshot);
+  }
 
-      function drawBorder() {
-        ctx.strokeStyle = 'hsla(0, 0%, 98%, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([10, 10]);
-        ctx.strokeRect(screenRect.left + 1, screenRect.top + 1, screenRect.width - 2, screenRect.height - 2);
-      }
+  /**
+   * @param {string} screenshot
+   */
+  _saveScreenshotBase64(screenshot) {
+    const pageImage = new Image();
+    pageImage.src = 'data:image/png;base64,' + screenshot;
+    pageImage.onload = () => {
+      const canvas = createElement('canvas');
+      canvas.width = pageImage.naturalWidth;
+      canvas.height = pageImage.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pageImage, 0, 0);
+      this._saveScreenshot(canvas);
+    };
+  }
 
-      /**
-       * @this {Emulation.DeviceModeView}
-       */
-      function paintScreenshot() {
-        var pageImage = new Image();
-        pageImage.src = 'data:image/png;base64,' + content;
-        ctx.drawImage(
-            pageImage, visiblePageRect.left, visiblePageRect.top, Math.min(pageImage.naturalWidth, screenRect.width),
-            Math.min(pageImage.naturalHeight, screenRect.height));
-        var url = mainTarget && mainTarget.inspectedURL();
-        var fileName = url ? url.trimURL().removeURLFragment() : '';
-        if (this._model.type() === Emulation.DeviceModeModel.Type.Device)
-          fileName += Common.UIString('(%s)', this._model.device().title);
-        // Trigger download.
-        var link = createElement('a');
-        link.download = fileName + '.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }
-    }
+  /**
+   * @param {!CanvasRenderingContext2D} ctx
+   * @param {string} src
+   * @param {!UI.Rect} rect
+   * @return {!Promise}
+   */
+  _paintImage(ctx, src, rect) {
+    return new Promise(fulfill => {
+      const image = new Image();
+      image.crossOrigin = 'Anonymous';
+      image.srcset = src;
+      image.onerror = fulfill;
+      image.onload = () => {
+        ctx.drawImage(image, rect.left, rect.top, rect.width, rect.height);
+        fulfill();
+      };
+    });
+  }
+
+  /**
+   * @param {!Element} canvas
+   */
+  _saveScreenshot(canvas) {
+    const url = this._model.inspectedURL();
+    let fileName = url ? url.trimURL().removeURLFragment() : '';
+    if (this._model.type() === Emulation.DeviceModeModel.Type.Device)
+      fileName += Common.UIString('(%s)', this._model.device().title);
+    const link = createElement('a');
+    link.download = fileName + '.png';
+    canvas.toBlob(blob => {
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    });
   }
 };
 
@@ -509,8 +524,8 @@ Emulation.DeviceModeView.Ruler = class extends UI.VBox {
    * @return {!Promise.<?>}
    */
   _update() {
-    var zoomFactor = UI.zoomManager.zoomFactor();
-    var size = this._horizontal ? this._contentElement.offsetWidth : this._contentElement.offsetHeight;
+    const zoomFactor = UI.zoomManager.zoomFactor();
+    const size = this._horizontal ? this._contentElement.offsetWidth : this._contentElement.offsetHeight;
 
     if (this._scale !== this._renderedScale || zoomFactor !== this._renderedZoomFactor) {
       this._contentElement.removeChildren();
@@ -519,9 +534,9 @@ Emulation.DeviceModeView.Ruler = class extends UI.VBox {
       this._renderedZoomFactor = zoomFactor;
     }
 
-    var dipSize = size * zoomFactor / this._scale;
-    var count = Math.ceil(dipSize / 5);
-    var step = 1;
+    const dipSize = size * zoomFactor / this._scale;
+    const count = Math.ceil(dipSize / 5);
+    let step = 1;
     if (this._scale < 0.8)
       step = 2;
     if (this._scale < 0.6)
@@ -533,22 +548,22 @@ Emulation.DeviceModeView.Ruler = class extends UI.VBox {
     if (this._scale < 0.1)
       step = 32;
 
-    for (var i = count; i < this._count; i++) {
+    for (let i = count; i < this._count; i++) {
       if (!(i % step))
         this._contentElement.lastChild.remove();
     }
 
-    for (var i = this._count; i < count; i++) {
+    for (let i = this._count; i < count; i++) {
       if (i % step)
         continue;
-      var marker = this._contentElement.createChild('div', 'device-mode-ruler-marker');
+      const marker = this._contentElement.createChild('div', 'device-mode-ruler-marker');
       if (i) {
         if (this._horizontal)
           marker.style.left = (5 * i) * this._scale / zoomFactor + 'px';
         else
           marker.style.top = (5 * i) * this._scale / zoomFactor + 'px';
         if (!(i % 20)) {
-          var text = marker.createChild('div', 'device-mode-ruler-text');
+          const text = marker.createChild('div', 'device-mode-ruler-text');
           text.textContent = i * 5;
           text.addEventListener('click', this._onMarkerClick.bind(this, i * 5), false);
         }

@@ -38,7 +38,7 @@ Resources.DatabaseTableView = class extends UI.SimpleView {
     this._visibleColumnsSetting = Common.settings.createSetting('databaseTableViewVisibleColumns', {});
 
     this.refreshButton = new UI.ToolbarButton(Common.UIString('Refresh'), 'largeicon-refresh');
-    this.refreshButton.addEventListener('click', this._refreshButtonClicked, this);
+    this.refreshButton.addEventListener(UI.ToolbarButton.Events.Click, this._refreshButtonClicked, this);
     this._visibleColumnsInput = new UI.ToolbarInput(Common.UIString('Visible columns'), 1);
     this._visibleColumnsInput.addEventListener(UI.ToolbarInput.Event.TextChanged, this._onVisibleColumnsChanged, this);
   }
@@ -76,21 +76,22 @@ Resources.DatabaseTableView = class extends UI.SimpleView {
     this.detachChildWidgets();
     this.element.removeChildren();
 
-    this._dataGrid = UI.SortableDataGrid.create(columnNames, values);
+    this._dataGrid = DataGrid.SortableDataGrid.create(columnNames, values);
     this._visibleColumnsInput.setVisible(!!this._dataGrid);
     if (!this._dataGrid) {
       this._emptyWidget = new UI.EmptyWidget(Common.UIString('The “%s”\ntable is empty.', this.tableName));
       this._emptyWidget.show(this.element);
       return;
     }
+    this._dataGrid.setStriped(true);
     this._dataGrid.asWidget().show(this.element);
     this._dataGrid.autoSizeColumns(5);
 
     this._columnsMap = new Map();
-    for (var i = 1; i < columnNames.length; ++i)
+    for (let i = 1; i < columnNames.length; ++i)
       this._columnsMap.set(columnNames[i], String(i));
     this._lastVisibleColumns = '';
-    var visibleColumnsText = this._visibleColumnsSetting.get()[this.tableName] || '';
+    const visibleColumnsText = this._visibleColumnsSetting.get()[this.tableName] || '';
     this._visibleColumnsInput.setValue(visibleColumnsText);
     this._onVisibleColumnsChanged();
   }
@@ -98,26 +99,26 @@ Resources.DatabaseTableView = class extends UI.SimpleView {
   _onVisibleColumnsChanged() {
     if (!this._dataGrid)
       return;
-    var text = this._visibleColumnsInput.value();
-    var parts = text.split(/[\s,]+/);
-    var matches = new Set();
-    var columnsVisibility = {};
+    const text = this._visibleColumnsInput.value();
+    const parts = text.split(/[\s,]+/);
+    const matches = new Set();
+    const columnsVisibility = {};
     columnsVisibility['0'] = true;
-    for (var i = 0; i < parts.length; ++i) {
-      var part = parts[i];
+    for (let i = 0; i < parts.length; ++i) {
+      const part = parts[i];
       if (this._columnsMap.has(part)) {
         matches.add(part);
         columnsVisibility[this._columnsMap.get(part)] = true;
       }
     }
-    var newVisibleColumns = matches.valuesArray().sort().join(', ');
+    const newVisibleColumns = matches.valuesArray().sort().join(', ');
     if (newVisibleColumns.length === 0) {
-      for (var v of this._columnsMap.values())
+      for (const v of this._columnsMap.values())
         columnsVisibility[v] = true;
     }
     if (newVisibleColumns === this._lastVisibleColumns)
       return;
-    var visibleColumnsRegistry = this._visibleColumnsSetting.get();
+    const visibleColumnsRegistry = this._visibleColumnsSetting.get();
     visibleColumnsRegistry[this.tableName] = text;
     this._visibleColumnsSetting.set(visibleColumnsRegistry);
     this._dataGrid.setColumnsVisiblity(columnsVisibility);
@@ -128,12 +129,15 @@ Resources.DatabaseTableView = class extends UI.SimpleView {
     this.detachChildWidgets();
     this.element.removeChildren();
 
-    var errorMsgElement = createElement('div');
+    const errorMsgElement = createElement('div');
     errorMsgElement.className = 'storage-table-error';
     errorMsgElement.textContent = Common.UIString('An error occurred trying to\nread the “%s” table.', this.tableName);
     this.element.appendChild(errorMsgElement);
   }
 
+  /**
+   * @param {!Common.Event} event
+   */
   _refreshButtonClicked(event) {
     this.update();
   }

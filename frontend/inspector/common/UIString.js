@@ -42,34 +42,6 @@ Common.UIString = function(string, vararg) {
 
 /**
  * @param {string} string
- * @param {...*} vararg
- * @return {string}
- */
-Common.UIString.capitalize = function(string, vararg) {
-  if (Common._useLowerCaseMenuTitles === undefined)
-    throw 'Common.setLocalizationPlatform() has not been called';
-
-  var localized = Common.localize(string);
-  var capitalized;
-  if (Common._useLowerCaseMenuTitles) {
-    capitalized = localized.replace(/\^(.)/g, '$1');
-  } else {
-    capitalized = localized.replace(/\^(.)/g, function(str, char) {
-      return char.toUpperCase();
-    });
-  }
-  return String.vsprintf(capitalized, Array.prototype.slice.call(arguments, 1));
-};
-
-/**
- * @param {string} platform
- */
-Common.setLocalizationPlatform = function(platform) {
-  Common._useLowerCaseMenuTitles = platform === 'windows';
-};
-
-/**
- * @param {string} string
  * @return {string}
  */
 Common.localize = function(string) {
@@ -110,4 +82,24 @@ Common.UIStringFormat = class {
             this._tokenizedFormat)
         .formattedResult;
   }
+};
+
+
+/**
+ * @param {!Array<string>|string} strings
+ * @param {...*} vararg
+ * @return {string}
+ */
+self.ls = function(strings, vararg) {
+  if (typeof strings === 'string')
+    return strings;
+  const values = Array.prototype.slice.call(arguments, 1);
+  if (!values.length)
+    return strings[0];
+  let result = '';
+  for (let i = 0; i < values.length; i++) {
+    result += strings[i];
+    result += '' + values[i];
+  }
+  return result + strings[values.length];
 };

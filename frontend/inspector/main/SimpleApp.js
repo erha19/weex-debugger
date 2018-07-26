@@ -11,9 +11,10 @@ Main.SimpleApp = class {
    * @param {!Document} document
    */
   presentUI(document) {
-    var rootView = new UI.RootView();
+    const rootView = new UI.RootView();
     UI.inspectorView.show(rootView.element);
     rootView.attachToDocument(document);
+    rootView.focus();
   }
 };
 

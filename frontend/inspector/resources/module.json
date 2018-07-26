@@ -10,15 +10,31 @@
         },
         {
             "type": "@Common.Revealer",
-            "contextTypes": ["SDK.Resource"],
+            "contextTypes": [
+                "SDK.Resource"
+            ],
+            "destination": "Application panel",
             "className": "Resources.ResourcesPanel.ResourceRevealer"
         }
     ],
-    "dependencies": ["source_frame", "ui_lazy", "components_lazy"],
+    "dependencies": [
+        "source_frame",
+        "cookie_table",
+        "inline_editor",
+        "data_grid",
+        "components",
+        "object_ui",
+        "perf_ui",
+        "mobile_throttling",
+        "network",
+        "sources"
+    ],
     "scripts": [
+        "ApplicationCacheModel.js",
         "AppManifestView.js",
         "ApplicationCacheItemsView.js",
         "ClearStorageView.js",
+        "StorageItemsView.js",
         "CookieItemsView.js",
         "DatabaseModel.js",
         "DOMStorageModel.js",
@@ -28,6 +44,8 @@
         "IndexedDBModel.js",
         "IndexedDBViews.js",
         "ResourcesPanel.js",
+        "ApplicationPanelSidebar.js",
+        "ResourcesSection.js",
         "ServiceWorkerCacheViews.js",
         "ServiceWorkersView.js"
     ],

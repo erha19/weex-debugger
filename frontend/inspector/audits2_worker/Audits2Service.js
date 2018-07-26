@@ -27,7 +27,7 @@ class LighthousePort {
  * @implements {Service}
  * @unrestricted
  */
-var Audits2Service = class {
+var Audits2Service = class {  // eslint-disable-line
   /**
    * @override
    * @param {function(string)}
@@ -37,50 +37,34 @@ var Audits2Service = class {
   }
 
   /**
-   * @return {!Promise}
+   * @return {!Promise<!ReportRenderer.RunnerResult>}
    */
-  start() {
-    return window.runLighthouseInWorker(this, 'https://www.webkit.org', {flags: {mobile: true}}, [
-      'is-on-https',
-      'redirects-http',
-      'service-worker',
-      'works-offline',
-      'viewport',
-      'manifest-display',
-      'without-javascript',
-      'first-meaningful-paint',
-      'speed-index-metric',
-      'estimated-input-latency',
-      'time-to-interactive',
-      'user-timings',
-      'screenshots',
-      'critical-request-chains',
-      'manifest-exists',
-      'manifest-background-color',
-      'manifest-theme-color',
-      'manifest-icons-min-192',
-      'manifest-icons-min-144',
-      'manifest-name',
-      'manifest-short-name',
-      'manifest-short-name-length',
-      'manifest-start-url',
-      'meta-theme-color',
-      'aria-valid-attr',
-      'aria-allowed-attr',
-      'color-contrast',
-      'image-alt',
-      'label',
-      'tabindex',
-      'content-width',
-      'geolocation-on-start'
-    ]);
+  start(params) {
+    if (Runtime.queryParam('isUnderTest'))
+      this._disableLoggingForTest();
+
+    self.listenForStatus(message => {
+      this.statusUpdate(message[1]);
+    });
+
+    return Promise.resolve()
+        .then(_ => self.runLighthouseInWorker(this, params.url, {flags: params.flags}, params.categoryIDs))
+        .then(/** @type {!ReportRenderer.RunnerResult} */ result => {
+          // Keep all artifacts on the result, no trimming
+          return result;
+        })
+        .catch(err => ({
+                 fatal: true,
+                 message: err.message,
+                 stack: err.stack,
+               }));
   }
 
   /**
    * @return {!Promise}
    */
   stop() {
-    this._onClose();
+    this.close();
     return Promise.resolve();
   }
 
@@ -104,6 +88,13 @@ var Audits2Service = class {
   /**
    * @param {string} message
    */
+  statusUpdate(message) {
+    this._notify('statusUpdate', {message: message});
+  }
+
+  /**
+   * @param {string} message
+   */
   send(message) {
     this._notify('sendProtocolMessage', {message: message});
   }
@@ -121,9 +112,13 @@ var Audits2Service = class {
     if (eventName === 'close')
       this._onClose = cb;
   }
+
+  _disableLoggingForTest() {
+    console.log = () => undefined;  // eslint-disable-line no-console
+  }
 };
 
-// Make lighthouse happy.
+// Make lighthouse and traceviewer happy.
 global = self;
 global.isVinn = true;
 global.document = {};

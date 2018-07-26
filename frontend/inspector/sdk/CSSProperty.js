@@ -27,7 +27,7 @@ SDK.CSSProperty = class {
     this.parsedOk = parsedOk;
     this.implicit = implicit;  // A longhand, implicitly set by missing values of shorthand.
     this.text = text;
-    this.range = range ? Common.TextRange.fromObject(range) : null;
+    this.range = range ? TextUtils.TextRange.fromObject(range) : null;
     this._active = true;
     this._nameRange = null;
     this._valueRange = null;
@@ -45,7 +45,7 @@ SDK.CSSProperty = class {
     // parsedOk: true
     // implicit: false
     // disabled: false
-    var result = new SDK.CSSProperty(
+    const result = new SDK.CSSProperty(
         ownerStyle, index, payload.name, payload.value, payload.important || false, payload.disabled || false,
         ('parsedOk' in payload) ? !!payload.parsedOk : true, !!payload.implicit, payload.text, payload.range);
     return result;
@@ -54,27 +54,27 @@ SDK.CSSProperty = class {
   _ensureRanges() {
     if (this._nameRange && this._valueRange)
       return;
-    var range = this.range;
-    var text = this.text ? new Common.Text(this.text) : null;
+    const range = this.range;
+    const text = this.text ? new TextUtils.Text(this.text) : null;
     if (!range || !text)
       return;
 
-    var nameIndex = text.value().indexOf(this.name);
-    var valueIndex = text.value().lastIndexOf(this.value);
+    const nameIndex = text.value().indexOf(this.name);
+    const valueIndex = text.value().lastIndexOf(this.value);
     if (nameIndex === -1 || valueIndex === -1 || nameIndex > valueIndex)
       return;
 
-    var nameSourceRange = new Common.SourceRange(nameIndex, this.name.length);
-    var valueSourceRange = new Common.SourceRange(valueIndex, this.value.length);
+    const nameSourceRange = new TextUtils.SourceRange(nameIndex, this.name.length);
+    const valueSourceRange = new TextUtils.SourceRange(valueIndex, this.value.length);
 
     this._nameRange = rebase(text.toTextRange(nameSourceRange), range.startLine, range.startColumn);
     this._valueRange = rebase(text.toTextRange(valueSourceRange), range.startLine, range.startColumn);
 
     /**
-     * @param {!Common.TextRange} oneLineRange
+     * @param {!TextUtils.TextRange} oneLineRange
      * @param {number} lineOffset
      * @param {number} columnOffset
-     * @return {!Common.TextRange}
+     * @return {!TextUtils.TextRange}
      */
     function rebase(oneLineRange, lineOffset, columnOffset) {
       if (oneLineRange.startLine === 0) {
@@ -88,7 +88,7 @@ SDK.CSSProperty = class {
   }
 
   /**
-   * @return {?Common.TextRange}
+   * @return {?TextUtils.TextRange}
    */
   nameRange() {
     this._ensureRanges();
@@ -96,7 +96,7 @@ SDK.CSSProperty = class {
   }
 
   /**
-   * @return {?Common.TextRange}
+   * @return {?TextUtils.TextRange}
    */
   valueRange() {
     this._ensureRanges();
@@ -116,7 +116,7 @@ SDK.CSSProperty = class {
   /**
    * @param {boolean} active
    */
-  _setActive(active) {
+  setActive(active) {
     this._active = active;
   }
 
@@ -139,7 +139,7 @@ SDK.CSSProperty = class {
   /**
    * @param {string} propertyText
    * @param {boolean} majorChange
-   * @param {boolean} overwrite
+   * @param {boolean=} overwrite
    * @return {!Promise.<boolean>}
    */
   setText(propertyText, majorChange, overwrite) {
@@ -156,19 +156,18 @@ SDK.CSSProperty = class {
       Host.userMetrics.actionTaken(Host.UserMetrics.Action.StyleRuleEdited);
 
     if (overwrite && propertyText === this.propertyText) {
-      if (majorChange)
-        this.ownerStyle.cssModel().domModel().markUndoableState();
+      this.ownerStyle.cssModel().domModel().markUndoableState(!majorChange);
       return Promise.resolve(true);
     }
 
-    var range = this.range.relativeTo(this.ownerStyle.range.startLine, this.ownerStyle.range.startColumn);
-    var indentation = this.ownerStyle.cssText ? this._detectIndentation(this.ownerStyle.cssText) :
-                                                Common.moduleSetting('textEditorIndent').get();
-    var endIndentation = this.ownerStyle.cssText ? indentation.substring(0, this.ownerStyle.range.endColumn) : '';
-    var text = new Common.Text(this.ownerStyle.cssText || '');
-    var newStyleText = text.replaceRange(range, String.sprintf(';%s;', propertyText));
+    const range = this.range.relativeTo(this.ownerStyle.range.startLine, this.ownerStyle.range.startColumn);
+    const indentation = this.ownerStyle.cssText ? this._detectIndentation(this.ownerStyle.cssText) :
+                                                  Common.moduleSetting('textEditorIndent').get();
+    const endIndentation = this.ownerStyle.cssText ? indentation.substring(0, this.ownerStyle.range.endColumn) : '';
+    const text = new TextUtils.Text(this.ownerStyle.cssText || '');
+    const newStyleText = text.replaceRange(range, String.sprintf(';%s;', propertyText));
 
-    return self.runtime.extension(Common.TokenizerFactory)
+    return self.runtime.extension(TextUtils.TokenizerFactory)
         .instance()
         .then(this._formatStyle.bind(this, newStyleText, indentation, endIndentation))
         .then(setStyleText.bind(this));
@@ -187,16 +186,16 @@ SDK.CSSProperty = class {
    * @param {string} styleText
    * @param {string} indentation
    * @param {string} endIndentation
-   * @param {!Common.TokenizerFactory} tokenizerFactory
+   * @param {!TextUtils.TokenizerFactory} tokenizerFactory
    * @return {string}
    */
   _formatStyle(styleText, indentation, endIndentation, tokenizerFactory) {
     if (indentation)
       indentation = '\n' + indentation;
-    var result = '';
-    var propertyText;
-    var insideProperty = false;
-    var tokenize = tokenizerFactory.createTokenizer('text/css');
+    let result = '';
+    let propertyText;
+    let insideProperty = false;
+    const tokenize = tokenizerFactory.createTokenizer('text/css');
 
     tokenize('*{' + styleText + '}', processToken);
     if (insideProperty)
@@ -212,9 +211,10 @@ SDK.CSSProperty = class {
      */
     function processToken(token, tokenType, column, newColumn) {
       if (!insideProperty) {
-        var disabledProperty = tokenType && tokenType.includes('css-comment') && isDisabledProperty(token);
-        var isPropertyStart = tokenType && (tokenType.includes('css-string') || tokenType.includes('css-meta') ||
-                                            tokenType.includes('css-property') || tokenType.includes('css-variable-2'));
+        const disabledProperty = tokenType && tokenType.includes('css-comment') && isDisabledProperty(token);
+        const isPropertyStart = tokenType &&
+            (tokenType.includes('css-string') || tokenType.includes('css-meta') || tokenType.includes('css-property') ||
+             tokenType.includes('css-variable-2'));
         if (disabledProperty) {
           result = result.trimRight() + indentation + token;
         } else if (isPropertyStart) {
@@ -241,10 +241,10 @@ SDK.CSSProperty = class {
      * @return {boolean}
      */
     function isDisabledProperty(text) {
-      var colon = text.indexOf(':');
+      const colon = text.indexOf(':');
       if (colon === -1)
         return false;
-      var propertyName = text.substring(2, colon).trim();
+      const propertyName = text.substring(2, colon).trim();
       return SDK.cssMetadata().isCSSPropertyName(propertyName);
     }
   }
@@ -254,10 +254,10 @@ SDK.CSSProperty = class {
    * @return {string}
    */
   _detectIndentation(text) {
-    var lines = text.split('\n');
+    const lines = text.split('\n');
     if (lines.length < 2)
       return '';
-    return Common.TextUtils.lineIndent(lines[1]);
+    return TextUtils.TextUtils.lineIndent(lines[1]);
   }
 
   /**
@@ -267,7 +267,7 @@ SDK.CSSProperty = class {
    * @param {function(boolean)=} userCallback
    */
   setValue(newValue, majorChange, overwrite, userCallback) {
-    var text = this.name + ': ' + newValue + (this.important ? ' !important' : '') + ';';
+    const text = this.name + ': ' + newValue + (this.important ? ' !important' : '') + ';';
     this.setText(text, majorChange, overwrite).then(userCallback);
   }
 
@@ -280,8 +280,8 @@ SDK.CSSProperty = class {
       return Promise.resolve(false);
     if (disabled === this.disabled)
       return Promise.resolve(true);
-    var propertyText = this.text.trim();
-    var text = disabled ? '/* ' + propertyText + ' */' : this.text.substring(2, propertyText.length - 2).trim();
+    const propertyText = this.text.trim();
+    const text = disabled ? '/* ' + propertyText + ' */' : this.text.substring(2, propertyText.length - 2).trim();
     return this.setText(text, true, true);
   }
 };

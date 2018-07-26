@@ -4,46 +4,45 @@ function WebsocketClient(url) {
 WebsocketClient.prototype = {
     constructor: WebsocketClient,
     connect: function (url) {
-        var This = this;
-        This.isSocketReady = false;
-        This._sended = [];
-        This._received = [];
-        if (This.ws) {
-            This.ws.onopen = null;
-            This.ws.onmessage = null;
-            This.ws.onclose = null;
-            if (This.ws.readyState == WebSocket.OPEN) {
-                This.ws.close();
+        var self = this;
+        self.isSocketReady = false;
+        self._sended = [];
+        self._received = [];
+        if (self.ws) {
+            self.ws.onopen = null;
+            self.ws.onmessage = null;
+            self.ws.onclose = null;
+            if (self.ws.readyState == WebSocket.OPEN) {
+                self.ws.close();
             }
         }
         var ws = new WebSocket(url);
-        This.ws = ws;
+        self.ws = ws;
         ws.onopen = function () {
-            This.isSocketReady = true;
-            This.emit('socketOpened');
+            self.isSocketReady = true;
+            self.emit('socketOpened');
         };
         ws.onmessage = function (e) {
             var message = JSON.parse(e.data);
             if (message.method) {
-                This.emit(message.method, message);
+                self.emit(message.method, message);
             }
         };
         ws.onclose = function () {
-            This.isSocketReady = false;
-            /* setTimeout(function(){
-             This.connect(url);
-             },800);*/
+            self.isSocketReady = false;
+            self.emit('socketClose');
         };
 
     },
     send: function (data) {
-        if (this.isSocketReady) {
-            this.ws.send(JSON.stringify(data));
+        var self = this;
+        if (self.isSocketReady) {
+            self.ws.send(JSON.stringify(data));
         }
         else {
-            this.once('socketOpened', function () {
-                this.ws.send(JSON.stringify(data))
-            }.bind(this));
+            self.once('socketOpened', function () {
+                self.ws.send(JSON.stringify(data))
+            });
         }
     },
     close: function () {

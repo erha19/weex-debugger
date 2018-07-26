@@ -36,9 +36,10 @@
 #sources-panel-sources-view .sources-toolbar {
     display: flex;
     flex: 0 0 27px;
-    background-color: #f3f3f3;
-    border-top: 1px solid #dadada;
+    background-color: var(--toolbar-bg-color);
+    border-top: var(--divider-border);
     overflow: hidden;
+    z-index: 0;
 }
 
 .sources-toolbar .toolbar {
@@ -58,16 +59,12 @@
     background-color: #444;
 }
 
-.source-frame-unsaved-committed-changes {
-    background-color: rgba(255, 225, 205, 0.40);
-}
-
 .source-frame-breakpoint-condition {
     z-index: 30;
     padding: 4px;
-    background-color: rgb(203, 226, 255);
+    background-color: #e6e6e6;
     border-radius: 7px;
-    border: 2px solid rgb(169, 172, 203);
+    border: 2px solid #bababa;
     width: 90%;
     pointer-events: auto;
 }
@@ -75,7 +72,6 @@
 .source-frame-breakpoint-message {
     background-color: transparent;
     font-weight: normal;
-    font-size: 11px;
     text-align: left;
     text-shadow: none;
     color: rgb(85, 85, 85);
@@ -89,7 +85,6 @@
     width: 100%;
     box-shadow: none !important;
     outline: none !important;
-    -webkit-user-modify: read-write;
 }
 
 @-webkit-keyframes source-frame-value-update-highlight-animation {
@@ -168,6 +163,6 @@
 @keyframes source-line-modification-foreground-fadeout {
     from { color: white; }
     50% { color: white; }
-    90% { color: intial; }
-    to { color: intial; }
+    90% { color: initial; }
+    to { color: initial; }
 }

@@ -37,48 +37,44 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
     super(target);
     /** @type {!Map.<string, !TimelineModel.TracingLayerTile>} */
     this._tileById = new Map();
+    this._paintProfilerModel = target && target.model(SDK.PaintProfilerModel);
   }
 
   /**
    * @param {?TimelineModel.TracingLayerPayload} root
    * @param {?Array<!TimelineModel.TracingLayerPayload>} layers
    * @param {!Array<!TimelineModel.LayerPaintEvent>} paints
-   * @param {function()} callback
+   * @return {!Promise}
    */
-  setLayers(root, layers, paints, callback) {
-    var idsToResolve = new Set();
+  async setLayers(root, layers, paints) {
+    const idsToResolve = new Set();
     if (root) {
       // This is a legacy code path for compatibility, as cc is removing
       // layer tree hierarchy, this code will eventually be removed.
       this._extractNodeIdsToResolve(idsToResolve, {}, root);
     } else {
-      for (var i = 0; i < layers.length; ++i)
+      for (let i = 0; i < layers.length; ++i)
         this._extractNodeIdsToResolve(idsToResolve, {}, layers[i]);
     }
-    this._resolveBackendNodeIds(idsToResolve, onBackendNodeIdsResolved.bind(this));
 
-    /**
-     * @this {TimelineModel.TracingLayerTree}
-     */
-    function onBackendNodeIdsResolved() {
-      var oldLayersById = this._layersById;
-      this._layersById = {};
-      this.setContentRoot(null);
-      if (root) {
-        var convertedLayers = this._innerSetLayers(oldLayersById, root);
-        this.setRoot(convertedLayers);
-      } else {
-        var processedLayers = layers.map(this._innerSetLayers.bind(this, oldLayersById));
-        var contentRoot = this.contentRoot();
-        this.setRoot(contentRoot);
-        for (var i = 0; i < processedLayers.length; ++i) {
-          if (processedLayers[i].id() !== contentRoot.id())
-            contentRoot.addChild(processedLayers[i]);
-        }
+    await this.resolveBackendNodeIds(idsToResolve);
+
+    const oldLayersById = this._layersById;
+    this._layersById = {};
+    this.setContentRoot(null);
+    if (root) {
+      const convertedLayers = this._innerSetLayers(oldLayersById, root);
+      this.setRoot(convertedLayers);
+    } else {
+      const processedLayers = layers.map(this._innerSetLayers.bind(this, oldLayersById));
+      const contentRoot = this.contentRoot();
+      this.setRoot(contentRoot);
+      for (let i = 0; i < processedLayers.length; ++i) {
+        if (processedLayers[i].id() !== contentRoot.id())
+          contentRoot.addChild(processedLayers[i]);
       }
-      this._setPaints(paints);
-      callback();
     }
+    this._setPaints(paints);
   }
 
   /**
@@ -86,7 +82,7 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
    */
   setTiles(tiles) {
     this._tileById = new Map();
-    for (var tile of tiles)
+    for (const tile of tiles)
       this._tileById.set(tile.id, tile);
   }
 
@@ -95,12 +91,12 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
    * @return {!Promise<?SDK.SnapshotWithRect>}
    */
   pictureForRasterTile(tileId) {
-    var tile = this._tileById.get('cc::Tile/' + tileId);
+    const tile = this._tileById.get('cc::Tile/' + tileId);
     if (!tile) {
       Common.console.error(`Tile ${tileId} is missing`);
       return /** @type {!Promise<?SDK.SnapshotWithRect>} */ (Promise.resolve(null));
     }
-    var layer = this.layerById(tile.layer_id);
+    const layer = this.layerById(tile.layer_id);
     if (!layer) {
       Common.console.error(`Layer ${tile.layer_id} for tile ${tileId} is not found`);
       return /** @type {!Promise<?SDK.SnapshotWithRect>} */ (Promise.resolve(null));
@@ -112,8 +108,8 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
    * @param {!Array<!TimelineModel.LayerPaintEvent>} paints
    */
   _setPaints(paints) {
-    for (var i = 0; i < paints.length; ++i) {
-      var layer = this._layersById[paints[i].layerId()];
+    for (let i = 0; i < paints.length; ++i) {
+      const layer = this._layersById[paints[i].layerId()];
       if (layer)
         layer._addPaintEvent(paints[i]);
     }
@@ -125,17 +121,17 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
    * @return {!TimelineModel.TracingLayer}
    */
   _innerSetLayers(oldLayersById, payload) {
-    var layer = /** @type {?TimelineModel.TracingLayer} */ (oldLayersById[payload.layer_id]);
+    let layer = /** @type {?TimelineModel.TracingLayer} */ (oldLayersById[payload.layer_id]);
     if (layer)
       layer._reset(payload);
     else
-      layer = new TimelineModel.TracingLayer(this.target(), payload);
+      layer = new TimelineModel.TracingLayer(this._paintProfilerModel, payload);
     this._layersById[payload.layer_id] = layer;
     if (payload.owner_node)
-      layer._setNode(this._backendNodeIdToNode.get(payload.owner_node) || null);
+      layer._setNode(this.backendNodeIdToNode().get(payload.owner_node) || null);
     if (!this.contentRoot() && layer.drawsContent())
       this.setContentRoot(layer);
-    for (var i = 0; payload.children && i < payload.children.length; ++i)
+    for (let i = 0; payload.children && i < payload.children.length; ++i)
       layer.addChild(this._innerSetLayers(oldLayersById, payload.children[i]));
     return layer;
   }
@@ -146,10 +142,10 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
    * @param {!TimelineModel.TracingLayerPayload} payload
    */
   _extractNodeIdsToResolve(nodeIdsToResolve, seenNodeIds, payload) {
-    var backendNodeId = payload.owner_node;
-    if (backendNodeId && !this._backendNodeIdToNode.has(backendNodeId))
+    const backendNodeId = payload.owner_node;
+    if (backendNodeId && !this.backendNodeIdToNode().has(backendNodeId))
       nodeIdsToResolve.add(backendNodeId);
-    for (var i = 0; payload.children && i < payload.children.length; ++i)
+    for (let i = 0; payload.children && i < payload.children.length; ++i)
       this._extractNodeIdsToResolve(nodeIdsToResolve, seenNodeIds, payload.children[i]);
   }
 };
@@ -160,11 +156,11 @@ TimelineModel.TracingLayerTree = class extends SDK.LayerTreeBase {
  */
 TimelineModel.TracingLayer = class {
   /**
+   * @param {?SDK.PaintProfilerModel} paintProfilerModel
    * @param {!TimelineModel.TracingLayerPayload} payload
-   * @param {?SDK.Target} target
    */
-  constructor(target, payload) {
-    this._target = target;
+  constructor(paintProfilerModel, payload) {
+    this._paintProfilerModel = paintProfilerModel;
     this._reset(payload);
   }
 
@@ -262,7 +258,7 @@ TimelineModel.TracingLayer = class {
    * @return {?SDK.DOMNode}
    */
   nodeForSelfOrAncestor() {
-    for (var layer = this; layer; layer = layer._parent) {
+    for (let layer = this; layer; layer = layer._parent) {
       if (layer._node)
         return layer._node;
     }
@@ -359,6 +355,15 @@ TimelineModel.TracingLayer = class {
 
   /**
    * @override
+   * @return {?SDK.Layer.StickyPositionConstraint}
+   */
+  stickyPositionConstraint() {
+    // TODO(smcgruer): Provide sticky layer information in traces.
+    return null;
+  }
+
+  /**
+   * @override
    * @return {number}
    */
   gpuMemoryUsage() {
@@ -373,7 +378,7 @@ TimelineModel.TracingLayer = class {
     return this._paints.map(paint => paint.snapshotPromise().then(snapshot => {
       if (!snapshot)
         return null;
-      var rect = {x: snapshot.rect[0], y: snapshot.rect[1], width: snapshot.rect[2], height: snapshot.rect[3]};
+      const rect = {x: snapshot.rect[0], y: snapshot.rect[1], width: snapshot.rect[2], height: snapshot.rect[3]};
       return {rect: rect, snapshot: snapshot.snapshot};
     }));
   }
@@ -384,17 +389,17 @@ TimelineModel.TracingLayer = class {
    */
   _pictureForRect(targetRect) {
     return Promise.all(this._paints.map(paint => paint.picturePromise())).then(pictures => {
-      var fragments =
+      const fragments =
           pictures.filter(picture => picture && rectsOverlap(picture.rect, targetRect))
               .map(picture => ({x: picture.rect[0], y: picture.rect[1], picture: picture.serializedPicture}));
-      if (!fragments.length || !this._target)
+      if (!fragments.length || !this._paintProfilerModel)
         return null;
-      var x0 = fragments.reduce((min, item) => Math.min(min, item.x), Infinity);
-      var y0 = fragments.reduce((min, item) => Math.min(min, item.y), Infinity);
+      const x0 = fragments.reduce((min, item) => Math.min(min, item.x), Infinity);
+      const y0 = fragments.reduce((min, item) => Math.min(min, item.y), Infinity);
       // Rect is in layer content coordinates, make it relative to picture by offsetting to the top left corner.
-      var rect = {x: targetRect[0] - x0, y: targetRect[1] - y0, width: targetRect[2], height: targetRect[3]};
-      return SDK.PaintProfilerSnapshot.loadFromFragments(this._target, fragments)
-          .then(snapshot => snapshot ? {rect: rect, snapshot: snapshot} : null);
+      const rect = {x: targetRect[0] - x0, y: targetRect[1] - y0, width: targetRect[2], height: targetRect[3]};
+      return this._paintProfilerModel.loadSnapshotFromFragments(fragments).then(
+          snapshot => snapshot ? {rect: rect, snapshot: snapshot} : null);
     });
 
     /**
@@ -461,10 +466,10 @@ TimelineModel.TracingLayer = class {
 
   /**
    * @override
-   * @param {function(!Array.<string>)} callback
+   * @return {!Promise<!Array<string>>}
    */
-  requestCompositingReasons(callback) {
-    callback(this._compositingReasons);
+  requestCompositingReasons() {
+    return Promise.resolve(this._compositingReasons);
   }
 
   /**

@@ -27,34 +27,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
- * @implements {Timeline.TimelineModeView}
  * @unrestricted
  */
 Timeline.CountersGraph = class extends UI.VBox {
   /**
    * @param {!Timeline.TimelineModeViewDelegate} delegate
-   * @param {!TimelineModel.TimelineModel} model
-   * @param {!Array<!TimelineModel.TimelineModel.Filter>} filters
    */
-  constructor(delegate, model, filters) {
+  constructor(delegate) {
     super();
-
     this.element.id = 'memory-graphs-container';
 
     this._delegate = delegate;
-    this._model = model;
-    this._filters = filters;
-    this._calculator = new Timeline.CounterGraphCalculator(this._model);
+    this._calculator = new Timeline.CountersGraph.Calculator();
 
     // Create selectors
-    this._infoWidget = new UI.HBox();
-    this._infoWidget.element.classList.add('memory-counter-selector-swatches', 'timeline-toolbar-resizer');
-    this._infoWidget.show(this.element);
+    this._header = new UI.HBox();
+    this._header.element.classList.add('timeline-memory-header');
+    this._header.show(this.element);
+    this._toolbar = new UI.Toolbar('timeline-memory-toolbar');
+    this._header.element.appendChild(this._toolbar.element);
 
     this._graphsContainer = new UI.VBox();
     this._graphsContainer.show(this.element);
-    var canvasWidget = new UI.VBoxWithResizeCallback(this._resize.bind(this));
+    const canvasWidget = new UI.VBoxWithResizeCallback(this._resize.bind(this));
     canvasWidget.show(this._graphsContainer.element);
     this._createCurrentValuesBar();
     this._canvasContainer = canvasWidget.element;
@@ -67,11 +64,67 @@ Timeline.CountersGraph = class extends UI.VBox {
     this._canvasContainer.addEventListener('mouseleave', this._onMouseLeave.bind(this), true);
     this._canvasContainer.addEventListener('click', this._onClick.bind(this), true);
     // We create extra timeline grid here to reuse its event dividers.
-    this._timelineGrid = new UI.TimelineGrid();
+    this._timelineGrid = new PerfUI.TimelineGrid();
     this._canvasContainer.appendChild(this._timelineGrid.dividersElement);
 
     this._counters = [];
     this._counterUI = [];
+
+    this._countersByName = {};
+    this._countersByName['jsHeapSizeUsed'] = this._createCounter(
+        Common.UIString('JS Heap'), Common.UIString('JS Heap: %s'), 'hsl(220, 90%, 43%)', Number.bytesToString);
+    this._countersByName['documents'] =
+        this._createCounter(Common.UIString('Documents'), Common.UIString('Documents: %s'), 'hsl(0, 90%, 43%)');
+    this._countersByName['nodes'] =
+        this._createCounter(Common.UIString('Nodes'), Common.UIString('Nodes: %s'), 'hsl(120, 90%, 43%)');
+    this._countersByName['jsEventListeners'] =
+        this._createCounter(Common.UIString('Listeners'), Common.UIString('Listeners: %s'), 'hsl(38, 90%, 43%)');
+    this._gpuMemoryCounter = this._createCounter(
+        Common.UIString('GPU Memory'), Common.UIString('GPU Memory [KB]: %s'), 'hsl(300, 90%, 43%)',
+        Number.bytesToString);
+    this._countersByName['gpuMemoryUsedKB'] = this._gpuMemoryCounter;
+  }
+
+  /**
+   * @param {?Timeline.PerformanceModel} model
+   * @param {?TimelineModel.TimelineModel.Track} track
+   */
+  setModel(model, track) {
+    if (this._model !== model) {
+      if (this._model)
+        this._model.removeEventListener(Timeline.PerformanceModel.Events.WindowChanged, this._onWindowChanged, this);
+      this._model = model;
+      if (this._model)
+        this._model.addEventListener(Timeline.PerformanceModel.Events.WindowChanged, this._onWindowChanged, this);
+    }
+    this._calculator.setZeroTime(model ? model.timelineModel().minimumRecordTime() : 0);
+    for (let i = 0; i < this._counters.length; ++i) {
+      this._counters[i].reset();
+      this._counterUI[i].reset();
+    }
+    this.scheduleRefresh();
+    this._track = track;
+    if (!track)
+      return;
+    const events = track.syncEvents();
+    for (let i = 0; i < events.length; ++i) {
+      const event = events[i];
+      if (event.name !== TimelineModel.TimelineModel.RecordType.UpdateCounters)
+        continue;
+
+      const counters = event.args.data;
+      if (!counters)
+        return;
+      for (const name in counters) {
+        const counter = this._countersByName[name];
+        if (counter)
+          counter.appendSample(event.startTime, counters[name]);
+      }
+
+      const gpuMemoryLimitCounterName = 'gpuMemoryLimitKB';
+      if (gpuMemoryLimitCounterName in counters)
+        this._gpuMemoryCounter.setLimit(counters[gpuMemoryLimitCounterName]);
+    }
   }
 
   _createCurrentValuesBar() {
@@ -86,8 +139,8 @@ Timeline.CountersGraph = class extends UI.VBox {
    * @param {function(number):string=} formatter
    * @return {!Timeline.CountersGraph.Counter}
    */
-  createCounter(uiName, uiValueTemplate, color, formatter) {
-    var counter = new Timeline.CountersGraph.Counter();
+  _createCounter(uiName, uiValueTemplate, color, formatter) {
+    const counter = new Timeline.CountersGraph.Counter();
     this._counters.push(counter);
     this._counterUI.push(
         new Timeline.CountersGraph.CounterUI(this, uiName, uiValueTemplate, color, counter, formatter));
@@ -95,54 +148,26 @@ Timeline.CountersGraph = class extends UI.VBox {
   }
 
   /**
-   * @override
-   * @return {!UI.Widget}
-   */
-  view() {
-    return this;
-  }
-
-  /**
-   * @override
-   */
-  dispose() {
-  }
-
-  /**
-   * @override
-   */
-  reset() {
-    for (var i = 0; i < this._counters.length; ++i) {
-      this._counters[i].reset();
-      this._counterUI[i].reset();
-    }
-    this.refresh();
-  }
-
-  /**
-   * @override
    * @return {?Element}
    */
   resizerElement() {
-    return this._infoWidget.element;
+    return this._header.element;
   }
 
   _resize() {
-    var parentElement = this._canvas.parentElement;
+    const parentElement = this._canvas.parentElement;
     this._canvas.width = parentElement.clientWidth * window.devicePixelRatio;
     this._canvas.height = parentElement.clientHeight * window.devicePixelRatio;
-    var timelinePaddingLeft = 15;
-    this._calculator.setDisplayWindow(this._canvas.width, timelinePaddingLeft);
+    this._calculator.setDisplayWidth(this._canvas.width);
     this.refresh();
   }
 
   /**
-   * @override
-   * @param {number} startTime
-   * @param {number} endTime
+   * @param {!Common.Event} event
    */
-  setWindowTimes(startTime, endTime) {
-    this._calculator.setWindow(startTime, endTime);
+  _onWindowChanged(event) {
+    const window = /** @type {!Timeline.PerformanceModel.Window} */ (event.data.window);
+    this._calculator.setWindow(window.left, window.right);
     this.scheduleRefresh();
   }
 
@@ -151,36 +176,36 @@ Timeline.CountersGraph = class extends UI.VBox {
   }
 
   draw() {
-    for (var i = 0; i < this._counters.length; ++i) {
-      this._counters[i]._calculateVisibleIndexes(this._calculator);
-      this._counters[i]._calculateXValues(this._canvas.width);
-    }
     this._clear();
-
-    for (var i = 0; i < this._counterUI.length; i++)
-      this._counterUI[i]._drawGraph(this._canvas);
+    for (const counter of this._counters) {
+      counter._calculateVisibleIndexes(this._calculator);
+      counter._calculateXValues(this._canvas.width);
+    }
+    for (const counterUI of this._counterUI)
+      counterUI._drawGraph(this._canvas);
   }
 
   /**
    * @param {!Event} event
    */
   _onClick(event) {
-    var x = event.x - this._canvasContainer.totalOffsetLeft();
-    var minDistance = Infinity;
-    var bestTime;
-    for (var i = 0; i < this._counterUI.length; ++i) {
-      var counterUI = this._counterUI[i];
+    const x = event.x - this._canvasContainer.totalOffsetLeft();
+    let minDistance = Infinity;
+    let bestTime;
+    for (const counterUI of this._counterUI) {
       if (!counterUI.counter.times.length)
         continue;
-      var index = counterUI._recordIndexAt(x);
-      var distance = Math.abs(x * window.devicePixelRatio - counterUI.counter.x[index]);
+      const index = counterUI._recordIndexAt(x);
+      const distance = Math.abs(x * window.devicePixelRatio - counterUI.counter.x[index]);
       if (distance < minDistance) {
         minDistance = distance;
         bestTime = counterUI.counter.times[index];
       }
     }
-    if (bestTime !== undefined)
-      this._delegate.selectEntryAtTime(bestTime);
+    if (bestTime !== undefined) {
+      this._delegate.selectEntryAtTime(
+          this._track.events.length ? this._track.events : this._track.asyncEvents, bestTime);
+    }
   }
 
   /**
@@ -192,7 +217,7 @@ Timeline.CountersGraph = class extends UI.VBox {
   }
 
   _clearCurrentValueAndMarker() {
-    for (var i = 0; i < this._counterUI.length; i++)
+    for (let i = 0; i < this._counterUI.length; i++)
       this._counterUI[i]._clearCurrentValueAndMarker();
   }
 
@@ -200,7 +225,7 @@ Timeline.CountersGraph = class extends UI.VBox {
    * @param {!Event} event
    */
   _onMouseMove(event) {
-    var x = event.x - this._canvasContainer.totalOffsetLeft();
+    const x = event.x - this._canvasContainer.totalOffsetLeft();
     this._markerXPosition = x;
     this._refreshCurrentValues();
   }
@@ -208,7 +233,7 @@ Timeline.CountersGraph = class extends UI.VBox {
   _refreshCurrentValues() {
     if (this._markerXPosition === undefined)
       return;
-    for (var i = 0; i < this._counterUI.length; ++i)
+    for (let i = 0; i < this._counterUI.length; ++i)
       this._counterUI[i].updateCurrentValue(this._markerXPosition);
   }
 
@@ -218,38 +243,9 @@ Timeline.CountersGraph = class extends UI.VBox {
     this._refreshCurrentValues();
   }
 
-  /**
-   * @override
-   */
-  refreshRecords() {
-  }
-
   _clear() {
-    var ctx = this._canvas.getContext('2d');
+    const ctx = this._canvas.getContext('2d');
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  }
-
-  /**
-   * @override
-   * @param {?SDK.TracingModel.Event} event
-   * @param {string=} regex
-   * @param {boolean=} select
-   */
-  highlightSearchResult(event, regex, select) {
-  }
-
-  /**
-   * @override
-   * @param {?SDK.TracingModel.Event} event
-   */
-  highlightEvent(event) {
-  }
-
-  /**
-   * @override
-   * @param {?Timeline.TimelineSelection} selection
-   */
-  setSelection(selection) {
   }
 };
 
@@ -289,10 +285,10 @@ Timeline.CountersGraph.Counter = class {
    * @return {!{min: number, max: number}}
    */
   _calculateBounds() {
-    var maxValue;
-    var minValue;
-    for (var i = this._minimumIndex; i <= this._maximumIndex; i++) {
-      var value = this.values[i];
+    let maxValue;
+    let minValue;
+    for (let i = this._minimumIndex; i <= this._maximumIndex; i++) {
+      const value = this.values[i];
       if (minValue === undefined || value < minValue)
         minValue = value;
       if (maxValue === undefined || value > maxValue)
@@ -309,11 +305,11 @@ Timeline.CountersGraph.Counter = class {
   }
 
   /**
-   * @param {!Timeline.CounterGraphCalculator} calculator
+   * @param {!Timeline.CountersGraph.Calculator} calculator
    */
   _calculateVisibleIndexes(calculator) {
-    var start = calculator.minimumBoundary();
-    var end = calculator.maximumBoundary();
+    const start = calculator.minimumBoundary();
+    const end = calculator.maximumBoundary();
 
     // Maximum index of element whose time <= start.
     this._minimumIndex = Number.constrain(this.times.upperBound(start) - 1, 0, this.times.length - 1);
@@ -333,10 +329,10 @@ Timeline.CountersGraph.Counter = class {
     if (!this.values.length)
       return;
 
-    var xFactor = width / (this._maxTime - this._minTime);
+    const xFactor = width / (this._maxTime - this._minTime);
 
     this.x = new Array(this.values.length);
-    for (var i = this._minimumIndex + 1; i <= this._maximumIndex; i++)
+    for (let i = this._minimumIndex + 1; i <= this._maximumIndex; i++)
       this.x[i] = xFactor * (this.times[i] - this._minTime);
   }
 };
@@ -346,32 +342,32 @@ Timeline.CountersGraph.Counter = class {
  */
 Timeline.CountersGraph.CounterUI = class {
   /**
-   * @param {!Timeline.CountersGraph} memoryCountersPane
+   * @param {!Timeline.CountersGraph} countersPane
    * @param {string} title
    * @param {string} currentValueLabel
    * @param {string} graphColor
    * @param {!Timeline.CountersGraph.Counter} counter
    * @param {(function(number): string)|undefined} formatter
    */
-  constructor(memoryCountersPane, title, currentValueLabel, graphColor, counter, formatter) {
-    this._memoryCountersPane = memoryCountersPane;
+  constructor(countersPane, title, currentValueLabel, graphColor, counter, formatter) {
+    this._countersPane = countersPane;
     this.counter = counter;
     this._formatter = formatter || Number.withThousandsSeparator;
-    var container = memoryCountersPane._infoWidget.element.createChild('div', 'memory-counter-selector-info');
 
     this._setting = Common.settings.createSetting('timelineCountersGraph-' + title, true);
-    this._filter = new UI.ToolbarCheckbox(title, title, this._setting);
+    this._setting.setTitle(title);
+    this._filter = new UI.ToolbarSettingCheckbox(this._setting, title);
     this._filter.inputElement.classList.add('-theme-preserve');
-    var color = Common.Color.parse(graphColor).setAlpha(0.5).asString(Common.Color.Format.RGBA);
+    const color = Common.Color.parse(graphColor).setAlpha(0.5).asString(Common.Color.Format.RGBA);
     if (color) {
       this._filter.element.backgroundColor = color;
       this._filter.element.borderColor = 'transparent';
     }
     this._filter.inputElement.addEventListener('click', this._toggleCounterGraph.bind(this));
-    container.appendChild(this._filter.element);
+    countersPane._toolbar.appendToolbarItem(this._filter);
     this._range = this._filter.element.createChild('span', 'range');
 
-    this._value = memoryCountersPane._currentValuesBar.createChild('span', 'memory-counter-value');
+    this._value = countersPane._currentValuesBar.createChild('span', 'memory-counter-value');
     this._value.style.color = graphColor;
     this.graphColor = graphColor;
     this.limitColor = Common.Color.parse(graphColor).setAlpha(0.3).asString(Common.Color.Format.RGBA);
@@ -379,7 +375,7 @@ Timeline.CountersGraph.CounterUI = class {
     this._verticalPadding = 10;
 
     this._currentValueLabel = currentValueLabel;
-    this._marker = memoryCountersPane._canvasContainer.createChild('div', 'memory-counter-marker');
+    this._marker = countersPane._canvasContainer.createChild('div', 'memory-counter-marker');
     this._marker.style.backgroundColor = graphColor;
     this._clearCurrentValueAndMarker();
   }
@@ -393,9 +389,9 @@ Timeline.CountersGraph.CounterUI = class {
    * @param {number} maxValue
    */
   setRange(minValue, maxValue) {
-    var min = this._formatter(minValue);
-    var max = this._formatter(maxValue);
-    this._range.textContent = Common.UIString('[%s\u2009\u2013\u2009%s]', min, max);
+    const min = this._formatter(minValue);
+    const max = this._formatter(maxValue);
+    this._range.textContent = Common.UIString('[%s\xa0\u2013\xa0%s]', min, max);
   }
 
   /**
@@ -403,7 +399,7 @@ Timeline.CountersGraph.CounterUI = class {
    */
   _toggleCounterGraph(event) {
     this._value.classList.toggle('hidden', !this._filter.checked());
-    this._memoryCountersPane.refresh();
+    this._countersPane.refresh();
   }
 
   /**
@@ -422,10 +418,10 @@ Timeline.CountersGraph.CounterUI = class {
   updateCurrentValue(x) {
     if (!this.visible() || !this.counter.values.length || !this.counter.x)
       return;
-    var index = this._recordIndexAt(x);
-    var value = Number.withThousandsSeparator(this.counter.values[index]);
+    const index = this._recordIndexAt(x);
+    const value = Number.withThousandsSeparator(this.counter.values[index]);
     this._value.textContent = Common.UIString(this._currentValueLabel, value);
-    var y = this.graphYValues[index] / window.devicePixelRatio;
+    const y = this.graphYValues[index] / window.devicePixelRatio;
     this._marker.style.left = x + 'px';
     this._marker.style.top = y + 'px';
     this._marker.classList.remove('hidden');
@@ -440,44 +436,45 @@ Timeline.CountersGraph.CounterUI = class {
    * @param {!HTMLCanvasElement} canvas
    */
   _drawGraph(canvas) {
-    var ctx = canvas.getContext('2d');
-    var width = canvas.width;
-    var height = canvas.height - 2 * this._verticalPadding;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height - 2 * this._verticalPadding;
     if (height <= 0) {
       this.graphYValues = [];
       return;
     }
-    var originY = this._verticalPadding;
-    var counter = this.counter;
-    var values = counter.values;
+    const originY = this._verticalPadding;
+    const counter = this.counter;
+    const values = counter.values;
 
     if (!values.length)
       return;
 
-    var bounds = counter._calculateBounds();
-    var minValue = bounds.min;
-    var maxValue = bounds.max;
+    const bounds = counter._calculateBounds();
+    const minValue = bounds.min;
+    const maxValue = bounds.max;
     this.setRange(minValue, maxValue);
 
     if (!this.visible())
       return;
 
-    var yValues = this.graphYValues;
-    var maxYRange = maxValue - minValue;
-    var yFactor = maxYRange ? height / (maxYRange) : 1;
+    const yValues = this.graphYValues;
+    const maxYRange = maxValue - minValue;
+    const yFactor = maxYRange ? height / (maxYRange) : 1;
 
     ctx.save();
     ctx.lineWidth = window.devicePixelRatio;
     if (ctx.lineWidth % 2)
       ctx.translate(0.5, 0.5);
     ctx.beginPath();
-    var value = values[counter._minimumIndex];
-    var currentY = Math.round(originY + height - (value - minValue) * yFactor);
+    let value = values[counter._minimumIndex];
+    let currentY = Math.round(originY + height - (value - minValue) * yFactor);
     ctx.moveTo(0, currentY);
-    for (var i = counter._minimumIndex; i <= counter._maximumIndex; i++) {
-      var x = Math.round(counter.x[i]);
+    let i = counter._minimumIndex;
+    for (; i <= counter._maximumIndex; i++) {
+      const x = Math.round(counter.x[i]);
       ctx.lineTo(x, currentY);
-      var currentValue = values[i];
+      const currentValue = values[i];
       if (typeof currentValue !== 'undefined')
         value = currentValue;
       currentY = Math.round(originY + height - (value - minValue) * yFactor);
@@ -489,7 +486,7 @@ Timeline.CountersGraph.CounterUI = class {
     ctx.strokeStyle = this.graphColor;
     ctx.stroke();
     if (counter._limitValue) {
-      var limitLineY = Math.round(originY + height - (counter._limitValue - minValue) * yFactor);
+      const limitLineY = Math.round(originY + height - (counter._limitValue - minValue) * yFactor);
       ctx.moveTo(0, limitLineY);
       ctx.lineTo(width, limitLineY);
       ctx.strokeStyle = this.limitColor;
@@ -508,23 +505,15 @@ Timeline.CountersGraph.CounterUI = class {
 };
 
 /**
- * @implements {UI.TimelineGrid.Calculator}
+ * @implements {PerfUI.TimelineGrid.Calculator}
  * @unrestricted
  */
-Timeline.CounterGraphCalculator = class {
+Timeline.CountersGraph.Calculator = class {
   /**
-   * @param {!TimelineModel.TimelineModel} model
+   * @param {number} time
    */
-  constructor(model) {
-    this._model = model;
-  }
-
-  /**
-   * @override
-   * @return {number}
-   */
-  paddingLeft() {
-    return this._paddingLeft;
+  setZeroTime(time) {
+    this._zeroTime = time;
   }
 
   /**
@@ -533,7 +522,7 @@ Timeline.CounterGraphCalculator = class {
    * @return {number}
    */
   computePosition(time) {
-    return (time - this._minimumBoundary) / this.boundarySpan() * this._workingArea + this._paddingLeft;
+    return (time - this._minimumBoundary) / this.boundarySpan() * this._workingArea;
   }
 
   setWindow(minimumBoundary, maximumBoundary) {
@@ -543,11 +532,9 @@ Timeline.CounterGraphCalculator = class {
 
   /**
    * @param {number} clientWidth
-   * @param {number=} paddingLeft
    */
-  setDisplayWindow(clientWidth, paddingLeft) {
-    this._paddingLeft = paddingLeft || 0;
-    this._workingArea = clientWidth - Timeline.CounterGraphCalculator._minWidth - this._paddingLeft;
+  setDisplayWidth(clientWidth) {
+    this._workingArea = clientWidth;
   }
 
   /**
@@ -581,7 +568,7 @@ Timeline.CounterGraphCalculator = class {
    * @return {number}
    */
   zeroTime() {
-    return this._model.minimumRecordTime();
+    return this._zeroTime;
   }
 
   /**
@@ -592,5 +579,3 @@ Timeline.CounterGraphCalculator = class {
     return this._maximumBoundary - this._minimumBoundary;
   }
 };
-
-Timeline.CounterGraphCalculator._minWidth = 5;

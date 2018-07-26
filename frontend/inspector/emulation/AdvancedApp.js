@@ -25,15 +25,15 @@ Emulation.AdvancedApp = class {
    * @param {!Document} document
    */
   presentUI(document) {
-    var rootView = new UI.RootView();
+    const rootView = new UI.RootView();
 
     this._rootSplitWidget = new UI.SplitWidget(false, true, 'InspectorView.splitViewState', 555, 300, true);
     this._rootSplitWidget.show(rootView.element);
-
     this._rootSplitWidget.setSidebarWidget(UI.inspectorView);
+    this._rootSplitWidget.setDefaultFocusedChild(UI.inspectorView);
     UI.inspectorView.setOwnerSplit(this._rootSplitWidget);
 
-    this._inspectedPagePlaceholder = new Emulation.InspectedPagePlaceholder();
+    this._inspectedPagePlaceholder = Emulation.InspectedPagePlaceholder.instance();
     this._inspectedPagePlaceholder.addEventListener(
         Emulation.InspectedPagePlaceholder.Events.Update, this._onSetInspectedPageBounds.bind(this), this);
     this._deviceModeView = new Emulation.DeviceModeWrapper(this._inspectedPagePlaceholder);
@@ -48,6 +48,7 @@ Emulation.AdvancedApp = class {
 
     console.timeStamp('AdvancedApp.attachToBody');
     rootView.attachToDocument(document);
+    rootView.focus();
     this._inspectedPagePlaceholder.update();
   }
 
@@ -61,7 +62,7 @@ Emulation.AdvancedApp = class {
     if (this._toolboxWindow)
       return;
 
-    var url = window.location.href.replace('inspector.html', 'toolbox.html');
+    const url = window.location.href.replace('devtools_app.html', 'toolbox.html');
     this._toolboxWindow = window.open(url, undefined);
   }
 
@@ -106,7 +107,7 @@ Emulation.AdvancedApp = class {
   _onDockSideChange(event) {
     this._updateDeviceModeView();
 
-    var toDockSide = event ? /** @type {string} */ (event.data.to) : Components.dockController.dockSide();
+    const toDockSide = event ? /** @type {string} */ (event.data.to) : Components.dockController.dockSide();
     if (toDockSide === Components.DockController.State.Undocked) {
       this._updateForUndocked();
     } else if (
@@ -138,7 +139,13 @@ Emulation.AdvancedApp = class {
    * @param {string} dockSide
    */
   _updateForDocked(dockSide) {
-    this._rootSplitWidget.setVertical(dockSide === Components.DockController.State.DockedToRight);
+    this._rootSplitWidget.resizerElement().style.transform =
+        dockSide === Components.DockController.State.DockedToRight ?
+        'translateX(2px)' :
+        dockSide === Components.DockController.State.DockedToLeft ? 'translateX(-2px)' : '';
+    this._rootSplitWidget.setVertical(
+        dockSide === Components.DockController.State.DockedToRight ||
+        dockSide === Components.DockController.State.DockedToLeft);
     this._rootSplitWidget.setSecondIsSidebar(
         dockSide === Components.DockController.State.DockedToRight ||
         dockSide === Components.DockController.State.DockedToBottom);
@@ -164,12 +171,12 @@ Emulation.AdvancedApp = class {
   _onSetInspectedPageBounds(event) {
     if (this._changingDockSide)
       return;
-    var window = this._inspectedPagePlaceholder.element.window();
+    const window = this._inspectedPagePlaceholder.element.window();
     if (!window.innerWidth || !window.innerHeight)
       return;
     if (!this._inspectedPagePlaceholder.isShowing())
       return;
-    var bounds = /** @type {{x: number, y: number, width: number, height: number}} */ (event.data);
+    const bounds = /** @type {{x: number, y: number, width: number, height: number}} */ (event.data);
     console.timeStamp('AdvancedApp.setInspectedPageBounds');
     InspectorFrontendHost.setInspectedPageBounds(bounds);
   }

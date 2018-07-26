@@ -9,7 +9,7 @@
   /**
    * @unrestricted
    */
-  var DevToolsAPIImpl = class {
+  const DevToolsAPIImpl = class {
     constructor() {
       /**
        * @type {number}
@@ -27,7 +27,7 @@
      * @param {?Object} arg
      */
     embedderMessageAck(id, arg) {
-      var callback = this._callbacks[id];
+      const callback = this._callbacks[id];
       delete this._callbacks[id];
       if (callback)
         callback(arg);
@@ -39,10 +39,10 @@
      * @param {?function(?Object)} callback
      */
     sendMessageToEmbedder(method, args, callback) {
-      var callId = ++this._lastCallId;
+      const callId = ++this._lastCallId;
       if (callback)
         this._callbacks[callId] = callback;
-      var message = {'id': callId, 'method': method};
+      const message = {'id': callId, 'method': method};
       if (args.length)
         message.params = args;
       DevToolsHost.sendMessageToEmbedder(JSON.stringify(message));
@@ -64,10 +64,14 @@
      */
     addExtensions(extensions) {
       // Support for legacy front-ends (<M41).
-      if (window['WebInspector'] && window['WebInspector']['addExtensions'])
+      if (window['WebInspector'] && window['WebInspector']['addExtensions']) {
         window['WebInspector']['addExtensions'](extensions);
-      else
+      } else if (window['InspectorFrontendAPI']) {
+        // The addExtensions command is sent as the onload event happens for
+        // DevTools front-end. In case of hosted mode, this
+        // happens before the InspectorFrontendAPI is initialized.
         this._dispatchOnInspectorFrontendAPI('addExtensions', [extensions]);
+      }
     }
 
     /**
@@ -103,13 +107,10 @@
     }
 
     /**
-     * @param {boolean} discoverUsbDevices
-     * @param {boolean} portForwardingEnabled
-     * @param {!Adb.PortForwardingConfig} portForwardingConfig
+     * @param {!Adb.Config} config
      */
-    devicesDiscoveryConfigChanged(discoverUsbDevices, portForwardingEnabled, portForwardingConfig) {
-      this._dispatchOnInspectorFrontendAPI(
-          'devicesDiscoveryConfigChanged', [discoverUsbDevices, portForwardingEnabled, portForwardingConfig]);
+    devicesDiscoveryConfigChanged(config) {
+      this._dispatchOnInspectorFrontendAPI('devicesDiscoveryConfigChanged', [config]);
     }
 
     /**
@@ -146,11 +147,10 @@
     }
 
     /**
-     * @param {number} callId
-     * @param {string} script
+     * @param {!{r: number, g: number, b: number, a: number}} color
      */
-    evaluateForTestInFrontend(callId, script) {
-      this._dispatchOnInspectorFrontendAPI('evaluateForTestInFrontend', [callId, script]);
+    eyeDropperPickedColor(color) {
+      this._dispatchOnInspectorFrontendAPI('eyeDropperPickedColor', [color]);
     }
 
     /**
@@ -168,17 +168,27 @@
     }
 
     /**
-     * @param {!{fileSystemName: string, rootURL: string, fileSystemPath: string}} fileSystem
+     * @param {?string} error
+     * @param {?{type: string, fileSystemName: string, rootURL: string, fileSystemPath: string}} fileSystem
      */
-    fileSystemAdded(fileSystem) {
-      this._dispatchOnInspectorFrontendAPI('fileSystemAdded', ['', fileSystem]);
+    fileSystemAdded(error, fileSystem) {
+      this._dispatchOnInspectorFrontendAPI('fileSystemAdded', [error, fileSystem]);
     }
 
     /**
      * @param {!Array<string>} changedPaths
+     * @param {!Array<string>} addedPaths
+     * @param {!Array<string>} removedPaths
      */
-    fileSystemFilesChanged(changedPaths) {
-      this._dispatchOnInspectorFrontendAPI('fileSystemFilesChanged', [changedPaths]);
+    fileSystemFilesChangedAddedRemoved(changedPaths, addedPaths, removedPaths) {
+      // Support for legacy front-ends (<M58)
+      if (window['InspectorFrontendAPI'] && window['InspectorFrontendAPI']['fileSystemFilesChanged']) {
+        this._dispatchOnInspectorFrontendAPI(
+            'fileSystemFilesChanged', [changedPaths.concat(addedPaths).concat(removedPaths)]);
+      } else {
+        this._dispatchOnInspectorFrontendAPI(
+            'fileSystemFilesChangedAddedRemoved', [changedPaths, addedPaths, removedPaths]);
+      }
     }
 
     /**
@@ -233,9 +243,10 @@
 
     /**
      * @param {string} url
+     * @param {string=} fileSystemPath
      */
-    savedURL(url) {
-      this._dispatchOnInspectorFrontendAPI('savedURL', [url]);
+    savedURL(url, fileSystemPath) {
+      this._dispatchOnInspectorFrontendAPI('savedURL', [url, fileSystemPath]);
     }
 
     /**
@@ -286,7 +297,7 @@
      * @return {string}
      */
     _decodeBase64(chunk) {
-      var request = new XMLHttpRequest();
+      const request = new XMLHttpRequest();
       request.open('GET', 'data:text/plain;base64,' + chunk, false);
       request.send(null);
       if (request.status === 200) {
@@ -298,7 +309,7 @@
     }
   };
 
-  var DevToolsAPI = new DevToolsAPIImpl();
+  const DevToolsAPI = new DevToolsAPIImpl();
   window.DevToolsAPI = DevToolsAPI;
 
   // InspectorFrontendHostImpl --------------------------------------------------
@@ -307,7 +318,7 @@
    * @implements {InspectorFrontendHostAPI}
    * @unrestricted
    */
-  var InspectorFrontendHostImpl = class {
+  const InspectorFrontendHostImpl = class {
     /**
      * @override
      * @return {string}
@@ -328,6 +339,22 @@
      * @override
      * @return {string}
      */
+    getInactiveSelectionBackgroundColor() {
+      return DevToolsHost.getInactiveSelectionBackgroundColor();
+    }
+
+    /**
+     * @override
+     * @return {string}
+     */
+    getInactiveSelectionForegroundColor() {
+      return DevToolsHost.getInactiveSelectionForegroundColor();
+    }
+
+    /**
+     * @override
+     * @return {string}
+     */
     platform() {
       return DevToolsHost.platform();
     }
@@ -337,6 +364,12 @@
      */
     loadCompleted() {
       DevToolsAPI.sendMessageToEmbedder('loadCompleted', [], null);
+      // Support for legacy (<57) frontends.
+      if (window.Runtime && window.Runtime.queryParam) {
+        const panelToOpen = window.Runtime.queryParam('panel');
+        if (panelToOpen)
+          window.DevToolsAPI.showPanel(panelToOpen);
+      }
     }
 
     /**
@@ -428,7 +461,7 @@
      * @param {string} script
      */
     setInjectedScriptForOrigin(origin, script) {
-      DevToolsHost.setInjectedScriptForOrigin(origin, script);
+      DevToolsAPI.sendMessageToEmbedder('registerExtensionsAPI', [origin, script], null);
     }
 
     /**
@@ -453,6 +486,14 @@
      */
     openInNewTab(url) {
       DevToolsAPI.sendMessageToEmbedder('openInNewTab', [url], null);
+    }
+
+    /**
+     * @override
+     * @param {string} fileSystemPath
+     */
+    showItemInFolder(fileSystemPath) {
+      DevToolsAPI.sendMessageToEmbedder('showItemInFolder', [fileSystemPath], null);
     }
 
     /**
@@ -504,10 +545,10 @@
 
     /**
      * @override
-     * @param {string=} fileSystemPath
+     * @param {string=} type
      */
-    addFileSystem(fileSystemPath) {
-      DevToolsAPI.sendMessageToEmbedder('addFileSystem', [fileSystemPath || ''], null);
+    addFileSystem(type) {
+      DevToolsAPI.sendMessageToEmbedder('addFileSystem', [type || ''], null);
     }
 
     /**
@@ -540,9 +581,13 @@
      * @override
      * @param {number} requestId
      * @param {string} fileSystemPath
+     * @param {string} excludedFolders
      */
-    indexPath(requestId, fileSystemPath) {
-      DevToolsAPI.sendMessageToEmbedder('indexPath', [requestId, fileSystemPath], null);
+    indexPath(requestId, fileSystemPath, excludedFolders) {
+      // |excludedFolders| added in M67. For backward compatibility,
+      // pass empty array.
+      excludedFolders = excludedFolders || '[]';
+      DevToolsAPI.sendMessageToEmbedder('indexPath', [requestId, fileSystemPath, excludedFolders], null);
     }
 
     /**
@@ -601,18 +646,19 @@
     }
 
     /**
-     * @param {!Array<string>} certChain
+     * @override
+     * @param {boolean} active
      */
-    showCertificateViewer(certChain) {
-      DevToolsAPI.sendMessageToEmbedder('showCertificateViewer', [JSON.stringify(certChain)], null);
+    setEyeDropperActive(active) {
+      DevToolsAPI.sendMessageToEmbedder('setEyeDropperActive', [active], null);
     }
 
     /**
      * @override
-     * @return {boolean}
+     * @param {!Array<string>} certChain
      */
-    isUnderTest() {
-      return DevToolsHost.isUnderTest();
+    showCertificateViewer(certChain) {
+      DevToolsAPI.sendMessageToEmbedder('showCertificateViewer', [JSON.stringify(certChain)], null);
     }
 
     /**
@@ -632,14 +678,31 @@
 
     /**
      * @override
-     * @param {boolean} discoverUsbDevices
-     * @param {boolean} portForwardingEnabled
-     * @param {!Adb.PortForwardingConfig} portForwardingConfig
      */
-    setDevicesDiscoveryConfig(discoverUsbDevices, portForwardingEnabled, portForwardingConfig) {
+    connectionReady() {
+      DevToolsAPI.sendMessageToEmbedder('connectionReady', [], null);
+    }
+
+    /**
+     * @override
+     * @param {boolean} value
+     */
+    setOpenNewWindowForPopups(value) {
+      DevToolsAPI.sendMessageToEmbedder('setOpenNewWindowForPopups', [value], null);
+    }
+
+    /**
+     * @override
+     * @param {!Adb.Config} config
+     */
+    setDevicesDiscoveryConfig(config) {
       DevToolsAPI.sendMessageToEmbedder(
           'setDevicesDiscoveryConfig',
-          [discoverUsbDevices, portForwardingEnabled, JSON.stringify(portForwardingConfig)], null);
+          [
+            config.discoverUsbDevices, config.portForwardingEnabled, JSON.stringify(config.portForwardingConfig),
+            config.networkDiscoveryEnabled, JSON.stringify(config.networkDiscoveryConfig)
+          ],
+          null);
     }
 
     /**
@@ -670,6 +733,13 @@
 
     /**
      * @override
+     */
+    openNodeFrontend() {
+      DevToolsAPI.sendMessageToEmbedder('openNodeFrontend', [], null);
+    }
+
+    /**
+     * @override
      * @param {number} x
      * @param {number} y
      * @param {!Array.<!InspectorFrontendHostAPI.ContextMenuDescriptor>} items
@@ -688,6 +758,14 @@
     }
 
     // Backward-compatible methods below this line --------------------------------------------
+
+    /**
+     * Support for legacy front-ends (<M65).
+     * @return {boolean}
+     */
+    isUnderTest() {
+      return false;
+    }
 
     /**
      * Support for legacy front-ends (<M50).
@@ -809,7 +887,7 @@
 
   function installObjectObserve() {
     /** @type {!Array<string>} */
-    var properties = [
+    const properties = [
       'advancedSearchConfig',
       'auditsPanelSplitViewState',
       'auditsSidebarWidth',
@@ -903,8 +981,7 @@
       'openLinkHandler',
       'pauseOnCaughtException',
       'pauseOnExceptionEnabled',
-      // 'preserveConsoleLog',
-      'showNativeConsoleLog',
+      'preserveConsoleLog',
       'prettyPrintInfobarDisabled',
       'previouslyViewedFiles',
       'profilesPanelSplitViewState',
@@ -995,13 +1072,13 @@
      */
     function objectObserve(object, observer) {
       if (window['WebInspector']) {
-        var settingPrototype = /** @type {!Object} */ (window['WebInspector']['Setting']['prototype']);
+        const settingPrototype = /** @type {!Object} */ (window['WebInspector']['Setting']['prototype']);
         if (typeof settingPrototype['remove'] === 'function')
           settingPrototype['remove'] = settingRemove;
       }
       /** @type {!Set<string>} */
-      var changedProperties = new Set();
-      var scheduled = false;
+      const changedProperties = new Set();
+      let scheduled = false;
 
       function scheduleObserver() {
         if (scheduled)
@@ -1012,7 +1089,7 @@
 
       function callObserver() {
         scheduled = false;
-        var changes = /** @type {!Array<!{name: string}>} */ ([]);
+        const changes = /** @type {!Array<!{name: string}>} */ ([]);
         changedProperties.forEach(function(name) {
           changes.push({name: name});
         });
@@ -1021,7 +1098,7 @@
       }
 
       /** @type {!Map<string, *>} */
-      var storage = new Map();
+      const storage = new Map();
 
       /**
        * @param {string} property
@@ -1051,7 +1128,7 @@
         });
       }
 
-      for (var i = 0; i < properties.length; ++i)
+      for (let i = 0; i < properties.length; ++i)
         defineProperty(properties[i]);
     }
 
@@ -1059,7 +1136,7 @@
   }
 
   /** @type {!Map<number, string>} */
-  var staticKeyIdentifiers = new Map([
+  const staticKeyIdentifiers = new Map([
     [0x12, 'Alt'],
     [0x11, 'Control'],
     [0x10, 'Shift'],
@@ -1123,20 +1200,39 @@
    * @return {string}
    */
   function keyCodeToKeyIdentifier(keyCode) {
-    var result = staticKeyIdentifiers.get(keyCode);
+    let result = staticKeyIdentifiers.get(keyCode);
     if (result !== undefined)
       return result;
     result = 'U+';
-    var hexString = keyCode.toString(16).toUpperCase();
-    for (var i = hexString.length; i < 4; ++i)
+    const hexString = keyCode.toString(16).toUpperCase();
+    for (let i = hexString.length; i < 4; ++i)
       result += '0';
     result += hexString;
     return result;
   }
 
   function installBackwardsCompatibility() {
-    if (window.location.search.indexOf('remoteFrontend') === -1)
+    if (window.location.href.indexOf('/remote/') === -1)
       return;
+
+    // Support for legacy (<M65) frontends.
+    /** @type {(!function(number, number):Element|undefined)} */
+    ShadowRoot.prototype.__originalShadowRootElementFromPoint;
+
+    if (!ShadowRoot.prototype.__originalShadowRootElementFromPoint) {
+      ShadowRoot.prototype.__originalShadowRootElementFromPoint = ShadowRoot.prototype.elementFromPoint;
+      /**
+       *  @param {number} x
+       *  @param {number} y
+       *  @return {Element}
+       */
+      ShadowRoot.prototype.elementFromPoint = function(x, y) {
+        const originalResult = ShadowRoot.prototype.__originalShadowRootElementFromPoint.apply(this, arguments);
+        if (this.host && originalResult === this.host)
+          return null;
+        return originalResult;
+      };
+    }
 
     // Support for legacy (<M53) frontends.
     if (!window.KeyboardEvent.prototype.hasOwnProperty('keyIdentifier')) {
@@ -1186,7 +1282,7 @@
     window.CSSPrimitiveValue = CSSPrimitiveValue;
 
     // Support for legacy (<M44) frontends.
-    var styleElement = window.document.createElement('style');
+    const styleElement = window.document.createElement('style');
     styleElement.type = 'text/css';
     styleElement.textContent = 'html /deep/ * { min-width: 0; min-height: 0; }';
 

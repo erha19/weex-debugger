@@ -17,30 +17,10 @@ UI.InplaceEditor = class {
   }
 
   /**
-   * @param {!Element} element
-   * @param {!UI.InplaceEditor.Config=} config
-   * @return {!Promise.<!UI.InplaceEditor.Controller>}
-   */
-  static startMultilineEditing(element, config) {
-    return self.runtime.extension(UI.InplaceEditor).instance().then(startEditing);
-
-    /**
-     * @param {!Object} inplaceEditor
-     * @return {!UI.InplaceEditor.Controller|!Promise.<!UI.InplaceEditor.Controller>}
-     */
-    function startEditing(inplaceEditor) {
-      var controller = /** @type {!UI.InplaceEditor} */ (inplaceEditor).startEditing(element, config);
-      if (!controller)
-        return Promise.reject(new Error('Editing is already in progress'));
-      return controller;
-    }
-  }
-
-  /**
    * @return {string}
    */
   editorContent(editingContext) {
-    var element = editingContext.element;
+    const element = editingContext.element;
     if (element.tagName === 'INPUT' && element.type === 'text')
       return element.value;
 
@@ -48,10 +28,11 @@ UI.InplaceEditor = class {
   }
 
   setUpEditor(editingContext) {
-    var element = editingContext.element;
+    const element = editingContext.element;
     element.classList.add('editing');
+    element.setAttribute('contenteditable', 'plaintext-only');
 
-    var oldTabIndex = element.getAttribute('tabIndex');
+    const oldTabIndex = element.getAttribute('tabIndex');
     if (typeof oldTabIndex !== 'number' || oldTabIndex < 0)
       element.tabIndex = 0;
     this._focusRestorer = new UI.ElementFocusRestorer(element);
@@ -59,8 +40,9 @@ UI.InplaceEditor = class {
   }
 
   closeEditor(editingContext) {
-    var element = editingContext.element;
+    const element = editingContext.element;
     element.classList.remove('editing');
+    element.removeAttribute('contenteditable');
 
     if (typeof editingContext.oldTabIndex !== 'number')
       element.removeAttribute('tabIndex');
@@ -71,7 +53,7 @@ UI.InplaceEditor = class {
   }
 
   cancelEditing(editingContext) {
-    var element = editingContext.element;
+    const element = editingContext.element;
     if (element.tagName === 'INPUT' && element.type === 'text')
       element.value = editingContext.oldText;
     else
@@ -91,25 +73,17 @@ UI.InplaceEditor = class {
       return null;
 
     config = config || new UI.InplaceEditor.Config(function() {}, function() {});
-    var editingContext = {element: element, config: config};
-    var committedCallback = config.commitHandler;
-    var cancelledCallback = config.cancelHandler;
-    var pasteCallback = config.pasteHandler;
-    var context = config.context;
-    var isMultiline = config.multiline || false;
-    var moveDirection = '';
-    var self = this;
-
-    /**
-     * @param {!Event} e
-     */
-    function consumeCopy(e) {
-      e.consume();
-    }
+    const editingContext = {element: element, config: config};
+    const committedCallback = config.commitHandler;
+    const cancelledCallback = config.cancelHandler;
+    const pasteCallback = config.pasteHandler;
+    const context = config.context;
+    let moveDirection = '';
+    const self = this;
 
     this.setUpEditor(editingContext);
 
-    editingContext.oldText = isMultiline ? config.initialValue : this.editorContent(editingContext);
+    editingContext.oldText = this.editorContent(editingContext);
 
     /**
      * @param {!Event=} e
@@ -117,14 +91,13 @@ UI.InplaceEditor = class {
     function blurEventListener(e) {
       if (config.blurHandler && !config.blurHandler(element, e))
         return;
-      if (!isMultiline || !e || !e.relatedTarget || !e.relatedTarget.isSelfOrDescendant(element))
-        editingCommitted.call(element);
+      editingCommitted.call(element);
     }
 
     function cleanUpAfterEditing() {
       UI.markBeingEdited(element, false);
 
-      element.removeEventListener('blur', blurEventListener, isMultiline);
+      element.removeEventListener('blur', blurEventListener, false);
       element.removeEventListener('keydown', keyDownEventListener, true);
       if (pasteCallback)
         element.removeEventListener('paste', pasteEventListener, true);
@@ -153,13 +126,11 @@ UI.InplaceEditor = class {
      * @return {string}
      */
     function defaultFinishHandler(event) {
-      var isMetaOrCtrl = Host.isMac() ? event.metaKey && !event.shiftKey && !event.ctrlKey && !event.altKey :
-                                        event.ctrlKey && !event.shiftKey && !event.metaKey && !event.altKey;
-      if (isEnterKey(event) && (event.isMetaOrCtrlForTest || !isMultiline || isMetaOrCtrl))
+      if (isEnterKey(event))
         return 'commit';
       else if (event.keyCode === UI.KeyboardShortcut.Keys.Esc.code || event.key === 'Escape')
         return 'cancel';
-      else if (!isMultiline && event.key === 'Tab')
+      else if (event.key === 'Tab')
         return 'move-' + (event.shiftKey ? 'backward' : 'forward');
       return '';
     }
@@ -173,8 +144,9 @@ UI.InplaceEditor = class {
         event.consume(true);
       } else if (result && result.startsWith('move-')) {
         moveDirection = result.substring(5);
-        if (event.key !== 'Tab')
-          blurEventListener();
+        if (event.key === 'Tab')
+          event.consume(true);
+        blurEventListener();
       }
     }
 
@@ -182,7 +154,7 @@ UI.InplaceEditor = class {
      * @param {!Event} event
      */
     function pasteEventListener(event) {
-      var result = pasteCallback(event);
+      const result = pasteCallback(event);
       handleEditingResult(result, event);
     }
 
@@ -190,25 +162,25 @@ UI.InplaceEditor = class {
      * @param {!Event} event
      */
     function keyDownEventListener(event) {
-      var result = defaultFinishHandler(event);
+      let result = defaultFinishHandler(event);
       if (!result && config.postKeydownFinishHandler)
         result = config.postKeydownFinishHandler(event);
       handleEditingResult(result, event);
     }
 
-    element.addEventListener('blur', blurEventListener, isMultiline);
+    element.addEventListener('blur', blurEventListener, false);
     element.addEventListener('keydown', keyDownEventListener, true);
     if (pasteCallback)
       element.addEventListener('paste', pasteEventListener, true);
 
-    var handle = {cancel: editingCancelled.bind(element), commit: editingCommitted.bind(element), setWidth() {}};
+    const handle = {cancel: editingCancelled.bind(element), commit: editingCommitted.bind(element)};
     this.augmentEditingHandle(editingContext, handle);
     return handle;
   }
 };
 
 /**
- * @typedef {{cancel: function(), commit: function(), setWidth: function(number)}}
+ * @typedef {{cancel: function(), commit: function()}}
  */
 UI.InplaceEditor.Controller;
 
@@ -236,11 +208,6 @@ UI.InplaceEditor.Config = class {
     this.pasteHandler;
 
     /**
-     * @type {boolean|undefined}
-     */
-    this.multiline;
-
-    /**
      * @type {function(!Event):string|undefined}
      */
     this.postKeydownFinishHandler;
@@ -248,22 +215,6 @@ UI.InplaceEditor.Config = class {
 
   setPasteHandler(pasteHandler) {
     this.pasteHandler = pasteHandler;
-  }
-
-  /**
-   * @param {string} initialValue
-   * @param {!Object} mode
-   * @param {string} theme
-   * @param {boolean=} lineWrapping
-   * @param {boolean=} smartIndent
-   */
-  setMultilineOptions(initialValue, mode, theme, lineWrapping, smartIndent) {
-    this.multiline = true;
-    this.initialValue = initialValue;
-    this.mode = mode;
-    this.theme = theme;
-    this.lineWrapping = lineWrapping;
-    this.smartIndent = smartIndent;
   }
 
   /**

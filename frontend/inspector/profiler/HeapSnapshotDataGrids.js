@@ -31,14 +31,24 @@
 /**
  * @unrestricted
  */
-Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
+Profiler.HeapSnapshotSortableDataGrid = class extends DataGrid.DataGrid {
   /**
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
-   * @param {!Array.<!UI.DataGrid.ColumnDescriptor>} columns
+   * @param {!Array.<!DataGrid.DataGrid.ColumnDescriptor>} columns
    */
   constructor(dataDisplayDelegate, columns) {
+    // TODO(allada) This entire class needs to be converted to use the templates in DataGridNode.
     super(columns);
     this._dataDisplayDelegate = dataDisplayDelegate;
+    const tooltips = [
+      ['distance', ls`Distance from window object`], ['shallowSize', ls`Size of the object itself in bytes`],
+      ['retainedSize', ls`Size of the object plus the graph it retains in bytes`]
+    ];
+    for (const info of tooltips) {
+      const headerCell = this.headerTableHeader(info[0]);
+      if (headerCell)
+        headerCell.setAttribute('title', info[1]);
+    }
 
     /**
      * @type {number}
@@ -56,13 +66,20 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
      * @type {?UI.ToolbarInput}
      */
     this._nameFilter = null;
-    this._nodeFilter = new Profiler.HeapSnapshotCommon.NodeFilter();
+    this._nodeFilter = new HeapSnapshotModel.NodeFilter();
     this.addEventListener(Profiler.HeapSnapshotSortableDataGrid.Events.SortingComplete, this._sortingComplete, this);
-    this.addEventListener(UI.DataGrid.Events.SortingChanged, this.sortingChanged, this);
+    this.addEventListener(DataGrid.DataGrid.Events.SortingChanged, this.sortingChanged, this);
   }
 
   /**
-   * @return {!Profiler.HeapSnapshotCommon.NodeFilter}
+   * @return {!Profiler.ProfileType.DataDisplayDelegate}
+   */
+  dataDisplayDelegate() {
+    return this._dataDisplayDelegate;
+  }
+
+  /**
+   * @return {!HeapSnapshotModel.NodeFilter}
    */
   nodeFilter() {
     return this._nodeFilter;
@@ -83,8 +100,8 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   _disposeAllNodes() {
-    var children = this.topLevelNodes();
-    for (var i = 0, l = children.length; i < l; ++i)
+    const children = this.topLevelNodes();
+    for (let i = 0, l = children.length; i < l; ++i)
       children[i].dispose();
   }
 
@@ -120,20 +137,13 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
    * @param {!Event} event
    */
   populateContextMenu(contextMenu, event) {
-    var td = event.target.enclosingNodeOrSelfWithNodeName('td');
+    const td = event.target.enclosingNodeOrSelfWithNodeName('td');
     if (!td)
       return;
-    var node = td.heapSnapshotNode;
-
-    /**
-     * @this {Profiler.HeapSnapshotSortableDataGrid}
-     */
-    function revealInSummaryView() {
-      this._dataDisplayDelegate.showObject(node.snapshotNodeId, 'Summary');
-    }
-
-    if (node instanceof Profiler.HeapSnapshotRetainingObjectNode)
-      contextMenu.appendItem(Common.UIString.capitalize('Reveal in Summary ^view'), revealInSummaryView.bind(this));
+    const node = td.heapSnapshotNode;
+    contextMenu.revealSection().appendItem(ls`Reveal in Summary view`, () => {
+      this._dataDisplayDelegate.showObject(node.snapshotNodeId, ls`Summary`);
+    });
   }
 
   resetSortingCache() {
@@ -142,7 +152,7 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   /**
-   * @return {!Array.<!Profiler.HeapSnapshotGridNode>}
+   * @return {!Array<!Profiler.HeapSnapshotGridNode>}
    */
   topLevelNodes() {
     return this.rootNode().children;
@@ -165,11 +175,6 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
     UI.runCSSAnimationOnce(this._highlightedNode.element(), 'highlighted-row');
   }
 
-  nodeWasDetached(node) {
-    if (this._highlightedNode === node)
-      this._clearCurrentHighlight();
-  }
-
   _clearCurrentHighlight() {
     if (!this._highlightedNode)
       return;
@@ -186,18 +191,18 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   sortingChanged() {
-    var sortAscending = this.isSortOrderAscending();
-    var sortColumnId = this.sortColumnId();
+    const sortAscending = this.isSortOrderAscending();
+    const sortColumnId = this.sortColumnId();
     if (this._lastSortColumnId === sortColumnId && this._lastSortAscending === sortAscending)
       return;
     this._lastSortColumnId = sortColumnId;
     this._lastSortAscending = sortAscending;
-    var sortFields = this._sortFields(sortColumnId, sortAscending);
+    const sortFields = this._sortFields(sortColumnId, sortAscending);
 
     function SortByTwoFields(nodeA, nodeB) {
-      var field1 = nodeA[sortFields[0]];
-      var field2 = nodeB[sortFields[0]];
-      var result = field1 < field2 ? -1 : (field1 > field2 ? 1 : 0);
+      let field1 = nodeA[sortFields[0]];
+      let field2 = nodeB[sortFields[0]];
+      let result = field1 < field2 ? -1 : (field1 > field2 ? 1 : 0);
       if (!sortFields[1])
         result = -result;
       if (result !== 0)
@@ -214,11 +219,11 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
 
   _performSorting(sortFunction) {
     this.recursiveSortingEnter();
-    var children = this.allChildren(this.rootNode());
+    const children = this.allChildren(this.rootNode());
     this.rootNode().removeChildren();
     children.sort(sortFunction);
-    for (var i = 0, l = children.length; i < l; ++i) {
-      var child = children[i];
+    for (let i = 0, l = children.length; i < l; ++i) {
+      const child = children[i];
       this.appendChildAfterSorting(child);
       if (child.expanded)
         child.sort();
@@ -227,7 +232,7 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   appendChildAfterSorting(child) {
-    var revealed = child.revealed;
+    const revealed = child.revealed;
     this.rootNode().appendChild(child);
     child.revealed = revealed;
   }
@@ -252,7 +257,7 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   /**
-   * @param {!UI.DataGridNode} parent
+   * @param {!DataGrid.DataGridNode} parent
    * @return {!Array.<!Profiler.HeapSnapshotGridNode>}
    */
   allChildren(parent) {
@@ -260,8 +265,8 @@ Profiler.HeapSnapshotSortableDataGrid = class extends UI.DataGrid {
   }
 
   /**
-   * @param {!UI.DataGridNode} parent
-   * @param {!UI.DataGridNode} node
+   * @param {!DataGrid.DataGridNode} parent
+   * @param {!DataGrid.DataGridNode} node
    * @param {number} index
    */
   insertChild(parent, node, index) {
@@ -296,7 +301,7 @@ Profiler.HeapSnapshotSortableDataGrid.Events = {
 Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSortableDataGrid {
   /**
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
-   * @param {!Array.<!UI.DataGrid.ColumnDescriptor>} columns
+   * @param {!Array.<!DataGrid.DataGrid.ColumnDescriptor>} columns
    */
   constructor(dataDisplayDelegate, columns) {
     super(dataDisplayDelegate, columns);
@@ -327,20 +332,20 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
   updateVisibleNodes(force) {
     // Guard zone is used to ensure there are always some extra items
     // above and below the viewport to support keyboard navigation.
-    var guardZoneHeight = 40;
-    var scrollHeight = this.scrollContainer.scrollHeight;
-    var scrollTop = this.scrollContainer.scrollTop;
-    var scrollBottom = scrollHeight - scrollTop - this.scrollContainer.offsetHeight;
+    const guardZoneHeight = 40;
+    const scrollHeight = this.scrollContainer.scrollHeight;
+    let scrollTop = this.scrollContainer.scrollTop;
+    let scrollBottom = scrollHeight - scrollTop - this.scrollContainer.offsetHeight;
     scrollTop = Math.max(0, scrollTop - guardZoneHeight);
     scrollBottom = Math.max(0, scrollBottom - guardZoneHeight);
-    var viewPortHeight = scrollHeight - scrollTop - scrollBottom;
+    let viewPortHeight = scrollHeight - scrollTop - scrollBottom;
     // Do nothing if populated nodes still fit the viewport.
     if (!force && scrollTop >= this._topPaddingHeight && scrollBottom >= this._bottomPaddingHeight)
       return;
-    var hysteresisHeight = 500;
+    const hysteresisHeight = 500;
     scrollTop -= hysteresisHeight;
     viewPortHeight += 2 * hysteresisHeight;
-    var selectedNode = this.selectedNode;
+    const selectedNode = this.selectedNode;
     this.rootNode().removeChildren();
 
     this._topPaddingHeight = 0;
@@ -360,7 +365,7 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
   }
 
   /**
-   * @param {!UI.DataGridNode} parentNode
+   * @param {!DataGrid.DataGridNode} parentNode
    * @param {number} topBound
    * @param {number} bottomBound
    * @return {number}
@@ -369,40 +374,40 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
     if (!parentNode.expanded)
       return 0;
 
-    var children = this.allChildren(parentNode);
-    var topPadding = 0;
-    var nameFilterValue = this._nameFilter ? this._nameFilter.value().toLowerCase() : '';
+    const children = this.allChildren(parentNode);
+    let topPadding = 0;
+    const nameFilterValue = this._nameFilter ? this._nameFilter.value().toLowerCase() : '';
     // Iterate over invisible nodes beyond the upper bound of viewport.
     // Do not insert them into the grid, but count their total height.
-    for (var i = 0; i < children.length; ++i) {
-      var child = children[i];
+    let i = 0;
+    for (; i < children.length; ++i) {
+      const child = children[i];
       if (nameFilterValue && child.filteredOut && child.filteredOut(nameFilterValue))
         continue;
-      var newTop = topPadding + this._nodeHeight(child);
+      const newTop = topPadding + this._nodeHeight(child);
       if (newTop > topBound)
         break;
       topPadding = newTop;
     }
 
     // Put visible nodes into the data grid.
-    var position = topPadding;
+    let position = topPadding;
     for (; i < children.length && position < bottomBound; ++i) {
-      var child = children[i];
+      const child = children[i];
       if (nameFilterValue && child.filteredOut && child.filteredOut(nameFilterValue))
         continue;
-      var hasChildren = child.hasChildren;
+      const hasChildren = child.hasChildren();
       child.removeChildren();
-      child.hasChildren = hasChildren;
-      child.revealed = true;
+      child.setHasChildren(hasChildren);
       parentNode.appendChild(child);
       position += child.nodeSelfHeight();
       position += this._addVisibleNodes(child, topBound - position, bottomBound - position);
     }
 
     // Count the invisible nodes beyond the bottom bound of the viewport.
-    var bottomPadding = 0;
+    let bottomPadding = 0;
     for (; i < children.length; ++i) {
-      var child = children[i];
+      const child = children[i];
       if (nameFilterValue && child.filteredOut && child.filteredOut(nameFilterValue))
         continue;
       bottomPadding += this._nodeHeight(child);
@@ -418,41 +423,40 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
    * @return {number}
    */
   _nodeHeight(node) {
-    if (!node.revealed)
-      return 0;
-    var result = node.nodeSelfHeight();
+    let result = node.nodeSelfHeight();
     if (!node.expanded)
       return result;
-    var children = this.allChildren(node);
-    for (var i = 0; i < children.length; i++)
+    const children = this.allChildren(node);
+    for (let i = 0; i < children.length; i++)
       result += this._nodeHeight(children[i]);
     return result;
   }
 
   /**
-   * @param {!Array.<!Profiler.HeapSnapshotGridNode>} pathToReveal
-   * @return {!Promise.<!Profiler.HeapSnapshotGridNode>}
+   * @param {!Array<!Profiler.HeapSnapshotGridNode>} pathToReveal
+   * @return {!Promise<!Profiler.HeapSnapshotGridNode>}
    */
   revealTreeNode(pathToReveal) {
-    var height = this._calculateOffset(pathToReveal);
-    var node = /** @type {!Profiler.HeapSnapshotGridNode} */ (pathToReveal.peekLast());
-    var scrollTop = this.scrollContainer.scrollTop;
-    var scrollBottom = scrollTop + this.scrollContainer.offsetHeight;
+    const height = this._calculateOffset(pathToReveal);
+    const node = /** @type {!Profiler.HeapSnapshotGridNode} */ (pathToReveal.peekLast());
+    const scrollTop = this.scrollContainer.scrollTop;
+    const scrollBottom = scrollTop + this.scrollContainer.offsetHeight;
     if (height >= scrollTop && height < scrollBottom)
       return Promise.resolve(node);
 
-    var scrollGap = 40;
+    const scrollGap = 40;
     this.scrollContainer.scrollTop = Math.max(0, height - scrollGap);
-    return new Promise(this._scrollTo.bind(this, node));
-  }
-
-  /**
-   * @param {!Profiler.HeapSnapshotGridNode} node
-   * @param {function(!Profiler.HeapSnapshotGridNode)} fulfill
-   */
-  _scrollTo(node, fulfill) {
-    console.assert(!this._scrollToResolveCallback);
-    this._scrollToResolveCallback = fulfill.bind(null, node);
+    return new Promise(resolve => {
+      console.assert(!this._scrollToResolveCallback);
+      this._scrollToResolveCallback = resolve.bind(null, node);
+      // Still resolve the promise if it does not scroll for some reason.
+      this.scrollContainer.window().requestAnimationFrame(() => {
+        if (!this._scrollToResolveCallback)
+          return;
+        this._scrollToResolveCallback();
+        this._scrollToResolveCallback = null;
+      });
+    });
   }
 
   /**
@@ -460,13 +464,13 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
    * @return {number}
    */
   _calculateOffset(pathToReveal) {
-    var parentNode = this.rootNode();
-    var height = 0;
-    for (var i = 0; i < pathToReveal.length; ++i) {
-      var node = pathToReveal[i];
-      var children = this.allChildren(parentNode);
-      for (var j = 0; j < children.length; ++j) {
-        var child = children[j];
+    let parentNode = this.rootNode();
+    let height = 0;
+    for (let i = 0; i < pathToReveal.length; ++i) {
+      const node = pathToReveal[i];
+      const children = this.allChildren(parentNode);
+      for (let j = 0; j < children.length; ++j) {
+        const child = children[j];
         if (node === child) {
           height += node.nodeSelfHeight();
           break;
@@ -480,7 +484,7 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
 
   /**
    * @override
-   * @param {!UI.DataGridNode} parent
+   * @param {!DataGrid.DataGridNode} parent
    * @return {!Array.<!Profiler.HeapSnapshotGridNode>}
    */
   allChildren(parent) {
@@ -488,7 +492,7 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
   }
 
   /**
-   * @param {!UI.DataGridNode} parent
+   * @param {!DataGrid.DataGridNode} parent
    * @param {!Profiler.HeapSnapshotGridNode} node
    */
   appendNode(parent, node) {
@@ -497,8 +501,8 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
 
   /**
    * @override
-   * @param {!UI.DataGridNode} parent
-   * @param {!UI.DataGridNode} node
+   * @param {!DataGrid.DataGridNode} parent
+   * @param {!DataGrid.DataGridNode} node
    * @param {number} index
    */
   insertChild(parent, node, index) {
@@ -530,10 +534,10 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
    * @return {boolean}
    */
   _isScrolledIntoView(element) {
-    var viewportTop = this.scrollContainer.scrollTop;
-    var viewportBottom = viewportTop + this.scrollContainer.clientHeight;
-    var elemTop = element.offsetTop;
-    var elemBottom = elemTop + element.offsetHeight;
+    const viewportTop = this.scrollContainer.scrollTop;
+    const viewportBottom = viewportTop + this.scrollContainer.clientHeight;
+    const elemTop = element.offsetTop;
+    const elemBottom = elemTop + element.offsetHeight;
     return elemBottom <= viewportBottom && elemTop >= viewportTop;
   }
 
@@ -545,6 +549,9 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
     this.updateVisibleNodes(false);
   }
 
+  /**
+   * @param {!Event} event
+   */
   _onScroll(event) {
     this.updateVisibleNodes(false);
 
@@ -561,23 +568,21 @@ Profiler.HeapSnapshotViewportDataGrid = class extends Profiler.HeapSnapshotSorta
 Profiler.HeapSnapshotContainmentDataGrid = class extends Profiler.HeapSnapshotSortableDataGrid {
   /**
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
-   * @param {!Array.<!UI.DataGrid.ColumnDescriptor>=} columns
+   * @param {!Array.<!DataGrid.DataGrid.ColumnDescriptor>=} columns
    */
   constructor(dataDisplayDelegate, columns) {
-    columns =
-        columns || (/** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-          {id: 'object', title: Common.UIString('Object'), disclosure: true, sortable: true},
-          {id: 'distance', title: Common.UIString('Distance'), width: '65px', sortable: true, fixedWidth: true},
-          {id: 'shallowSize', title: Common.UIString('Shallow Size'), width: '105px', sortable: true, fixedWidth: true},
-          {
-            id: 'retainedSize',
-            title: Common.UIString('Retained Size'),
-            width: '105px',
-            sortable: true,
-            fixedWidth: true,
-            sort: UI.DataGrid.Order.Descending
-          }
-        ]));
+    columns = columns || (/** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+                {id: 'object', title: ls`Object`, disclosure: true, sortable: true},
+                {id: 'distance', title: ls`Distance`, width: '70px', sortable: true, fixedWidth: true},
+                {id: 'shallowSize', title: ls`Shallow Size`, width: '110px', sortable: true, fixedWidth: true}, {
+                  id: 'retainedSize',
+                  title: ls`Retained Size`,
+                  width: '110px',
+                  sortable: true,
+                  fixedWidth: true,
+                  sort: DataGrid.DataGrid.Order.Descending
+                }
+              ]));
     super(dataDisplayDelegate, columns);
   }
 
@@ -587,8 +592,8 @@ Profiler.HeapSnapshotContainmentDataGrid = class extends Profiler.HeapSnapshotSo
    */
   setDataSource(snapshot, nodeIndex) {
     this.snapshot = snapshot;
-    var node = {nodeIndex: nodeIndex || snapshot.rootNodeIndex};
-    var fakeEdge = {node: node};
+    const node = {nodeIndex: nodeIndex || snapshot.rootNodeIndex};
+    const fakeEdge = {node: node};
     this.setRootNode(this._createRootNode(snapshot, fakeEdge));
     this.rootNode().sort();
   }
@@ -601,8 +606,8 @@ Profiler.HeapSnapshotContainmentDataGrid = class extends Profiler.HeapSnapshotSo
    * @override
    */
   sortingChanged() {
-    var rootNode = this.rootNode();
-    if (rootNode.hasChildren)
+    const rootNode = this.rootNode();
+    if (rootNode.hasChildren())
       rootNode.sort();
   }
 };
@@ -615,17 +620,17 @@ Profiler.HeapSnapshotRetainmentDataGrid = class extends Profiler.HeapSnapshotCon
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
    */
   constructor(dataDisplayDelegate) {
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-      {id: 'object', title: Common.UIString('Object'), disclosure: true, sortable: true}, {
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+      {id: 'object', title: ls`Object`, disclosure: true, sortable: true}, {
         id: 'distance',
-        title: Common.UIString('Distance'),
-        width: '65px',
+        title: ls`Distance`,
+        width: '70px',
         sortable: true,
         fixedWidth: true,
-        sort: UI.DataGrid.Order.Ascending
+        sort: DataGrid.DataGrid.Order.Ascending
       },
-      {id: 'shallowSize', title: Common.UIString('Shallow Size'), width: '105px', sortable: true, fixedWidth: true},
-      {id: 'retainedSize', title: Common.UIString('Retained Size'), width: '105px', sortable: true, fixedWidth: true}
+      {id: 'shallowSize', title: ls`Shallow Size`, width: '110px', sortable: true, fixedWidth: true},
+      {id: 'retainedSize', title: ls`Retained Size`, width: '110px', sortable: true, fixedWidth: true}
     ]);
     super(dataDisplayDelegate, columns);
   }
@@ -676,30 +681,32 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
    */
   constructor(dataDisplayDelegate) {
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-      {id: 'object', title: Common.UIString('Constructor'), disclosure: true, sortable: true},
-      {id: 'distance', title: Common.UIString('Distance'), width: '65px', sortable: true, fixedWidth: true},
-      {id: 'count', title: Common.UIString('Objects Count'), width: '90px', sortable: true, fixedWidth: true},
-      {id: 'shallowSize', title: Common.UIString('Shallow Size'), width: '105px', sortable: true, fixedWidth: true}, {
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+      {id: 'object', title: ls`Constructor`, disclosure: true, sortable: true},
+      {id: 'distance', title: ls`Distance`, width: '70px', sortable: true, fixedWidth: true},
+      {id: 'shallowSize', title: ls`Shallow Size`, width: '110px', sortable: true, fixedWidth: true}, {
         id: 'retainedSize',
-        title: Common.UIString('Retained Size'),
-        width: '105px',
-        sort: UI.DataGrid.Order.Descending,
+        title: ls`Retained Size`,
+        width: '110px',
+        sort: DataGrid.DataGrid.Order.Descending,
         sortable: true,
         fixedWidth: true
       }
     ]);
     super(dataDisplayDelegate, columns);
     this._profileIndex = -1;
-
     this._objectIdToSelect = null;
   }
 
+  /**
+   * @param {string} sortColumn
+   * @param {boolean} sortAscending
+   * @return {!Array}
+   */
   _sortFields(sortColumn, sortAscending) {
     return {
-      object: ['_name', sortAscending, '_count', false],
-      distance: ['_distance', sortAscending, '_retainedSize', true],
-      count: ['_count', sortAscending, '_name', true],
+      object: ['_name', sortAscending, '_retainedSize', false],
+      distance: ['_distance', sortAscending, '_retainedSize', false],
       shallowSize: ['_shallowSize', sortAscending, '_name', true],
       retainedSize: ['_retainedSize', sortAscending, '_name', true]
     }[sortColumn];
@@ -710,39 +717,22 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
    * @param {!Protocol.HeapProfiler.HeapSnapshotObjectId} id
    * @return {!Promise<?Profiler.HeapSnapshotGridNode>}
    */
-  revealObjectByHeapSnapshotId(id) {
+  async revealObjectByHeapSnapshotId(id) {
     if (!this.snapshot) {
       this._objectIdToSelect = id;
-      return Promise.resolve(/** @type {?Profiler.HeapSnapshotGridNode} */ (null));
-    }
-
-    /**
-     * @param {!Array<!Profiler.HeapSnapshotGridNode>} nodes
-     * @return {?Promise<!Profiler.HeapSnapshotGridNode>}
-     * @this {Profiler.HeapSnapshotConstructorsDataGrid}
-     */
-    function didPopulateNode(nodes) {
-      return nodes.length ? this.revealTreeNode(nodes) : null;
-    }
-
-    /**
-     * @param {?string} className
-     * @return {?Promise<?Profiler.HeapSnapshotGridNode>}
-     * @this {Profiler.HeapSnapshotConstructorsDataGrid}
-     */
-    function didGetClassName(className) {
-      if (!className)
-        return null;
-      var constructorNodes = this.topLevelNodes();
-      for (var i = 0; i < constructorNodes.length; i++) {
-        var parent = constructorNodes[i];
-        if (parent._name === className)
-          return parent.populateNodeBySnapshotObjectId(parseInt(id, 10)).then(didPopulateNode.bind(this));
-      }
-      // There are no visible top level nodes with such className.
       return null;
     }
-    return this.snapshot.nodeClassName(parseInt(id, 10)).then(didGetClassName.bind(this));
+
+    const className = await this.snapshot.nodeClassName(parseInt(id, 10));
+    if (!className)
+      return null;
+
+    const parent = this.topLevelNodes().find(classNode => classNode._name === className);
+    if (!parent)
+      return null;
+
+    const nodes = await parent.populateNodeBySnapshotObjectId(parseInt(id, 10));
+    return nodes.length ? this.revealTreeNode(nodes) : null;
   }
 
   clear() {
@@ -770,7 +760,7 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
    * @param {number} maxNodeId
    */
   setSelectionRange(minNodeId, maxNodeId) {
-    this._nodeFilter = new Profiler.HeapSnapshotCommon.NodeFilter(minNodeId, maxNodeId);
+    this._nodeFilter = new HeapSnapshotModel.NodeFilter(minNodeId, maxNodeId);
     this._populateChildren(this._nodeFilter);
   }
 
@@ -778,26 +768,26 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
    * @param {number} allocationNodeId
    */
   setAllocationNodeId(allocationNodeId) {
-    this._nodeFilter = new Profiler.HeapSnapshotCommon.NodeFilter();
+    this._nodeFilter = new HeapSnapshotModel.NodeFilter();
     this._nodeFilter.allocationNodeId = allocationNodeId;
     this._populateChildren(this._nodeFilter);
   }
 
   /**
-   * @param {!Profiler.HeapSnapshotCommon.NodeFilter} nodeFilter
-   * @param {!Object.<string, !Profiler.HeapSnapshotCommon.Aggregate>} aggregates
+   * @param {!HeapSnapshotModel.NodeFilter} nodeFilter
+   * @param {!Object<string, !HeapSnapshotModel.Aggregate>} aggregates
    */
   _aggregatesReceived(nodeFilter, aggregates) {
     this._filterInProgress = null;
     if (this._nextRequestedFilter) {
-      this.snapshot.aggregatesWithFilter(
-          this._nextRequestedFilter, this._aggregatesReceived.bind(this, this._nextRequestedFilter));
+      this.snapshot.aggregatesWithFilter(this._nextRequestedFilter)
+          .then(this._aggregatesReceived.bind(this, this._nextRequestedFilter));
       this._filterInProgress = this._nextRequestedFilter;
       this._nextRequestedFilter = null;
     }
     this.removeTopLevelNodes();
     this.resetSortingCache();
-    for (var constructor in aggregates) {
+    for (const constructor in aggregates) {
       this.appendNode(
           this.rootNode(),
           new Profiler.HeapSnapshotConstructorNode(this, constructor, aggregates[constructor], nodeFilter));
@@ -807,10 +797,10 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
   }
 
   /**
-   * @param {!Profiler.HeapSnapshotCommon.NodeFilter=} nodeFilter
+   * @param {!HeapSnapshotModel.NodeFilter=} maybeNodeFilter
    */
-  _populateChildren(nodeFilter) {
-    nodeFilter = nodeFilter || new Profiler.HeapSnapshotCommon.NodeFilter();
+  async _populateChildren(maybeNodeFilter) {
+    const nodeFilter = maybeNodeFilter || new HeapSnapshotModel.NodeFilter();
 
     if (this._filterInProgress) {
       this._nextRequestedFilter = this._filterInProgress.equals(nodeFilter) ? null : nodeFilter;
@@ -819,16 +809,18 @@ Profiler.HeapSnapshotConstructorsDataGrid = class extends Profiler.HeapSnapshotV
     if (this._lastFilter && this._lastFilter.equals(nodeFilter))
       return;
     this._filterInProgress = nodeFilter;
-    this.snapshot.aggregatesWithFilter(nodeFilter, this._aggregatesReceived.bind(this, nodeFilter));
+
+    const aggregates = await this.snapshot.aggregatesWithFilter(nodeFilter);
+    this._aggregatesReceived(nodeFilter, aggregates);
   }
 
   filterSelectIndexChanged(profiles, profileIndex) {
     this._profileIndex = profileIndex;
     this._nodeFilter = undefined;
     if (profileIndex !== -1) {
-      var minNodeId = profileIndex > 0 ? profiles[profileIndex - 1].maxJSObjectId : 0;
-      var maxNodeId = profiles[profileIndex].maxJSObjectId;
-      this._nodeFilter = new Profiler.HeapSnapshotCommon.NodeFilter(minNodeId, maxNodeId);
+      const minNodeId = profileIndex > 0 ? profiles[profileIndex - 1].maxJSObjectId : 0;
+      const maxNodeId = profiles[profileIndex].maxJSObjectId;
+      this._nodeFilter = new HeapSnapshotModel.NodeFilter(minNodeId, maxNodeId);
     }
 
     this._populateChildren(this._nodeFilter);
@@ -843,20 +835,20 @@ Profiler.HeapSnapshotDiffDataGrid = class extends Profiler.HeapSnapshotViewportD
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
    */
   constructor(dataDisplayDelegate) {
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-      {id: 'object', title: Common.UIString('Constructor'), disclosure: true, sortable: true},
-      {id: 'addedCount', title: Common.UIString('# New'), width: '72px', sortable: true, fixedWidth: true},
-      {id: 'removedCount', title: Common.UIString('# Deleted'), width: '72px', sortable: true, fixedWidth: true},
-      {id: 'countDelta', title: Common.UIString('# Delta'), width: '64px', sortable: true, fixedWidth: true}, {
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+      {id: 'object', title: ls`Constructor`, disclosure: true, sortable: true},
+      {id: 'addedCount', title: ls`# New`, width: '75px', sortable: true, fixedWidth: true},
+      {id: 'removedCount', title: ls`# Deleted`, width: '75px', sortable: true, fixedWidth: true},
+      {id: 'countDelta', title: ls`# Delta`, width: '65px', sortable: true, fixedWidth: true}, {
         id: 'addedSize',
-        title: Common.UIString('Alloc. Size'),
-        width: '72px',
+        title: ls`Alloc. Size`,
+        width: '75px',
         sortable: true,
         fixedWidth: true,
-        sort: UI.DataGrid.Order.Descending
+        sort: DataGrid.DataGrid.Order.Descending
       },
-      {id: 'removedSize', title: Common.UIString('Freed Size'), width: '72px', sortable: true, fixedWidth: true},
-      {id: 'sizeDelta', title: Common.UIString('Size Delta'), width: '72px', sortable: true, fixedWidth: true}
+      {id: 'removedSize', title: ls`Freed Size`, width: '75px', sortable: true, fixedWidth: true},
+      {id: 'sizeDelta', title: ls`Size Delta`, width: '75px', sortable: true, fixedWidth: true}
     ]);
     super(dataDisplayDelegate, columns);
   }
@@ -899,29 +891,18 @@ Profiler.HeapSnapshotDiffDataGrid = class extends Profiler.HeapSnapshotViewportD
     this._populateChildren();
   }
 
-  _populateChildren() {
-    /**
-     * @this {Profiler.HeapSnapshotDiffDataGrid}
-     */
-    function aggregatesForDiffReceived(aggregatesForDiff) {
-      this.snapshot.calculateSnapshotDiff(
-          this.baseSnapshot.uid, aggregatesForDiff, didCalculateSnapshotDiff.bind(this));
-
-      /**
-       * @this {Profiler.HeapSnapshotDiffDataGrid}
-       */
-      function didCalculateSnapshotDiff(diffByClassName) {
-        for (var className in diffByClassName) {
-          var diff = diffByClassName[className];
-          this.appendNode(this.rootNode(), new Profiler.HeapSnapshotDiffNode(this, className, diff));
-        }
-        this.sortingChanged();
-      }
-    }
+  async _populateChildren() {
     // Two snapshots live in different workers isolated from each other. That is why
     // we first need to collect information about the nodes in the first snapshot and
     // then pass it to the second snapshot to calclulate the diff.
-    this.baseSnapshot.aggregatesForDiff(aggregatesForDiffReceived.bind(this));
+    const aggregatesForDiff = await this.baseSnapshot.aggregatesForDiff();
+    const diffByClassName = await this.snapshot.calculateSnapshotDiff(this.baseSnapshot.uid, aggregatesForDiff);
+
+    for (const className in diffByClassName) {
+      const diff = diffByClassName[className];
+      this.appendNode(this.rootNode(), new Profiler.HeapSnapshotDiffNode(this, className, diff));
+    }
+    this.sortingChanged();
   }
 };
 
@@ -930,60 +911,55 @@ Profiler.HeapSnapshotDiffDataGrid = class extends Profiler.HeapSnapshotViewportD
  */
 Profiler.AllocationDataGrid = class extends Profiler.HeapSnapshotViewportDataGrid {
   /**
-   * @param {?SDK.Target} target
+   * @param {?SDK.HeapProfilerModel} heapProfilerModel
    * @param {!Profiler.ProfileType.DataDisplayDelegate} dataDisplayDelegate
    */
-  constructor(target, dataDisplayDelegate) {
-    var columns = /** @type {!Array<!UI.DataGrid.ColumnDescriptor>} */ ([
-      {id: 'liveCount', title: Common.UIString('Live Count'), width: '72px', sortable: true, fixedWidth: true},
-      {id: 'count', title: Common.UIString('Count'), width: '60px', sortable: true, fixedWidth: true},
-      {id: 'liveSize', title: Common.UIString('Live Size'), width: '72px', sortable: true, fixedWidth: true},
+  constructor(heapProfilerModel, dataDisplayDelegate) {
+    const columns = /** @type {!Array<!DataGrid.DataGrid.ColumnDescriptor>} */ ([
+      {id: 'liveCount', title: ls`Live Count`, width: '75px', sortable: true, fixedWidth: true},
+      {id: 'count', title: ls`Count`, width: '65px', sortable: true, fixedWidth: true},
+      {id: 'liveSize', title: ls`Live Size`, width: '75px', sortable: true, fixedWidth: true},
       {
         id: 'size',
-        title: Common.UIString('Size'),
-        width: '72px',
+        title: ls`Size`,
+        width: '75px',
         sortable: true,
         fixedWidth: true,
-        sort: UI.DataGrid.Order.Descending
+        sort: DataGrid.DataGrid.Order.Descending
       },
-      {id: 'name', title: Common.UIString('Function'), disclosure: true, sortable: true},
+      {id: 'name', title: ls`Function`, disclosure: true, sortable: true},
     ]);
     super(dataDisplayDelegate, columns);
-    this._target = target;
+    this._heapProfilerModel = heapProfilerModel;
     this._linkifier = new Components.Linkifier();
   }
 
   /**
-   * @return {?SDK.Target}
+   * @return {?SDK.HeapProfilerModel}
    */
-  target() {
-    return this._target;
+  heapProfilerModel() {
+    return this._heapProfilerModel;
   }
 
   dispose() {
     this._linkifier.reset();
   }
 
-  setDataSource(snapshot) {
+  /**
+   * @param {!Profiler.HeapSnapshotProxy} snapshot
+   */
+  async setDataSource(snapshot) {
     this.snapshot = snapshot;
-    this.snapshot.allocationTracesTops(didReceiveAllocationTracesTops.bind(this));
-
-    /**
-     * @param {!Array.<!Profiler.HeapSnapshotCommon.SerializedAllocationNode>} tops
-     * @this {Profiler.AllocationDataGrid}
-     */
-    function didReceiveAllocationTracesTops(tops) {
-      this._topNodes = tops;
-      this._populateChildren();
-    }
+    this._topNodes = await this.snapshot.allocationTracesTops();
+    this._populateChildren();
   }
 
   _populateChildren() {
     this.removeTopLevelNodes();
-    var root = this.rootNode();
-    var tops = this._topNodes;
-    for (var i = 0; i < tops.length; i++)
-      this.appendNode(root, new Profiler.AllocationGridNode(this, tops[i]));
+    const root = this.rootNode();
+    const tops = this._topNodes;
+    for (const top of tops)
+      this.appendNode(root, new Profiler.AllocationGridNode(this, top));
     this.updateVisibleNodes(true);
   }
 
@@ -1000,8 +976,8 @@ Profiler.AllocationDataGrid = class extends Profiler.HeapSnapshotViewportDataGri
    * @return {function(!Object, !Object):number}
    */
   _createComparator() {
-    var fieldName = this.sortColumnId();
-    var compareResult = (this.sortOrder() === UI.DataGrid.Order.Ascending) ? +1 : -1;
+    const fieldName = this.sortColumnId();
+    const compareResult = (this.sortOrder() === DataGrid.DataGrid.Order.Ascending) ? +1 : -1;
     /**
      * @param {!Object} a
      * @param {!Object} b

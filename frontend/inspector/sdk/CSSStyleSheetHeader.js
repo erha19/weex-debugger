@@ -22,6 +22,7 @@ SDK.CSSStyleSheetHeader = class {
     this.isInline = payload.isInline;
     this.startLine = payload.startLine;
     this.startColumn = payload.startColumn;
+    this.contentLength = payload.length;
     if (payload.ownerNode)
       this.ownerNode = new SDK.DeferredDOMNode(cssModel.target(), payload.ownerNode);
     this.setSourceMapURL(payload.sourceMapURL);
@@ -32,9 +33,9 @@ SDK.CSSStyleSheetHeader = class {
    */
   originalContentProvider() {
     if (!this._originalContentProvider) {
-      var lazyContent = this._cssModel.originalStyleSheetText.bind(this._cssModel, this);
-      this._originalContentProvider =
-          new Common.StaticContentProvider(this.contentURL(), this.contentType(), lazyContent);
+      const lazyContent = this._cssModel.originalStyleSheetText.bind(this._cssModel, this);
+      this._originalContentProvider = new Common.StaticContentProvider(
+          this.contentURL(), this.contentType(), /** @type {function():!Promise<?string>} */ (lazyContent));
     }
     return this._originalContentProvider;
   }
@@ -43,16 +44,7 @@ SDK.CSSStyleSheetHeader = class {
    * @param {string=} sourceMapURL
    */
   setSourceMapURL(sourceMapURL) {
-    var completeSourceMapURL =
-        this.sourceURL && sourceMapURL ? Common.ParsedURL.completeURL(this.sourceURL, sourceMapURL) : sourceMapURL;
-    this.sourceMapURL = completeSourceMapURL;
-  }
-
-  /**
-   * @return {!SDK.Target}
-   */
-  target() {
-    return this._cssModel.target();
+    this.sourceMapURL = sourceMapURL;
   }
 
   /**
@@ -60,6 +52,13 @@ SDK.CSSStyleSheetHeader = class {
    */
   cssModel() {
     return this._cssModel;
+  }
+
+  /**
+   * @return {boolean}
+   */
+  isAnonymousInlineStyleSheet() {
+    return !this.resourceURL() && !this._cssModel.sourceMapManager().sourceMapForClient(this);
   }
 
   /**
@@ -73,11 +72,10 @@ SDK.CSSStyleSheetHeader = class {
    * @return {string}
    */
   _viaInspectorResourceURL() {
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(this.target());
-    var frame = resourceTreeModel.frameForId(this.frameId);
+    const frame = this._cssModel.target().model(SDK.ResourceTreeModel).frameForId(this.frameId);
     console.assert(frame);
-    var parsedURL = new Common.ParsedURL(frame.url);
-    var fakeURL = 'inspector://' + parsedURL.host + parsedURL.folderPathComponents;
+    const parsedURL = new Common.ParsedURL(frame.url);
+    let fakeURL = 'inspector://' + parsedURL.host + parsedURL.folderPathComponents;
     if (!fakeURL.endsWith('/'))
       fakeURL += '/';
     fakeURL += 'inspector-stylesheet';
@@ -119,10 +117,18 @@ SDK.CSSStyleSheetHeader = class {
 
   /**
    * @override
+   * @return {!Promise<boolean>}
+   */
+  contentEncoded() {
+    return Promise.resolve(false);
+  }
+
+  /**
+   * @override
    * @return {!Promise<?string>}
    */
   requestContent() {
-    return /** @type {!Promise<?string>} */ (this._cssModel.getStyleSheetText(this.id));
+    return this._cssModel.getStyleSheetText(this.id);
   }
 
   /**
@@ -130,15 +136,11 @@ SDK.CSSStyleSheetHeader = class {
    * @param {string} query
    * @param {boolean} caseSensitive
    * @param {boolean} isRegex
-   * @param {function(!Array.<!Common.ContentProvider.SearchMatch>)} callback
+   * @return {!Promise<!Array<!Common.ContentProvider.SearchMatch>>}
    */
-  searchInContent(query, caseSensitive, isRegex, callback) {
-    function performSearch(content) {
-      callback(Common.ContentProvider.performSearchInContent(content, query, caseSensitive, isRegex));
-    }
-
-    // searchInContent should call back later.
-    this.requestContent().then(performSearch);
+  async searchInContent(query, caseSensitive, isRegex) {
+    const content = await this.requestContent();
+    return Common.ContentProvider.performSearchInContent(content, query, caseSensitive, isRegex);
   }
 
   /**
@@ -146,62 +148,5 @@ SDK.CSSStyleSheetHeader = class {
    */
   isViaInspector() {
     return this.origin === 'inspector';
-  }
-};
-
-/**
- * @implements {Common.ContentProvider}
- * @unrestricted
- */
-SDK.CSSStyleSheetHeader.OriginalContentProvider = class {
-  /**
-   * @param {!SDK.CSSStyleSheetHeader} header
-   */
-  constructor(header) {
-    this._header = header;
-  }
-
-  /**
-   * @override
-   * @return {string}
-   */
-  contentURL() {
-    return this._header.contentURL();
-  }
-
-  /**
-   * @override
-   * @return {!Common.ResourceType}
-   */
-  contentType() {
-    return this._header.contentType();
-  }
-
-  /**
-   * @override
-   * @return {!Promise<?string>}
-   */
-  requestContent() {
-    return /** @type {!Promise<?string>} */ (this._header.cssModel().originalStyleSheetText(this._header));
-  }
-
-  /**
-   * @override
-   * @param {string} query
-   * @param {boolean} caseSensitive
-   * @param {boolean} isRegex
-   * @param {function(!Array.<!Common.ContentProvider.SearchMatch>)} callback
-   */
-  searchInContent(query, caseSensitive, isRegex, callback) {
-    /**
-     * @param {?string} content
-     */
-    function performSearch(content) {
-      var searchResults =
-          content ? Common.ContentProvider.performSearchInContent(content, query, caseSensitive, isRegex) : [];
-      callback(searchResults);
-    }
-
-    this.requestContent().then(performSearch);
   }
 };

@@ -10,38 +10,53 @@
 SDK.Target = class extends Protocol.TargetBase {
   /**
    * @param {!SDK.TargetManager} targetManager
+   * @param {string} id
    * @param {string} name
    * @param {number} capabilitiesMask
-   * @param {!InspectorBackendClass.Connection.Factory} connectionFactory
+   * @param {!Protocol.InspectorBackend.Connection.Factory} connectionFactory
    * @param {?SDK.Target} parentTarget
+   * @param {boolean} suspended
+   * @param {boolean} isNodeJS
    */
-  constructor(targetManager, name, capabilitiesMask, connectionFactory, parentTarget) {
+  constructor(targetManager, id, name, capabilitiesMask, connectionFactory, parentTarget, suspended, isNodeJS) {
     super(connectionFactory);
     this._targetManager = targetManager;
     this._name = name;
     this._inspectedURL = '';
     this._capabilitiesMask = capabilitiesMask;
     this._parentTarget = parentTarget;
-    this._id = SDK.Target._nextId++;
-
-    /** @type {!Map.<!Function, !SDK.SDKModel>} */
+    this._id = id;
     this._modelByConstructor = new Map();
+    this._isSuspended = suspended;
+    this._isNodeJS = isNodeJS;
+  }
+
+  createModels(required) {
+    this._creatingModels = true;
+    // TODO(dgozman): fix this in bindings layer.
+    this.model(SDK.ResourceTreeModel);
+    const registered = Array.from(SDK.SDKModel._registeredModels.keys());
+    for (const modelClass of registered) {
+      const info = SDK.SDKModel._registeredModels.get(modelClass);
+      if (info.autostart || required.has(modelClass))
+        this.model(modelClass);
+    }
+    this._creatingModels = false;
   }
 
   /**
    * @return {boolean}
    */
   isNodeJS() {
-    // TODO(lushnikov): this is an unreliable way to detect Node.js targets.
-    return this._capabilitiesMask === SDK.Target.Capability.JS || this._isNodeJSForTest;
+    return this._isNodeJS;
   }
 
-  setIsNodeJSForTest() {
-    this._isNodeJSForTest = true;
+  markAsNodeJSForTest() {
+    this._isNodeJS = true;
   }
 
   /**
-   * @return {number}
+   * @return {string}
    */
   id() {
     return this._id;
@@ -131,23 +146,35 @@ SDK.Target = class extends Protocol.TargetBase {
    */
   dispose() {
     this._targetManager.removeTarget(this);
-    for (var model of this._modelByConstructor.valuesArray())
+    for (const model of this._modelByConstructor.valuesArray())
       model.dispose();
   }
 
   /**
-   * @param {!Function} modelClass
-   * @return {?SDK.SDKModel}
+   * @param {function(new:T, !SDK.Target)} modelClass
+   * @return {?T}
+   * @template T
    */
   model(modelClass) {
+    if (!this._modelByConstructor.get(modelClass)) {
+      const info = SDK.SDKModel._registeredModels.get(modelClass);
+      if (info === undefined)
+        throw 'Model class is not registered @' + new Error().stack;
+      if ((this._capabilitiesMask & info.capabilities) === info.capabilities) {
+        const model = new modelClass(this);
+        this._modelByConstructor.set(modelClass, model);
+        if (!this._creatingModels)
+          this._targetManager.modelAdded(this, modelClass, model);
+      }
+    }
     return this._modelByConstructor.get(modelClass) || null;
   }
 
   /**
-   * @return {!Array<!SDK.SDKModel>}
+   * @return {!Map<function(new:SDK.SDKModel, !SDK.Target), !SDK.SDKModel>}
    */
   models() {
-    return this._modelByConstructor.valuesArray();
+    return this._modelByConstructor;
   }
 
   /**
@@ -162,7 +189,7 @@ SDK.Target = class extends Protocol.TargetBase {
    */
   setInspectedURL(inspectedURL) {
     this._inspectedURL = inspectedURL;
-    var parsedURL = inspectedURL.asParsedURL();
+    const parsedURL = inspectedURL.asParsedURL();
     this._inspectedURLName = parsedURL ? parsedURL.lastPathComponentWithFragment() : '#' + this._id;
     if (!this.parentTarget())
       InspectorFrontendHost.inspectedURLChanged(inspectedURL || '');
@@ -170,26 +197,70 @@ SDK.Target = class extends Protocol.TargetBase {
     if (!this._name)
       this._targetManager.dispatchEventToListeners(SDK.TargetManager.Events.NameChanged, this);
   }
+
+  /**
+   * @return {!Promise}
+   */
+  suspend() {
+    if (this._isSuspended)
+      return Promise.resolve();
+    this._isSuspended = true;
+
+    const promises = [];
+    for (const model of this.models().values())
+      promises.push(model.suspendModel());
+    return Promise.all(promises);
+  }
+
+  /**
+   * @return {!Promise}
+   */
+  resume() {
+    if (!this._isSuspended)
+      return Promise.resolve();
+    this._isSuspended = false;
+
+    const promises = [];
+    for (const model of this.models().values())
+      promises.push(model.resumeModel());
+    return Promise.all(promises);
+  }
+
+  /**
+   * @return {boolean}
+   */
+  suspended() {
+    return this._isSuspended;
+  }
 };
 
 /**
  * @enum {number}
  */
 SDK.Target.Capability = {
-  Browser: 1,
-  DOM: 2,
-  JS: 4,
-  Log: 8,
-  Network: 16,
-  Target: 32
-};
+  Browser: 1 << 0,
+  DOM: 1 << 1,
+  JS: 1 << 2,
+  Log: 1 << 3,
+  Network: 1 << 4,
+  Target: 1 << 5,
+  ScreenCapture: 1 << 6,
+  Tracing: 1 << 7,
+  Emulation: 1 << 8,
+  Security: 1 << 9,
+  Input: 1 << 10,
+  Inspector: 1 << 11,
+  DeviceEmulation: 1 << 12,
 
-SDK.Target._nextId = 1;
+  None: 0,
+
+  AllForTests: (1 << 13) - 1
+};
 
 /**
  * @unrestricted
  */
-SDK.SDKObject = class extends Common.Object {
+SDK.SDKModel = class extends Common.Object {
   /**
    * @param {!SDK.Target} target
    */
@@ -203,20 +274,6 @@ SDK.SDKObject = class extends Common.Object {
    */
   target() {
     return this._target;
-  }
-};
-
-/**
- * @unrestricted
- */
-SDK.SDKModel = class extends SDK.SDKObject {
-  /**
-   * @param {!Function} modelClass
-   * @param {!SDK.Target} target
-   */
-  constructor(modelClass, target) {
-    super(target);
-    target._modelByConstructor.set(modelClass, this);
   }
 
   /**
@@ -235,14 +292,19 @@ SDK.SDKModel = class extends SDK.SDKObject {
 
   dispose() {
   }
-
-  /**
-   * @param {!Common.Event} event
-   */
-  _targetDisposed(event) {
-    var target = /** @type {!SDK.Target} */ (event.data);
-    if (target !== this._target)
-      return;
-    this.dispose();
-  }
 };
+
+
+/**
+ * @param {function(new:SDK.SDKModel, !SDK.Target)} modelClass
+ * @param {number} capabilities
+ * @param {boolean} autostart
+ */
+SDK.SDKModel.register = function(modelClass, capabilities, autostart) {
+  if (!SDK.SDKModel._registeredModels)
+    SDK.SDKModel._registeredModels = new Map();
+  SDK.SDKModel._registeredModels.set(modelClass, {capabilities: capabilities, autostart: autostart});
+};
+
+/** @type {!Map<function(new:SDK.SDKModel, !SDK.Target), !{capabilities: number, autostart: boolean}>} */
+SDK.SDKModel._registeredModels;

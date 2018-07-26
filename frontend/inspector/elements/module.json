@@ -10,22 +10,45 @@
         },
         {
             "type": "@UI.ContextMenu.Provider",
-            "contextTypes": ["SDK.RemoteObject", "SDK.DOMNode", "SDK.DeferredDOMNode"],
+            "contextTypes": [
+                "SDK.RemoteObject",
+                "SDK.DOMNode",
+                "SDK.DeferredDOMNode"
+            ],
             "className": "Elements.ElementsPanel.ContextMenuProvider"
         },
         {
             "type": "@Common.Renderer",
-            "contextTypes": ["SDK.DOMNode", "SDK.RemoteObject"],
+            "contextTypes": [
+                "SDK.DOMNode",
+                "SDK.DeferredDOMNode"
+            ],
             "className": "Elements.ElementsTreeOutline.Renderer"
         },
         {
             "type": "@Common.Revealer",
-            "contextTypes": ["SDK.DOMNode", "SDK.DeferredDOMNode", "SDK.RemoteObject" ],
+            "contextTypes": [
+                "SDK.DOMNode",
+                "SDK.DeferredDOMNode",
+                "SDK.RemoteObject"
+            ],
+            "destination": "Elements panel",
             "className": "Elements.ElementsPanel.DOMNodeRevealer"
         },
         {
+            "type": "@Common.Linkifier",
+            "contextTypes": [
+                "SDK.DOMNode",
+                "SDK.DeferredDOMNode"
+            ],
+            "className": "Elements.DOMLinkifier.Linkifier"
+        },
+        {
             "type": "@Common.Revealer",
-            "contextTypes": ["SDK.CSSProperty" ],
+            "contextTypes": [
+                "SDK.CSSProperty"
+            ],
+            "destination": "styles sidebar",
             "className": "Elements.ElementsPanel.CSSPropertyRevealer"
         },
         {
@@ -37,16 +60,35 @@
             "settingType": "enum",
             "defaultValue": "original",
             "options": [
-                { "title": "Set color format as authored", "text": "As authored", "value": "original" },
-                { "title": "Set color format to HEX", "text": "HEX: #dac0de", "value": "hex", "raw": true },
-                { "title": "Set color format to RGB", "text": "RGB: rgb(128, 255, 255)", "value": "rgb", "raw": true },
-                { "title": "Set color format to HSL", "text": "HSL: hsl(300, 80%, 90%)", "value": "hsl", "raw": true }
+                {
+                    "title": "Set color format as authored",
+                    "text": "As authored",
+                    "value": "original"
+                },
+                {
+                    "title": "Set color format to HEX",
+                    "text": "HEX: #dac0de",
+                    "value": "hex",
+                    "raw": true
+                },
+                {
+                    "title": "Set color format to RGB",
+                    "text": "RGB: rgb(128, 255, 255)",
+                    "value": "rgb",
+                    "raw": true
+                },
+                {
+                    "title": "Set color format to HSL",
+                    "text": "HSL: hsl(300, 80%, 90%)",
+                    "value": "hsl",
+                    "raw": true
+                }
             ]
         },
         {
             "type": "setting",
             "category": "Elements",
-            "order":1,
+            "order": 1,
             "title": "Show user agent shadow DOM",
             "settingName": "showUAShadowDOM",
             "settingType": "boolean",
@@ -61,8 +103,14 @@
             "settingType": "boolean",
             "defaultValue": true,
             "options": [
-                { "value": true, "title": "Enable DOM word wrap" },
-                { "value": false, "title": "Disable DOM word wrap" }
+                {
+                    "value": true,
+                    "title": "Enable DOM word wrap"
+                },
+                {
+                    "value": false,
+                    "title": "Disable DOM word wrap"
+                }
             ]
         },
         {
@@ -74,8 +122,14 @@
             "settingType": "boolean",
             "defaultValue": true,
             "options": [
-                { "value": true, "title": "Show HTML comments" },
-                { "value": false, "title": "Hide HTML comments" }
+                {
+                    "value": true,
+                    "title": "Show HTML comments"
+                },
+                {
+                    "value": false,
+                    "title": "Hide HTML comments"
+                }
             ]
         },
         {
@@ -112,9 +166,11 @@
             "location": "styles-sidebarpane-toolbar"
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "actionId": "elements.hide-element",
-            "contextTypes": ["Elements.ElementsPanel"],
+            "contextTypes": [
+                "Elements.ElementsPanel"
+            ],
             "className": "Elements.ElementsActionDelegate",
             "bindings": [
                 {
@@ -123,9 +179,11 @@
             ]
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "actionId": "elements.edit-as-html",
-            "contextTypes": ["Elements.ElementsPanel"],
+            "contextTypes": [
+                "Elements.ElementsPanel"
+            ],
             "className": "Elements.ElementsActionDelegate",
             "bindings": [
                 {
@@ -134,19 +192,55 @@
             ]
         },
         {
-            "type": "@Components.DOMPresentationUtils.MarkerDecorator",
+            "type": "action",
+            "actionId": "elements.undo",
+            "contextTypes": [
+                "Elements.ElementsPanel"
+            ],
+            "className": "Elements.ElementsActionDelegate",
+            "bindings": [
+                {
+                    "platform": "windows,linux",
+                    "shortcut": "Ctrl+Z"
+                },
+                {
+                    "platform": "mac",
+                    "shortcut": "Meta+Z"
+                }
+            ]
+        },
+        {
+            "type": "action",
+            "actionId": "elements.redo",
+            "contextTypes": [
+                "Elements.ElementsPanel"
+            ],
+            "className": "Elements.ElementsActionDelegate",
+            "bindings": [
+                {
+                    "platform": "windows,linux",
+                    "shortcut": "Ctrl+Y"
+                },
+                {
+                    "platform": "mac",
+                    "shortcut": "Meta+Shift+Z"
+                }
+            ]
+        },
+        {
+            "type": "@Elements.MarkerDecorator",
             "className": "Elements.ElementsPanel.PseudoStateMarkerDecorator",
             "marker": "pseudo-state-marker"
         },
         {
-            "type": "@Components.DOMPresentationUtils.MarkerDecorator",
-            "factoryName": "Components.DOMPresentationUtils.GenericDecorator",
+            "type": "@Elements.MarkerDecorator",
+            "factoryName": "Elements.GenericDecorator",
             "marker": "hidden-marker",
             "title": "Element is hidden",
             "color": "#555"
         },
         {
-            "type": "@UI.ActionDelegate",
+            "type": "action",
             "actionId": "elements.toggle-element-search",
             "className": "Elements.InspectElementModeController.ToggleSearchActionDelegate",
             "title": "Select an element in the page to inspect it",
@@ -169,15 +263,9 @@
             "order": 0
         },
         {
-            "type": "@UI.ToolbarItem.Provider",
-            "className": "Elements.InspectElementModeController.LayoutEditorButtonProvider",
-            "order": 4,
-            "location": "styles-sidebarpane-toolbar",
-            "experiment": "layoutEditor"
-        },
-        {
             "type": "@UI.ViewLocationResolver",
             "name": "elements-sidebar",
+            "category": "Elements",
             "className": "Elements.ElementsPanel"
         },
         {
@@ -193,15 +281,6 @@
         {
             "type": "view",
             "location": "elements-sidebar",
-            "id": "elements.domBreakpoints",
-            "title": "DOM Breakpoints",
-            "order": 6,
-            "persistence": "permanent",
-            "factoryName": "Components.DOMBreakpointsSidebarPane.Proxy"
-        },
-        {
-            "type": "view",
-            "location": "elements-sidebar",
             "id": "elements.domProperties",
             "title": "Properties",
             "order": 7,
@@ -210,23 +289,30 @@
         }
     ],
     "dependencies": [
-        "components",
-        "extensions"
+        "browser_components",
+        "extensions",
+        "inline_editor",
+        "color_picker",
+        "event_listeners"
     ],
     "scripts": [
         "InspectElementModeController.js",
         "ColorSwatchPopoverIcon.js",
         "ComputedStyleModel.js",
+        "DOMLinkifier.js",
+        "DOMPath.js",
         "ElementsBreadcrumbs.js",
         "ElementsSidebarPane.js",
         "ElementsTreeElement.js",
         "ElementsTreeOutline.js",
         "EventListenersWidget.js",
+        "MarkerDecorator.js",
         "MetricsSidebarPane.js",
         "PlatformFontsWidget.js",
         "PropertiesWidget.js",
-        "PropertyChangeHighlighter.js",
+        "StylePropertyHighlighter.js",
         "StylesSidebarPane.js",
+        "StylePropertyTreeElement.js",
         "ComputedStyleWidget.js",
         "ElementsPanel.js",
         "ClassesPaneWidget.js",
@@ -235,10 +321,17 @@
     ],
     "resources": [
         "breadcrumbs.css",
+        "classesPaneWidget.css",
         "computedStyleSidebarPane.css",
+        "computedStyleWidgetTree.css",
+        "domLinkifier.css",
         "elementsPanel.css",
+        "elementStatePaneWidget.css",
         "elementsTreeOutline.css",
+        "metricsSidebarPane.css",
         "platformFontsWidget.css",
-        "stylesSectionTree.css"
+        "propertiesWidget.css",
+        "stylesSectionTree.css",
+        "stylesSidebarPane.css"
     ]
 }

@@ -26,13 +26,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- * @implements {Sources.SearchScope}
- * @unrestricted
+ * @implements {Search.SearchScope}
  */
 Sources.SourcesSearchScope = class {
   constructor() {
     // FIXME: Add title once it is used by search controller.
     this._searchId = 0;
+    /** @type {!Array<!Workspace.UISourceCode>} */
+    this._searchResultCandidates = [];
+    /** @type {?function(!Search.SearchResult)} */
+    this._searchResultCallback = null;
+    /** @type {?function(boolean)} */
+    this._searchFinishedCallback = null;
+    /** @type {?Workspace.ProjectSearchConfig} */
+    this._searchConfig = null;
   }
 
   /**
@@ -45,8 +52,8 @@ Sources.SourcesSearchScope = class {
       return -1;
     if (!uiSourceCode1.isDirty() && uiSourceCode2.isDirty())
       return 1;
-    var url1 = uiSourceCode1.url();
-    var url2 = uiSourceCode2.url();
+    const url1 = uiSourceCode1.url();
+    const url2 = uiSourceCode2.url();
     if (url1 && !url2)
       return -1;
     if (!url1 && url2)
@@ -61,11 +68,11 @@ Sources.SourcesSearchScope = class {
   performIndexing(progress) {
     this.stopSearch();
 
-    var projects = this._projects();
-    var compositeProgress = new Common.CompositeProgress(progress);
-    for (var i = 0; i < projects.length; ++i) {
-      var project = projects[i];
-      var projectProgress = compositeProgress.createSubProgress(project.uiSourceCodes().length);
+    const projects = this._projects();
+    const compositeProgress = new Common.CompositeProgress(progress);
+    for (let i = 0; i < projects.length; ++i) {
+      const project = projects[i];
+      const projectProgress = compositeProgress.createSubProgress(project.uiSourceCodes().length);
       project.indexContent(projectProgress);
     }
   }
@@ -74,31 +81,24 @@ Sources.SourcesSearchScope = class {
    * @return {!Array.<!Workspace.Project>}
    */
   _projects() {
-    /**
-     * @param {!Workspace.Project} project
-     * @return {boolean}
-     */
-    function filterOutServiceProjects(project) {
-      return project.type() !== Workspace.projectTypes.Service;
-    }
+    const searchInAnonymousAndContentScripts = Common.moduleSetting('searchInAnonymousAndContentScripts').get();
 
-    /**
-     * @param {!Workspace.Project} project
-     * @return {boolean}
-     */
-    function filterOutContentScriptsIfNeeded(project) {
-      return Common.moduleSetting('searchInContentScripts').get() ||
-          project.type() !== Workspace.projectTypes.ContentScripts;
-    }
-
-    return Workspace.workspace.projects().filter(filterOutServiceProjects).filter(filterOutContentScriptsIfNeeded);
+    return Workspace.workspace.projects().filter(project => {
+      if (project.type() === Workspace.projectTypes.Service)
+        return false;
+      if (!searchInAnonymousAndContentScripts && project.isServiceProject())
+        return false;
+      if (!searchInAnonymousAndContentScripts && project.type() === Workspace.projectTypes.ContentScripts)
+        return false;
+      return true;
+    });
   }
 
   /**
    * @override
    * @param {!Workspace.ProjectSearchConfig} searchConfig
    * @param {!Common.Progress} progress
-   * @param {function(!Sources.FileBasedSearchResult)} searchResultCallback
+   * @param {function(!Search.SearchResult)} searchResultCallback
    * @param {function(boolean)} searchFinishedCallback
    */
   performSearch(searchConfig, progress, searchResultCallback, searchFinishedCallback) {
@@ -108,23 +108,23 @@ Sources.SourcesSearchScope = class {
     this._searchFinishedCallback = searchFinishedCallback;
     this._searchConfig = searchConfig;
 
-    var projects = this._projects();
-    var barrier = new CallbackBarrier();
-    var compositeProgress = new Common.CompositeProgress(progress);
-    var searchContentProgress = compositeProgress.createSubProgress();
-    var findMatchingFilesProgress = new Common.CompositeProgress(compositeProgress.createSubProgress());
-    for (var i = 0; i < projects.length; ++i) {
-      var project = projects[i];
-      var weight = project.uiSourceCodes().length;
-      var findMatchingFilesInProjectProgress = findMatchingFilesProgress.createSubProgress(weight);
-      var barrierCallback = barrier.createCallback();
-      var filesMathingFileQuery = this._projectFilesMatchingFileQuery(project, searchConfig);
-      var callback = this._processMatchingFilesForProject.bind(
-          this, this._searchId, project, filesMathingFileQuery, barrierCallback);
-      project.findFilesMatchingSearchRequest(
-          searchConfig, filesMathingFileQuery, findMatchingFilesInProjectProgress, callback);
+    const promises = [];
+    const compositeProgress = new Common.CompositeProgress(progress);
+    const searchContentProgress = compositeProgress.createSubProgress();
+    const findMatchingFilesProgress = new Common.CompositeProgress(compositeProgress.createSubProgress());
+    for (const project of this._projects()) {
+      const weight = project.uiSourceCodes().length;
+      const findMatchingFilesInProjectProgress = findMatchingFilesProgress.createSubProgress(weight);
+      const filesMathingFileQuery = this._projectFilesMatchingFileQuery(project, searchConfig);
+      const promise =
+          project
+              .findFilesMatchingSearchRequest(searchConfig, filesMathingFileQuery, findMatchingFilesInProjectProgress)
+              .then(this._processMatchingFilesForProject.bind(
+                  this, this._searchId, project, searchConfig, filesMathingFileQuery));
+      promises.push(promise);
     }
-    barrier.callWhenDone(this._processMatchingFiles.bind(
+
+    Promise.all(promises).then(this._processMatchingFiles.bind(
         this, this._searchId, searchContentProgress, this._searchFinishedCallback.bind(this, true)));
   }
 
@@ -135,16 +135,18 @@ Sources.SourcesSearchScope = class {
    * @return {!Array.<string>}
    */
   _projectFilesMatchingFileQuery(project, searchConfig, dirtyOnly) {
-    var result = [];
-    var uiSourceCodes = project.uiSourceCodes();
-    for (var i = 0; i < uiSourceCodes.length; ++i) {
-      var uiSourceCode = uiSourceCodes[i];
-      var binding = Persistence.persistence.binding(uiSourceCode);
-      if (binding && binding.fileSystem === uiSourceCode)
+    const result = [];
+    const uiSourceCodes = project.uiSourceCodes();
+    for (let i = 0; i < uiSourceCodes.length; ++i) {
+      const uiSourceCode = uiSourceCodes[i];
+      if (!uiSourceCode.contentType().isTextType())
+        continue;
+      const binding = Persistence.persistence.binding(uiSourceCode);
+      if (binding && binding.network === uiSourceCode)
         continue;
       if (dirtyOnly && !uiSourceCode.isDirty())
         continue;
-      if (this._searchConfig.filePathMatchesFileQuery(uiSourceCode.fullDisplayName()))
+      if (searchConfig.filePathMatchesFileQuery(uiSourceCode.fullDisplayName()))
         result.push(uiSourceCode.url());
     }
     result.sort(String.naturalOrderComparator);
@@ -154,11 +156,11 @@ Sources.SourcesSearchScope = class {
   /**
    * @param {number} searchId
    * @param {!Workspace.Project} project
-   * @param {!Array.<string>} filesMathingFileQuery
-   * @param {function()} callback
-   * @param {!Array.<string>} files
+   * @param {!Workspace.ProjectSearchConfig} searchConfig
+   * @param {!Array<string>} filesMathingFileQuery
+   * @param {!Array<string>} files
    */
-  _processMatchingFilesForProject(searchId, project, filesMathingFileQuery, callback, files) {
+  _processMatchingFilesForProject(searchId, project, searchConfig, filesMathingFileQuery, files) {
     if (searchId !== this._searchId) {
       this._searchFinishedCallback(false);
       return;
@@ -166,23 +168,22 @@ Sources.SourcesSearchScope = class {
 
     files.sort(String.naturalOrderComparator);
     files = files.intersectOrdered(filesMathingFileQuery, String.naturalOrderComparator);
-    var dirtyFiles = this._projectFilesMatchingFileQuery(project, this._searchConfig, true);
+    const dirtyFiles = this._projectFilesMatchingFileQuery(project, searchConfig, true);
     files = files.mergeOrdered(dirtyFiles, String.naturalOrderComparator);
 
-    var uiSourceCodes = [];
-    for (var i = 0; i < files.length; ++i) {
-      var uiSourceCode = project.uiSourceCodeForURL(files[i]);
-      if (uiSourceCode) {
-        var script = Bindings.DefaultScriptMapping.scriptForUISourceCode(uiSourceCode);
-        if (script && !script.isAnonymousScript())
-          continue;
-        uiSourceCodes.push(uiSourceCode);
-      }
+    const uiSourceCodes = [];
+    for (const file of files) {
+      const uiSourceCode = project.uiSourceCodeForURL(file);
+      if (!uiSourceCode)
+        continue;
+      const script = Bindings.DefaultScriptMapping.scriptForUISourceCode(uiSourceCode);
+      if (script && !script.isAnonymousScript())
+        continue;
+      uiSourceCodes.push(uiSourceCode);
     }
     uiSourceCodes.sort(Sources.SourcesSearchScope._filesComparator);
     this._searchResultCandidates =
         this._searchResultCandidates.mergeOrdered(uiSourceCodes, Sources.SourcesSearchScope._filesComparator);
-    callback();
   }
 
   /**
@@ -196,7 +197,7 @@ Sources.SourcesSearchScope = class {
       return;
     }
 
-    var files = this._searchResultCandidates;
+    const files = this._searchResultCandidates;
     if (!files.length) {
       progress.done();
       callback();
@@ -205,11 +206,11 @@ Sources.SourcesSearchScope = class {
 
     progress.setTotalWork(files.length);
 
-    var fileIndex = 0;
-    var maxFileContentRequests = 20;
-    var callbacksLeft = 0;
+    let fileIndex = 0;
+    const maxFileContentRequests = 20;
+    let callbacksLeft = 0;
 
-    for (var i = 0; i < maxFileContentRequests && i < files.length; ++i)
+    for (let i = 0; i < maxFileContentRequests && i < files.length; ++i)
       scheduleSearchInNextFileOrFinish.call(this);
 
     /**
@@ -220,15 +221,7 @@ Sources.SourcesSearchScope = class {
       if (uiSourceCode.isDirty())
         contentLoaded.call(this, uiSourceCode, uiSourceCode.workingCopy());
       else
-        uiSourceCode.checkContentUpdated(true, contentUpdated.bind(this, uiSourceCode));
-    }
-
-    /**
-     * @param {!Workspace.UISourceCode} uiSourceCode
-     * @this {Sources.SourcesSearchScope}
-     */
-    function contentUpdated(uiSourceCode) {
-      uiSourceCode.requestContent().then(contentLoaded.bind(this, uiSourceCode));
+        uiSourceCode.requestContent().then(contentLoaded.bind(this, uiSourceCode));
     }
 
     /**
@@ -245,7 +238,7 @@ Sources.SourcesSearchScope = class {
       }
 
       ++callbacksLeft;
-      var uiSourceCode = files[fileIndex++];
+      const uiSourceCode = files[fileIndex++];
       setTimeout(searchInNextFile.bind(this, uiSourceCode), 0);
     }
 
@@ -264,17 +257,17 @@ Sources.SourcesSearchScope = class {
       }
 
       progress.worked(1);
-      var matches = [];
-      var queries = this._searchConfig.queries();
+      let matches = [];
+      const queries = this._searchConfig.queries();
       if (content !== null) {
-        for (var i = 0; i < queries.length; ++i) {
-          var nextMatches = Common.ContentProvider.performSearchInContent(
+        for (let i = 0; i < queries.length; ++i) {
+          const nextMatches = Common.ContentProvider.performSearchInContent(
               content, queries[i], !this._searchConfig.ignoreCase(), this._searchConfig.isRegex());
           matches = matches.mergeOrdered(nextMatches, matchesComparator);
         }
       }
       if (matches) {
-        var searchResult = new Sources.FileBasedSearchResult(uiSourceCode, matches);
+        const searchResult = new Sources.FileBasedSearchResult(uiSourceCode, matches);
         this._searchResultCallback(searchResult);
       }
 
@@ -289,13 +282,71 @@ Sources.SourcesSearchScope = class {
   stopSearch() {
     ++this._searchId;
   }
+};
+
+
+/**
+ * @implements {Search.SearchResult}
+ */
+Sources.FileBasedSearchResult = class {
+  /**
+   * @param {!Workspace.UISourceCode} uiSourceCode
+   * @param {!Array.<!Common.ContentProvider.SearchMatch>} searchMatches
+   */
+  constructor(uiSourceCode, searchMatches) {
+    this._uiSourceCode = uiSourceCode;
+    this._searchMatches = searchMatches;
+  }
 
   /**
    * @override
-   * @param {!Workspace.ProjectSearchConfig} searchConfig
-   * @return {!Sources.FileBasedSearchResultsPane}
+   * @return {string}
    */
-  createSearchResultsPane(searchConfig) {
-    return new Sources.FileBasedSearchResultsPane(searchConfig);
+  label() {
+    return this._uiSourceCode.displayName();
+  }
+
+  /**
+   * @override
+   * @return {string}
+   */
+  description() {
+    return this._uiSourceCode.fullDisplayName();
+  }
+
+  /**
+   * @override
+   * @return {number}
+   */
+  matchesCount() {
+    return this._searchMatches.length;
+  }
+
+  /**
+   * @override
+   * @param {number} index
+   * @return {string}
+   */
+  matchLineContent(index) {
+    return this._searchMatches[index].lineContent;
+  }
+
+  /**
+   * @override
+   * @param {number} index
+   * @return {!Object}
+   */
+  matchRevealable(index) {
+    const match = this._searchMatches[index];
+    return this._uiSourceCode.uiLocation(match.lineNumber, match.columnNumber);
+  }
+
+  /**
+   * @override
+   * @param {number} index
+   * @return {?}
+   */
+  matchLabel(index) {
+    return this._searchMatches[index].lineNumber + 1;
   }
 };

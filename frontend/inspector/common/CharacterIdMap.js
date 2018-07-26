@@ -19,7 +19,7 @@ Common.CharacterIdMap = class {
    * @return {string}
    */
   toChar(object) {
-    var character = this._elementToCharacter.get(object);
+    let character = this._elementToCharacter.get(object);
     if (!character) {
       if (this._charCode >= 0xFFFF)
         throw new Error('CharacterIdMap ran out of capacity!');
@@ -35,6 +35,9 @@ Common.CharacterIdMap = class {
    * @return {?T}
    */
   fromChar(character) {
-    return this._characterToElement.get(character) || null;
+    const object = this._characterToElement.get(character);
+    if (object === undefined)
+      return null;
+    return object;
   }
 };

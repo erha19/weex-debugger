@@ -10,7 +10,7 @@ Sources.InplaceFormatterEditorAction = class {
    * @param {!Common.Event} event
    */
   _editorSelected(event) {
-    var uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.data);
+    const uiSourceCode = /** @type {!Workspace.UISourceCode} */ (event.data);
     this._updateButton(uiSourceCode);
   }
 
@@ -18,7 +18,7 @@ Sources.InplaceFormatterEditorAction = class {
    * @param {!Common.Event} event
    */
   _editorClosed(event) {
-    var wasSelected = /** @type {boolean} */ (event.data.wasSelected);
+    const wasSelected = /** @type {boolean} */ (event.data.wasSelected);
     if (wasSelected)
       this._updateButton(null);
   }
@@ -44,7 +44,7 @@ Sources.InplaceFormatterEditorAction = class {
     this._sourcesView.addEventListener(Sources.SourcesView.Events.EditorClosed, this._editorClosed.bind(this));
 
     this._button = new UI.ToolbarButton(Common.UIString('Format'), 'largeicon-pretty-print');
-    this._button.addEventListener('click', this._formatSourceInPlace, this);
+    this._button.addEventListener(UI.ToolbarButton.Events.Click, this._formatSourceInPlace, this);
     this._updateButton(sourcesView.currentUISourceCode());
 
     return this._button;
@@ -57,16 +57,18 @@ Sources.InplaceFormatterEditorAction = class {
   _isFormattable(uiSourceCode) {
     if (!uiSourceCode)
       return false;
-    if (uiSourceCode.project().type() === Workspace.projectTypes.FileSystem)
+    if (uiSourceCode.project().canSetFileContent())
       return true;
     if (Persistence.persistence.binding(uiSourceCode))
       return true;
-    return uiSourceCode.contentType().isStyleSheet() ||
-        uiSourceCode.project().type() === Workspace.projectTypes.Snippets;
+    return uiSourceCode.contentType().isStyleSheet();
   }
 
-  _formatSourceInPlace() {
-    var uiSourceCode = this._sourcesView.currentUISourceCode();
+  /**
+   * @param {!Common.Event} event
+   */
+  _formatSourceInPlace(event) {
+    const uiSourceCode = this._sourcesView.currentUISourceCode();
     if (!this._isFormattable(uiSourceCode))
       return;
 
@@ -80,25 +82,26 @@ Sources.InplaceFormatterEditorAction = class {
      * @param {?string} content
      */
     function contentLoaded(content) {
-      var highlighterType = Bindings.NetworkProject.uiSourceCodeMimeType(uiSourceCode);
-      Sources.Formatter.format(uiSourceCode.contentType(), highlighterType, content || '', innerCallback.bind(this));
+      const highlighterType = uiSourceCode.mimeType();
+      Formatter.Formatter.format(uiSourceCode.contentType(), highlighterType, content || '', innerCallback.bind(this));
     }
 
     /**
      * @this {Sources.InplaceFormatterEditorAction}
      * @param {string} formattedContent
-     * @param {!Sources.FormatterSourceMapping} formatterMapping
+     * @param {!Formatter.FormatterSourceMapping} formatterMapping
      */
     function innerCallback(formattedContent, formatterMapping) {
       if (uiSourceCode.workingCopy() === formattedContent)
         return;
-      var sourceFrame = this._sourcesView.viewForFile(uiSourceCode);
-      var start = [0, 0];
+      const sourceFrame = this._sourcesView.viewForFile(uiSourceCode);
+      let start = [0, 0];
       if (sourceFrame) {
-        var selection = sourceFrame.selection();
+        const selection = sourceFrame.selection();
         start = formatterMapping.originalToFormatted(selection.startLine, selection.startColumn);
       }
       uiSourceCode.setWorkingCopy(formattedContent);
+
       this._sourcesView.showSourceLocation(uiSourceCode, start[0], start[1]);
     }
   }

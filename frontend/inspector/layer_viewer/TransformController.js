@@ -32,20 +32,21 @@ LayerViewer.TransformController = class extends Common.Object {
     /** @type {!Object<string, !UI.ToolbarToggle>} */
     this._modeButtons = {};
     if (!disableRotate) {
-      var panModeButton = new UI.ToolbarToggle(Common.UIString('Pan mode (X)'), 'largeicon-pan');
-      panModeButton.addEventListener('click', this._setMode.bind(this, LayerViewer.TransformController.Modes.Pan));
+      const panModeButton = new UI.ToolbarToggle(Common.UIString('Pan mode (X)'), 'largeicon-pan');
+      panModeButton.addEventListener(
+          UI.ToolbarButton.Events.Click, this._setMode.bind(this, LayerViewer.TransformController.Modes.Pan));
       this._modeButtons[LayerViewer.TransformController.Modes.Pan] = panModeButton;
       this._controlPanelToolbar.appendToolbarItem(panModeButton);
-      var rotateModeButton = new UI.ToolbarToggle(Common.UIString('Rotate mode (V)'), 'largeicon-rotate');
+      const rotateModeButton = new UI.ToolbarToggle(Common.UIString('Rotate mode (V)'), 'largeicon-rotate');
       rotateModeButton.addEventListener(
-          'click', this._setMode.bind(this, LayerViewer.TransformController.Modes.Rotate));
+          UI.ToolbarButton.Events.Click, this._setMode.bind(this, LayerViewer.TransformController.Modes.Rotate));
       this._modeButtons[LayerViewer.TransformController.Modes.Rotate] = rotateModeButton;
       this._controlPanelToolbar.appendToolbarItem(rotateModeButton);
     }
     this._setMode(LayerViewer.TransformController.Modes.Pan);
 
-    var resetButton = new UI.ToolbarButton(Common.UIString('Reset transform (0)'), 'largeicon-center');
-    resetButton.addEventListener('click', this.resetAndNotify.bind(this, undefined));
+    const resetButton = new UI.ToolbarButton(Common.UIString('Reset transform (0)'), 'largeicon-center');
+    resetButton.addEventListener(UI.ToolbarButton.Events.Click, this.resetAndNotify.bind(this, undefined));
     this._controlPanelToolbar.appendToolbarItem(resetButton);
 
     this._reset();
@@ -64,8 +65,8 @@ LayerViewer.TransformController = class extends Common.Object {
       return;
     }
 
-    var shortcutKey = UI.KeyboardShortcut.makeKeyFromEventIgnoringModifiers(event);
-    var handler = this._shortcuts[shortcutKey];
+    const shortcutKey = UI.KeyboardShortcut.makeKeyFromEventIgnoringModifiers(event);
+    const handler = this._shortcuts[shortcutKey];
     if (handler && handler(event))
       event.consume();
   }
@@ -76,31 +77,26 @@ LayerViewer.TransformController = class extends Common.Object {
   }
 
   _addShortcuts(keys, handler) {
-    for (var i = 0; i < keys.length; ++i)
+    for (let i = 0; i < keys.length; ++i)
       this._shortcuts[keys[i].key] = handler;
   }
 
   _registerShortcuts() {
-    this._addShortcuts(Components.ShortcutsScreen.LayersPanelShortcuts.ResetView, this.resetAndNotify.bind(this));
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.ResetView, this.resetAndNotify.bind(this));
     this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.PanMode,
+        UI.ShortcutsScreen.LayersPanelShortcuts.PanMode,
         this._setMode.bind(this, LayerViewer.TransformController.Modes.Pan));
     this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.RotateMode,
+        UI.ShortcutsScreen.LayersPanelShortcuts.RotateMode,
         this._setMode.bind(this, LayerViewer.TransformController.Modes.Rotate));
-    var zoomFactor = 1.1;
+    const zoomFactor = 1.1;
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.ZoomIn, this._onKeyboardZoom.bind(this, zoomFactor));
     this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.ZoomIn, this._onKeyboardZoom.bind(this, zoomFactor));
-    this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.ZoomOut, this._onKeyboardZoom.bind(this, 1 / zoomFactor));
-    this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.Up, this._onKeyboardPanOrRotate.bind(this, 0, -1));
-    this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.Down, this._onKeyboardPanOrRotate.bind(this, 0, 1));
-    this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.Left, this._onKeyboardPanOrRotate.bind(this, -1, 0));
-    this._addShortcuts(
-        Components.ShortcutsScreen.LayersPanelShortcuts.Right, this._onKeyboardPanOrRotate.bind(this, 1, 0));
+        UI.ShortcutsScreen.LayersPanelShortcuts.ZoomOut, this._onKeyboardZoom.bind(this, 1 / zoomFactor));
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.Up, this._onKeyboardPanOrRotate.bind(this, 0, -1));
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.Down, this._onKeyboardPanOrRotate.bind(this, 0, 1));
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.Left, this._onKeyboardPanOrRotate.bind(this, -1, 0));
+    this._addShortcuts(UI.ShortcutsScreen.LayersPanelShortcuts.Right, this._onKeyboardPanOrRotate.bind(this, 1, 0));
   }
 
   _postChangeEvent() {
@@ -133,7 +129,7 @@ LayerViewer.TransformController = class extends Common.Object {
   }
 
   _updateModeButtons() {
-    for (var mode in this._modeButtons)
+    for (const mode in this._modeButtons)
       this._modeButtons[mode].setToggled(mode === this._mode);
   }
 
@@ -249,8 +245,8 @@ LayerViewer.TransformController = class extends Common.Object {
    * @param {number} yMultiplier
    */
   _onKeyboardPanOrRotate(xMultiplier, yMultiplier) {
-    var panStepInPixels = 6;
-    var rotateStepInDegrees = 5;
+    const panStepInPixels = 6;
+    const rotateStepInDegrees = 5;
 
     if (this._mode === LayerViewer.TransformController.Modes.Rotate) {
       // Sic! _onRotate treats X and Y as "rotate around X" and "rotate around Y", so swap X/Y multiplers.
@@ -266,10 +262,10 @@ LayerViewer.TransformController = class extends Common.Object {
    */
   _onMouseWheel(event) {
     /** @const */
-    var zoomFactor = 1.1;
+    const zoomFactor = 1.1;
     /** @const */
-    var mouseWheelZoomSpeed = 1 / 120;
-    var scaleFactor = Math.pow(zoomFactor, event.wheelDeltaY * mouseWheelZoomSpeed);
+    const mouseWheelZoomSpeed = 1 / 120;
+    const scaleFactor = Math.pow(zoomFactor, event.wheelDeltaY * mouseWheelZoomSpeed);
     this._onScale(
         scaleFactor, event.clientX - this.element.totalOffsetLeft(), event.clientY - this.element.totalOffsetTop());
   }

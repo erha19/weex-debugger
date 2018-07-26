@@ -10,7 +10,8 @@ Animation.AnimationModel = class extends SDK.SDKModel {
    * @param {!SDK.Target} target
    */
   constructor(target) {
-    super(Animation.AnimationModel, target);
+    super(target);
+    this._runtimeModel = /** @type {!SDK.RuntimeModel} */ (target.model(SDK.RuntimeModel));
     this._agent = target.animationAgent();
     target.registerAnimationDispatcher(new Animation.AnimationDispatcher(this));
     /** @type {!Map.<string, !Animation.AnimationModel.Animation>} */
@@ -20,23 +21,11 @@ Animation.AnimationModel = class extends SDK.SDKModel {
     /** @type {!Array.<string>} */
     this._pendingAnimations = [];
     this._playbackRate = 1;
-    var resourceTreeModel =
-        /** @type {!SDK.ResourceTreeModel} */ (SDK.ResourceTreeModel.fromTarget(target));
+    const resourceTreeModel = /** @type {!SDK.ResourceTreeModel} */ (target.model(SDK.ResourceTreeModel));
     resourceTreeModel.addEventListener(SDK.ResourceTreeModel.Events.MainFrameNavigated, this._reset, this);
-    this._screenshotCapture = new Animation.AnimationModel.ScreenshotCapture(target, this, resourceTreeModel);
-  }
-
-  /**
-   * @param {!SDK.Target} target
-   * @return {?Animation.AnimationModel}
-   */
-  static fromTarget(target) {
-    if (!target.hasDOMCapability())
-      return null;
-    if (!target[Animation.AnimationModel._symbol])
-      target[Animation.AnimationModel._symbol] = new Animation.AnimationModel(target);
-
-    return target[Animation.AnimationModel._symbol];
+    const screenCaptureModel = target.model(SDK.ScreenCaptureModel);
+    if (screenCaptureModel)
+      this._screenshotCapture = new Animation.AnimationModel.ScreenshotCapture(this, screenCaptureModel);
   }
 
   _reset() {
@@ -65,7 +54,11 @@ Animation.AnimationModel = class extends SDK.SDKModel {
    * @param {!Protocol.Animation.Animation} payload
    */
   animationStarted(payload) {
-    var animation = Animation.AnimationModel.Animation.parsePayload(this.target(), payload);
+    // We are not interested in animations without effect or target.
+    if (!payload.source || !payload.source.backendNodeId)
+      return;
+
+    const animation = Animation.AnimationModel.Animation.parsePayload(this, payload);
 
     // Ignore Web Animations custom effects & groups.
     if (animation.type() === 'WebAnimation' && animation.source().keyframesRule().keyframes().length === 0) {
@@ -80,7 +73,7 @@ Animation.AnimationModel = class extends SDK.SDKModel {
   }
 
   _flushPendingAnimationsIfNeeded() {
-    for (var id of this._pendingAnimations) {
+    for (const id of this._pendingAnimations) {
       if (!this._animationsById.get(id))
         return;
     }
@@ -94,8 +87,8 @@ Animation.AnimationModel = class extends SDK.SDKModel {
    * @return {boolean}
    */
   _matchExistingGroups(incomingGroup) {
-    var matchedGroup = null;
-    for (var group of this._animationGroups.values()) {
+    let matchedGroup = null;
+    for (const group of this._animationGroups.values()) {
       if (group._matches(incomingGroup)) {
         matchedGroup = group;
         group._update(incomingGroup);
@@ -105,7 +98,8 @@ Animation.AnimationModel = class extends SDK.SDKModel {
 
     if (!matchedGroup) {
       this._animationGroups.set(incomingGroup.id(), incomingGroup);
-      this._screenshotCapture.captureScreenshots(incomingGroup.finiteDuration(), incomingGroup._screenshots);
+      if (this._screenshotCapture)
+        this._screenshotCapture.captureScreenshots(incomingGroup.finiteDuration(), incomingGroup._screenshots);
     }
     this.dispatchEventToListeners(Animation.AnimationModel.Events.AnimationGroupStarted, matchedGroup || incomingGroup);
     return !!matchedGroup;
@@ -116,10 +110,10 @@ Animation.AnimationModel = class extends SDK.SDKModel {
    */
   _createGroupFromPendingAnimations() {
     console.assert(this._pendingAnimations.length);
-    var groupedAnimations = [this._animationsById.get(this._pendingAnimations.shift())];
-    var remainingAnimations = [];
-    for (var id of this._pendingAnimations) {
-      var anim = this._animationsById.get(id);
+    const groupedAnimations = [this._animationsById.get(this._pendingAnimations.shift())];
+    const remainingAnimations = [];
+    for (const id of this._pendingAnimations) {
+      const anim = this._animationsById.get(id);
       if (anim.startTime() === groupedAnimations[0].startTime())
         groupedAnimations.push(anim);
       else
@@ -127,26 +121,6 @@ Animation.AnimationModel = class extends SDK.SDKModel {
     }
     this._pendingAnimations = remainingAnimations;
     return new Animation.AnimationModel.AnimationGroup(this, groupedAnimations[0].id(), groupedAnimations);
-  }
-
-  /**
-   * @return {!Promise.<number>}
-   */
-  playbackRatePromise() {
-    /**
-     * @param {?Protocol.Error} error
-     * @param {number} playbackRate
-     * @return {number}
-     * @this {!Animation.AnimationModel}
-     */
-    function callback(error, playbackRate) {
-      if (error)
-        return 1;
-      this._playbackRate = playbackRate;
-      return playbackRate;
-    }
-
-    return this._agent.getPlaybackRate(callback.bind(this)).catchException(1);
   }
 
   /**
@@ -161,7 +135,7 @@ Animation.AnimationModel = class extends SDK.SDKModel {
    * @param {!Array.<string>} animations
    */
   _releaseAnimations(animations) {
-    this.target().animationAgent().releaseAnimations(animations);
+    this._agent.releaseAnimations(animations);
   }
 
   /**
@@ -191,36 +165,37 @@ Animation.AnimationModel = class extends SDK.SDKModel {
   }
 };
 
+SDK.SDKModel.register(Animation.AnimationModel, SDK.Target.Capability.DOM, false);
+
 /** @enum {symbol} */
 Animation.AnimationModel.Events = {
   AnimationGroupStarted: Symbol('AnimationGroupStarted'),
   ModelReset: Symbol('ModelReset')
 };
 
-Animation.AnimationModel._symbol = Symbol('AnimationModel');
-
 
 /**
  * @unrestricted
  */
-Animation.AnimationModel.Animation = class extends SDK.SDKObject {
+Animation.AnimationModel.Animation = class {
   /**
-   * @param {!SDK.Target} target
+   * @param {!Animation.AnimationModel} animationModel
    * @param {!Protocol.Animation.Animation} payload
    */
-  constructor(target, payload) {
-    super(target);
+  constructor(animationModel, payload) {
+    this._animationModel = animationModel;
     this._payload = payload;
-    this._source = new Animation.AnimationModel.AnimationEffect(this.target(), this._payload.source);
+    this._source = new Animation.AnimationModel.AnimationEffect(
+        animationModel, /** @type {!Protocol.Animation.AnimationEffect} */ (this._payload.source));
   }
 
   /**
-   * @param {!SDK.Target} target
+   * @param {!Animation.AnimationModel} animationModel
    * @param {!Protocol.Animation.Animation} payload
    * @return {!Animation.AnimationModel.Animation}
    */
-  static parsePayload(target, payload) {
-    return new Animation.AnimationModel.Animation(target, payload);
+  static parsePayload(animationModel, payload) {
+    return new Animation.AnimationModel.Animation(animationModel, payload);
   }
 
   /**
@@ -293,7 +268,7 @@ Animation.AnimationModel.Animation = class extends SDK.SDKObject {
    * @return {number}
    */
   _finiteDuration() {
-    var iterations = Math.min(this.source().iterations(), 3);
+    const iterations = Math.min(this.source().iterations(), 3);
     return this.source().delay() + this.source().duration() * iterations;
   }
 
@@ -327,8 +302,8 @@ Animation.AnimationModel.Animation = class extends SDK.SDKObject {
     if (!this.source().iterations() || !animation.source().iterations())
       return true;
 
-    var firstAnimation = this.startTime() < animation.startTime() ? this : animation;
-    var secondAnimation = firstAnimation === this ? animation : this;
+    const firstAnimation = this.startTime() < animation.startTime() ? this : animation;
+    const secondAnimation = firstAnimation === this ? animation : this;
     return firstAnimation.endTime() >= secondAnimation.startTime();
   }
 
@@ -340,7 +315,7 @@ Animation.AnimationModel.Animation = class extends SDK.SDKObject {
     this._source.node().then(this._updateNodeStyle.bind(this, duration, delay));
     this._source._duration = duration;
     this._source._delay = delay;
-    this.target().animationAgent().setTiming(this.id(), duration, delay);
+    this._animationModel._agent.setTiming(this.id(), duration, delay);
   }
 
   /**
@@ -349,7 +324,7 @@ Animation.AnimationModel.Animation = class extends SDK.SDKObject {
    * @param {!SDK.DOMNode} node
    */
   _updateNodeStyle(duration, delay, node) {
-    var animationPrefix;
+    let animationPrefix;
     if (this.type() === Animation.AnimationModel.Animation.Type.CSSTransition)
       animationPrefix = 'transition-';
     else if (this.type() === Animation.AnimationModel.Animation.Type.CSSAnimation)
@@ -357,28 +332,17 @@ Animation.AnimationModel.Animation = class extends SDK.SDKObject {
     else
       return;
 
-    var cssModel = SDK.CSSModel.fromTarget(node.target());
-    if (!cssModel)
-      return;
+    const cssModel = node.domModel().cssModel();
     cssModel.setEffectivePropertyValueForNode(node.id, animationPrefix + 'duration', duration + 'ms');
     cssModel.setEffectivePropertyValueForNode(node.id, animationPrefix + 'delay', delay + 'ms');
   }
 
   /**
-   * @return {!Promise.<?SDK.RemoteObject>}
+   * @return {!Promise<?SDK.RemoteObject>}
    */
   remoteObjectPromise() {
-    /**
-     * @param {?Protocol.Error} error
-     * @param {!Protocol.Runtime.RemoteObject} payload
-     * @return {?SDK.RemoteObject}
-     * @this {!Animation.AnimationModel.Animation}
-     */
-    function callback(error, payload) {
-      return !error ? this.target().runtimeModel.createRemoteObject(payload) : null;
-    }
-
-    return this.target().animationAgent().resolveAnimation(this.id(), callback.bind(this));
+    return this._animationModel._agent.resolveAnimation(this.id()).then(
+        payload => payload && this._animationModel._runtimeModel.createRemoteObject(payload));
   }
 
   /**
@@ -400,16 +364,16 @@ Animation.AnimationModel.Animation.Type = {
 /**
  * @unrestricted
  */
-Animation.AnimationModel.AnimationEffect = class extends SDK.SDKObject {
+Animation.AnimationModel.AnimationEffect = class {
   /**
-   * @param {!SDK.Target} target
+   * @param {!Animation.AnimationModel} animationModel
    * @param {!Protocol.Animation.AnimationEffect} payload
    */
-  constructor(target, payload) {
-    super(target);
+  constructor(animationModel, payload) {
+    this._animationModel = animationModel;
     this._payload = payload;
     if (payload.keyframesRule)
-      this._keyframesRule = new Animation.AnimationModel.KeyframesRule(target, payload.keyframesRule);
+      this._keyframesRule = new Animation.AnimationModel.KeyframesRule(payload.keyframesRule);
     this._delay = this._payload.delay;
     this._duration = this._payload.duration;
   }
@@ -471,7 +435,7 @@ Animation.AnimationModel.AnimationEffect = class extends SDK.SDKObject {
    */
   node() {
     if (!this._deferredNode)
-      this._deferredNode = new SDK.DeferredDOMNode(this.target(), this.backendNodeId());
+      this._deferredNode = new SDK.DeferredDOMNode(this._animationModel.target(), this.backendNodeId());
     return this._deferredNode.resolvePromise();
   }
 
@@ -479,14 +443,14 @@ Animation.AnimationModel.AnimationEffect = class extends SDK.SDKObject {
    * @return {!SDK.DeferredDOMNode}
    */
   deferredNode() {
-    return new SDK.DeferredDOMNode(this.target(), this.backendNodeId());
+    return new SDK.DeferredDOMNode(this._animationModel.target(), this.backendNodeId());
   }
 
   /**
    * @return {number}
    */
   backendNodeId() {
-    return this._payload.backendNodeId;
+    return /** @type {number} */ (this._payload.backendNodeId);
   }
 
   /**
@@ -507,16 +471,14 @@ Animation.AnimationModel.AnimationEffect = class extends SDK.SDKObject {
 /**
  * @unrestricted
  */
-Animation.AnimationModel.KeyframesRule = class extends SDK.SDKObject {
+Animation.AnimationModel.KeyframesRule = class {
   /**
-   * @param {!SDK.Target} target
    * @param {!Protocol.Animation.KeyframesRule} payload
    */
-  constructor(target, payload) {
-    super(target);
+  constructor(payload) {
     this._payload = payload;
     this._keyframes = this._payload.keyframes.map(function(keyframeStyle) {
-      return new Animation.AnimationModel.KeyframeStyle(target, keyframeStyle);
+      return new Animation.AnimationModel.KeyframeStyle(keyframeStyle);
     });
   }
 
@@ -525,7 +487,7 @@ Animation.AnimationModel.KeyframesRule = class extends SDK.SDKObject {
    */
   _setKeyframesPayload(payload) {
     this._keyframes = payload.map(function(keyframeStyle) {
-      return new Animation.AnimationModel.KeyframeStyle(this._target, keyframeStyle);
+      return new Animation.AnimationModel.KeyframeStyle(keyframeStyle);
     });
   }
 
@@ -547,13 +509,11 @@ Animation.AnimationModel.KeyframesRule = class extends SDK.SDKObject {
 /**
  * @unrestricted
  */
-Animation.AnimationModel.KeyframeStyle = class extends SDK.SDKObject {
+Animation.AnimationModel.KeyframeStyle = class {
   /**
-   * @param {!SDK.Target} target
    * @param {!Protocol.Animation.KeyframeStyle} payload
    */
-  constructor(target, payload) {
-    super(target);
+  constructor(payload) {
     this._payload = payload;
     this._offset = this._payload.offset;
   }
@@ -590,15 +550,14 @@ Animation.AnimationModel.KeyframeStyle = class extends SDK.SDKObject {
 /**
  * @unrestricted
  */
-Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
+Animation.AnimationModel.AnimationGroup = class {
   /**
-   * @param {!Animation.AnimationModel} model
+   * @param {!Animation.AnimationModel} animationModel
    * @param {string} id
    * @param {!Array.<!Animation.AnimationModel.Animation>} animations
    */
-  constructor(model, id, animations) {
-    super(model.target());
-    this._model = model;
+  constructor(animationModel, id, animations) {
+    this._animationModel = animationModel;
     this._id = id;
     this._animations = animations;
     this._paused = false;
@@ -621,8 +580,8 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
   }
 
   release() {
-    this._model._animationGroups.remove(this.id());
-    this._model._releaseAnimations(this._animationIds());
+    this._animationModel._animationGroups.remove(this.id());
+    this._animationModel._releaseAnimations(this._animationIds());
   }
 
   /**
@@ -651,8 +610,8 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
    * @return {number}
    */
   finiteDuration() {
-    var maxDuration = 0;
-    for (var i = 0; i < this._animations.length; ++i)
+    let maxDuration = 0;
+    for (let i = 0; i < this._animations.length; ++i)
       maxDuration = Math.max(maxDuration, this._animations[i]._finiteDuration());
     return maxDuration;
   }
@@ -661,7 +620,7 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
    * @param {number} currentTime
    */
   seekTo(currentTime) {
-    this.target().animationAgent().seekAnimations(this._animationIds(), currentTime);
+    this._animationModel._agent.seekAnimations(this._animationIds(), currentTime);
   }
 
   /**
@@ -678,28 +637,19 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
     if (paused === this._paused)
       return;
     this._paused = paused;
-    this.target().animationAgent().setPaused(this._animationIds(), paused);
+    this._animationModel._agent.setPaused(this._animationIds(), paused);
   }
 
   /**
-   * @return {!Promise.<number>}
+   * @return {!Promise<number>}
    */
   currentTimePromise() {
-    /**
-     * @param {?Protocol.Error} error
-     * @param {number} currentTime
-     * @return {number}
-     */
-    function callback(error, currentTime) {
-      return !error ? currentTime : 0;
-    }
-
-    var longestAnim = null;
-    for (var anim of this._animations) {
+    let longestAnim = null;
+    for (const anim of this._animations) {
       if (!longestAnim || anim.endTime() > longestAnim.endTime())
         longestAnim = anim;
     }
-    return this.target().animationAgent().getCurrentTime(longestAnim.id(), callback).catchException(0);
+    return this._animationModel._agent.getCurrentTime(longestAnim.id()).then(currentTime => currentTime || 0);
   }
 
   /**
@@ -720,9 +670,9 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
 
     if (this._animations.length !== group._animations.length)
       return false;
-    var left = this._animations.map(extractId).sort();
-    var right = group._animations.map(extractId).sort();
-    for (var i = 0; i < left.length; i++) {
+    const left = this._animations.map(extractId).sort();
+    const right = group._animations.map(extractId).sort();
+    for (let i = 0; i < left.length; i++) {
       if (left[i] !== right[i])
         return false;
     }
@@ -733,7 +683,7 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
    * @param {!Animation.AnimationModel.AnimationGroup} group
    */
   _update(group) {
-    this._model._releaseAnimations(this._animationIds());
+    this._animationModel._releaseAnimations(this._animationIds());
     this._animations = group._animations;
   }
 
@@ -741,8 +691,8 @@ Animation.AnimationModel.AnimationGroup = class extends SDK.SDKObject {
    * @return {!Array.<!Image>}
    */
   screenshots() {
-    for (var i = 0; i < this._screenshots.length; ++i) {
-      var image = new Image();
+    for (let i = 0; i < this._screenshots.length; ++i) {
+      const image = new Image();
       image.src = 'data:image/jpeg;base64,' + this._screenshots[i];
       this._screenshotImages.push(image);
     }
@@ -790,17 +740,15 @@ Animation.AnimationDispatcher = class {
  */
 Animation.AnimationModel.ScreenshotCapture = class {
   /**
-   * @param {!SDK.Target} target
-   * @param {!Animation.AnimationModel} model
-   * @param {!SDK.ResourceTreeModel} resourceTreeModel
+   * @param {!Animation.AnimationModel} animationModel
+   * @param {!SDK.ScreenCaptureModel} screenCaptureModel
    */
-  constructor(target, model, resourceTreeModel) {
-    this._target = target;
+  constructor(animationModel, screenCaptureModel) {
     /** @type {!Array<!Animation.AnimationModel.ScreenshotCapture.Request>} */
     this._requests = [];
-    resourceTreeModel.addEventListener(SDK.ResourceTreeModel.Events.ScreencastFrame, this._screencastFrame, this);
-    this._model = model;
-    this._model.addEventListener(Animation.AnimationModel.Events.ModelReset, this._stopScreencast, this);
+    this._screenCaptureModel = screenCaptureModel;
+    this._animationModel = animationModel;
+    this._animationModel.addEventListener(Animation.AnimationModel.Events.ModelReset, this._stopScreencast, this);
   }
 
   /**
@@ -808,8 +756,8 @@ Animation.AnimationModel.ScreenshotCapture = class {
    * @param {!Array<string>} screenshots
    */
   captureScreenshots(duration, screenshots) {
-    var screencastDuration = Math.min(duration / this._model._playbackRate, 3000);
-    var endTime = screencastDuration + window.performance.now();
+    const screencastDuration = Math.min(duration / this._animationModel._playbackRate, 3000);
+    const endTime = screencastDuration + window.performance.now();
     this._requests.push({endTime: endTime, screenshots: screenshots});
 
     if (!this._endTime || endTime > this._endTime) {
@@ -821,13 +769,15 @@ Animation.AnimationModel.ScreenshotCapture = class {
     if (this._capturing)
       return;
     this._capturing = true;
-    this._target.pageAgent().startScreencast('jpeg', 80, undefined, 300, 2);
+    this._screenCaptureModel.startScreencast(
+        'jpeg', 80, undefined, 300, 2, this._screencastFrame.bind(this), visible => {});
   }
 
   /**
-   * @param {!Common.Event} event
+   * @param {string} base64Data
+   * @param {!Protocol.Page.ScreencastFrameMetadata} metadata
    */
-  _screencastFrame(event) {
+  _screencastFrame(base64Data, metadata) {
     /**
      * @param {!Animation.AnimationModel.ScreenshotCapture.Request} request
      * @return {boolean}
@@ -839,10 +789,9 @@ Animation.AnimationModel.ScreenshotCapture = class {
     if (!this._capturing)
       return;
 
-    var base64Data = /** type {string} */ (event.data['data']);
-    var now = window.performance.now();
+    const now = window.performance.now();
     this._requests = this._requests.filter(isAnimating);
-    for (var request of this._requests)
+    for (const request of this._requests)
       request.screenshots.push(base64Data);
   }
 
@@ -854,7 +803,7 @@ Animation.AnimationModel.ScreenshotCapture = class {
     delete this._endTime;
     this._requests = [];
     this._capturing = false;
-    this._target.pageAgent().stopScreencast();
+    this._screenCaptureModel.stopScreencast();
   }
 };
 

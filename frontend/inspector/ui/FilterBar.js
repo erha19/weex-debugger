@@ -39,17 +39,16 @@ UI.FilterBar = class extends UI.HBox {
   constructor(name, visibleByDefault) {
     super();
     this.registerRequiredCSS('ui/filter.css');
-    this._filtersShown = false;
     this._enabled = true;
     this.element.classList.add('filter-bar');
 
-    this._filterButton = new UI.ToolbarToggle(Common.UIString('Filter'), 'largeicon-filter');
-    this._filterButton.addEventListener('click', this._handleFilterButtonClick, this);
+    this._stateSetting = Common.settings.createSetting('filterBar-' + name + '-toggled', !!visibleByDefault);
+    this._filterButton = new UI.ToolbarSettingToggle(this._stateSetting, 'largeicon-filter', Common.UIString('Filter'));
 
     this._filters = [];
 
-    this._stateSetting = Common.settings.createSetting('filterBar-' + name + '-toggled', !!visibleByDefault);
-    this._setState(this._stateSetting.get());
+    this._updateFilterBar();
+    this._stateSetting.addChangeListener(this._updateFilterBar.bind(this));
   }
 
   /**
@@ -80,11 +79,8 @@ UI.FilterBar = class extends UI.HBox {
     this._updateFilterBar();
   }
 
-  /**
-   * @override
-   */
-  wasShown() {
-    this._updateFilterBar();
+  showOnce() {
+    this._stateSetting.set(true);
   }
 
   /**
@@ -94,54 +90,45 @@ UI.FilterBar = class extends UI.HBox {
     this._updateFilterButton();
   }
 
+  /**
+   * @override
+   */
+  wasShown() {
+    super.wasShown();
+    this._updateFilterBar();
+  }
+
   _updateFilterBar() {
-    var visible = this._alwaysShowFilters || (this._filtersShown && this._enabled);
-    this.element.classList.toggle('hidden', !visible);
-    if (visible) {
-      for (var i = 0; i < this._filters.length; ++i) {
-        if (this._filters[i] instanceof UI.TextFilterUI) {
-          var textFilterUI = /** @type {!UI.TextFilterUI} */ (this._filters[i]);
-          textFilterUI.focus();
-        }
+    if (!this.parentWidget() || this._showingWidget)
+      return;
+    if (this.visible()) {
+      this._showingWidget = true;
+      this.showWidget();
+      this._showingWidget = false;
+    } else {
+      this.hideWidget();
+    }
+  }
+
+  /**
+   * @override
+   */
+  focus() {
+    for (let i = 0; i < this._filters.length; ++i) {
+      if (this._filters[i] instanceof UI.TextFilterUI) {
+        const textFilterUI = /** @type {!UI.TextFilterUI} */ (this._filters[i]);
+        textFilterUI.focus();
+        break;
       }
     }
-    this.invalidateSize();
   }
 
   _updateFilterButton() {
-    if (this._filtersShown) {
-      this._filterButton.setToggled(true);
-      this._filterButton.setToggleWithRedColor(false);
-      return;
-    }
-    this._filterButton.setToggleWithRedColor(true);
-    var isActive = false;
-    for (var filter of this._filters)
+    let isActive = false;
+    for (const filter of this._filters)
       isActive = isActive || filter.isActive();
-    this._filterButton.setToggled(isActive);
-  }
-
-  /**
-   * @param {!Common.Event} event
-   */
-  _handleFilterButtonClick(event) {
-    this._setState(!this._filtersShown);
-  }
-
-  /**
-   * @param {boolean} filtersShown
-   */
-  _setState(filtersShown) {
-    if (this._filtersShown === filtersShown)
-      return;
-
-    this._filtersShown = filtersShown;
-    if (this._stateSetting)
-      this._stateSetting.set(filtersShown);
-
-    this._updateFilterButton();
-    this._updateFilterBar();
-    this.dispatchEventToListeners(UI.FilterBar.Events.Toggled);
+    this._filterButton.setDefaultWithRedColor(isActive);
+    this._filterButton.setToggleWithRedColor(isActive);
   }
 
   clear() {
@@ -149,17 +136,14 @@ UI.FilterBar = class extends UI.HBox {
     this._filters = [];
     this._updateFilterButton();
   }
-};
 
-UI.FilterBar.FilterBarState = {
-  Inactive: 'inactive',
-  Active: 'active',
-  Shown: 'on'
-};
+  setting() {
+    return this._stateSetting;
+  }
 
-/** @enum {symbol} */
-UI.FilterBar.Events = {
-  Toggled: Symbol('Toggled')
+  visible() {
+    return this._alwaysShowFilters || (this._stateSetting.get() && this._enabled);
+  }
 };
 
 /**
@@ -177,63 +161,54 @@ UI.FilterUI.prototype = {
   /**
    * @return {boolean}
    */
-  isActive: function() {},
+  isActive() {},
 
   /**
    * @return {!Element}
    */
-  element: function() {}
+  element() {}
 };
 
 /**
  * @implements {UI.FilterUI}
- * @implements {UI.SuggestBoxDelegate}
  * @unrestricted
  */
 UI.TextFilterUI = class extends Common.Object {
-  /**
-   * @param {boolean=} supportRegex
-   */
-  constructor(supportRegex) {
+  constructor() {
     super();
-    this._supportRegex = !!supportRegex;
-    this._regex = null;
-
     this._filterElement = createElement('div');
     this._filterElement.className = 'filter-text-filter';
 
-    this._filterInputElement =
-        /** @type {!HTMLInputElement} */ (this._filterElement.createChild('input', 'filter-input-field'));
-    this._filterInputElement.placeholder = Common.UIString('Filter');
-    this._filterInputElement.id = 'filter-input-field';
-    this._filterInputElement.addEventListener('input', this._onInput.bind(this), false);
-    this._filterInputElement.addEventListener('change', this._onChange.bind(this), false);
-    this._filterInputElement.addEventListener('keydown', this._onInputKeyDown.bind(this), true);
-    this._filterInputElement.addEventListener('blur', this._onBlur.bind(this), true);
+    this._filterInputElement = this._filterElement.createChild('span', 'filter-input-field');
 
-    /** @type {?UI.TextFilterUI.SuggestionBuilder} */
-    this._suggestionBuilder = null;
+    this._prompt = new UI.TextPrompt();
+    this._prompt.initialize(this._completions.bind(this), ' ');
+    this._proxyElement = this._prompt.attach(this._filterInputElement);
+    this._proxyElement.title = Common.UIString('e.g. /small[\\d]+/ url:a.com/b');
+    this._prompt.setPlaceholder(Common.UIString('Filter'));
+    this._prompt.addEventListener(UI.TextPrompt.Events.TextChanged, this._valueChanged.bind(this));
 
-    this._suggestBox = new UI.SuggestBox(this);
-
-    if (this._supportRegex) {
-      this._filterElement.classList.add('supports-regex');
-      var label = createCheckboxLabel(Common.UIString('Regex'));
-      this._regexCheckBox = label.checkboxElement;
-      this._regexCheckBox.id = 'text-filter-regex';
-      this._regexCheckBox.addEventListener('change', this._onInput.bind(this), false);
-      this._filterElement.appendChild(label);
-
-      this._regexLabel = this._filterElement.textElement;
-    }
+    /** @type {?function(string, string, boolean=):!Promise<!UI.SuggestBox.Suggestions>} */
+    this._suggestionProvider = null;
   }
 
+  /**
+   * @param {string} expression
+   * @param {string} prefix
+   * @param {boolean=} force
+   * @return {!Promise<!UI.SuggestBox.Suggestions>}
+   */
+  _completions(expression, prefix, force) {
+    if (this._suggestionProvider)
+      return this._suggestionProvider(expression, prefix, force);
+    return Promise.resolve([]);
+  }
   /**
    * @override
    * @return {boolean}
    */
   isActive() {
-    return !!this._filterInputElement.value;
+    return !!this._prompt.text();
   }
 
   /**
@@ -245,62 +220,18 @@ UI.TextFilterUI = class extends Common.Object {
   }
 
   /**
-   * @return {boolean}
-   */
-  isRegexChecked() {
-    return this._supportRegex ? this._regexCheckBox.checked : false;
-  }
-
-  /**
    * @return {string}
    */
   value() {
-    return this._filterInputElement.value;
+    return this._prompt.textWithCurrentSuggestion();
   }
 
   /**
    * @param {string} value
    */
   setValue(value) {
-    this._filterInputElement.value = value;
-    this._valueChanged(false);
-  }
-
-  /**
-   * @param {boolean} checked
-   */
-  setRegexChecked(checked) {
-    if (this._supportRegex)
-      this._regexCheckBox.checked = checked;
-  }
-
-  /**
-   * @return {?RegExp}
-   */
-  regex() {
-    return this._regex;
-  }
-
-  /**
-   * @param {!Event} event
-   */
-  _onBlur(event) {
-    this._cancelSuggestion();
-  }
-
-  _cancelSuggestion() {
-    if (this._suggestionBuilder && this._suggestBox.visible) {
-      this._suggestionBuilder.unapplySuggestion(this._filterInputElement);
-      this._suggestBox.hide();
-    }
-  }
-
-  _onInput() {
-    this._valueChanged(true);
-  }
-
-  _onChange() {
-    this._valueChanged(false);
+    this._prompt.setText(value);
+    this._valueChanged();
   }
 
   focus() {
@@ -308,134 +239,16 @@ UI.TextFilterUI = class extends Common.Object {
   }
 
   /**
-   * @param {?UI.TextFilterUI.SuggestionBuilder} suggestionBuilder
+   * @param {(function(string, string, boolean=):!Promise<!UI.SuggestBox.Suggestions>)} suggestionProvider
    */
-  setSuggestionBuilder(suggestionBuilder) {
-    this._cancelSuggestion();
-    this._suggestionBuilder = suggestionBuilder;
+  setSuggestionProvider(suggestionProvider) {
+    this._prompt.clearAutocomplete();
+    this._suggestionProvider = suggestionProvider;
   }
 
-  _updateSuggestions() {
-    if (!this._suggestionBuilder)
-      return;
-    if (this.isRegexChecked()) {
-      if (this._suggestBox.visible())
-        this._suggestBox.hide();
-      return;
-    }
-    var suggestions = this._suggestionBuilder.buildSuggestions(this._filterInputElement);
-    if (suggestions && suggestions.length) {
-      if (this._suppressSuggestion)
-        delete this._suppressSuggestion;
-      else
-        this._suggestionBuilder.applySuggestion(this._filterInputElement, suggestions[0], true);
-      var anchorBox = this._filterInputElement.boxInWindow().relativeTo(new AnchorBox(-3, 0));
-      this._suggestBox.updateSuggestions(anchorBox, suggestions.map(item => ({title: item})), true, true, '');
-    } else {
-      this._suggestBox.hide();
-    }
-  }
-
-  /**
-   * @param {boolean} showSuggestions
-   */
-  _valueChanged(showSuggestions) {
-    if (showSuggestions)
-      this._updateSuggestions();
-    else
-      this._suggestBox.hide();
-
-    var filterQuery = this.value();
-
-    this._regex = null;
-    this._filterInputElement.classList.remove('filter-text-invalid');
-    if (filterQuery) {
-      if (this.isRegexChecked()) {
-        try {
-          this._regex = new RegExp(filterQuery, 'i');
-        } catch (e) {
-          this._filterInputElement.classList.add('filter-text-invalid');
-        }
-      } else {
-        this._regex = createPlainTextSearchRegex(filterQuery, 'i');
-      }
-    }
-
-    this._dispatchFilterChanged();
-  }
-
-  _dispatchFilterChanged() {
+  _valueChanged() {
     this.dispatchEventToListeners(UI.FilterUI.Events.FilterChanged, null);
   }
-
-  /**
-   * @param {!Event} event
-   * @return {boolean}
-   */
-  _onInputKeyDown(event) {
-    var handled = false;
-    if (event.key === 'Backspace') {
-      this._suppressSuggestion = true;
-    } else if (this._suggestBox.visible()) {
-      if (event.key === 'Escape') {
-        this._cancelSuggestion();
-        handled = true;
-      } else if (event.key === 'Tab') {
-        this._suggestBox.acceptSuggestion();
-        this._valueChanged(true);
-        handled = true;
-      } else {
-        handled = this._suggestBox.keyPressed(/** @type {!KeyboardEvent} */ (event));
-      }
-    }
-    if (handled)
-      event.consume(true);
-    return handled;
-  }
-
-  /**
-   * @override
-   * @param {string} suggestion
-   * @param {boolean=} isIntermediateSuggestion
-   */
-  applySuggestion(suggestion, isIntermediateSuggestion) {
-    if (!this._suggestionBuilder)
-      return;
-    this._suggestionBuilder.applySuggestion(this._filterInputElement, suggestion, !!isIntermediateSuggestion);
-    if (isIntermediateSuggestion)
-      this._dispatchFilterChanged();
-  }
-
-  /** @override */
-  acceptSuggestion() {
-    this._filterInputElement.scrollLeft = this._filterInputElement.scrollWidth;
-    this._valueChanged(true);
-  }
-};
-
-/**
- * @interface
- */
-UI.TextFilterUI.SuggestionBuilder = function() {};
-
-UI.TextFilterUI.SuggestionBuilder.prototype = {
-  /**
-   * @param {!HTMLInputElement} input
-   * @return {?Array.<string>}
-   */
-  buildSuggestions: function(input) {},
-
-  /**
-   * @param {!HTMLInputElement} input
-   * @param {string} suggestion
-   * @param {boolean} isIntermediate
-   */
-  applySuggestion: function(input, suggestion, isIntermediate) {},
-
-  /**
-   * @param {!HTMLInputElement} input
-   */
-  unapplySuggestion: function(input) {}
 };
 
 /**
@@ -459,7 +272,7 @@ UI.NamedBitSetFilterUI = class extends Common.Object {
     this._addBit(UI.NamedBitSetFilterUI.ALL_TYPES, Common.UIString('All'));
     this._filtersElement.createChild('div', 'filter-bitset-filter-divider');
 
-    for (var i = 0; i < items.length; ++i)
+    for (let i = 0; i < items.length; ++i)
       this._addBit(items[i].name, items[i].label, items[i].title);
 
     if (setting) {
@@ -500,9 +313,9 @@ UI.NamedBitSetFilterUI = class extends Common.Object {
   }
 
   _settingChanged() {
-    var allowedTypes = this._setting.get();
+    const allowedTypes = this._setting.get();
     this._allowedTypes = {};
-    for (var typeName in this._typeFilterElements) {
+    for (const typeName in this._typeFilterElements) {
       if (allowedTypes[typeName])
         this._allowedTypes[typeName] = true;
     }
@@ -514,8 +327,8 @@ UI.NamedBitSetFilterUI = class extends Common.Object {
       this._allowedTypes = {};
       this._allowedTypes[UI.NamedBitSetFilterUI.ALL_TYPES] = true;
     }
-    for (var typeName in this._typeFilterElements)
-      this._typeFilterElements[typeName].classList.toggle('selected', this._allowedTypes[typeName]);
+    for (const typeName in this._typeFilterElements)
+      this._typeFilterElements[typeName].classList.toggle('selected', !!this._allowedTypes[typeName]);
     this.dispatchEventToListeners(UI.FilterUI.Events.FilterChanged, null);
   }
 
@@ -525,7 +338,7 @@ UI.NamedBitSetFilterUI = class extends Common.Object {
    * @param {string=} title
    */
   _addBit(name, label, title) {
-    var typeFilterElement = this._filtersElement.createChild('li', name);
+    const typeFilterElement = this._filtersElement.createChild('span', name);
     typeFilterElement.typeName = name;
     typeFilterElement.createTextChild(label);
     if (title)
@@ -538,7 +351,7 @@ UI.NamedBitSetFilterUI = class extends Common.Object {
    * @param {!Event} e
    */
   _onTypeFilterClicked(e) {
-    var toggle;
+    let toggle;
     if (Host.isMac())
       toggle = e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
     else
@@ -574,80 +387,6 @@ UI.NamedBitSetFilterUI.ALL_TYPES = 'all';
  * @implements {UI.FilterUI}
  * @unrestricted
  */
-UI.ComboBoxFilterUI = class extends Common.Object {
-  /**
-   * @param {!Array.<!{value: *, label: string, title: string}>} options
-   */
-  constructor(options) {
-    super();
-    this._filterElement = createElement('div');
-    this._filterElement.className = 'filter-combobox-filter';
-
-    this._options = options;
-    this._filterComboBox = new UI.ToolbarComboBox(this._filterChanged.bind(this));
-    for (var i = 0; i < options.length; ++i) {
-      var filterOption = options[i];
-      var option = createElement('option');
-      option.text = filterOption.label;
-      option.title = filterOption.title;
-      this._filterComboBox.addOption(option);
-      this._filterComboBox.element.title = this._filterComboBox.selectedOption().title;
-    }
-    this._filterElement.appendChild(this._filterComboBox.element);
-  }
-
-  /**
-   * @override
-   * @return {boolean}
-   */
-  isActive() {
-    return this._filterComboBox.selectedIndex() !== 0;
-  }
-
-  /**
-   * @override
-   * @return {!Element}
-   */
-  element() {
-    return this._filterElement;
-  }
-
-  /**
-   * @return {*}
-   */
-  value() {
-    var option = this._options[this._filterComboBox.selectedIndex()];
-    return option.value;
-  }
-
-  /**
-   * @param {number} index
-   */
-  setSelectedIndex(index) {
-    this._filterComboBox.setSelectedIndex(index);
-  }
-
-  /**
-   * @return {number}
-   */
-  selectedIndex(index) {
-    return this._filterComboBox.selectedIndex();
-  }
-
-  /**
-   * @param {!Event} event
-   */
-  _filterChanged(event) {
-    var option = this._options[this._filterComboBox.selectedIndex()];
-    this._filterComboBox.element.title = option.title;
-    this.dispatchEventToListeners(UI.FilterUI.Events.FilterChanged, null);
-  }
-};
-
-/**
- * @implements {UI.FilterUI}
- * @unrestricted
- */
 UI.CheckboxFilterUI = class extends Common.Object {
   /**
    * @param {string} className
@@ -659,7 +398,7 @@ UI.CheckboxFilterUI = class extends Common.Object {
     super();
     this._filterElement = createElementWithClass('div', 'filter-checkbox-filter');
     this._activeWhenChecked = !!activeWhenChecked;
-    this._label = createCheckboxLabel(title);
+    this._label = UI.CheckboxLabel.create(title);
     this._filterElement.appendChild(this._label);
     this._checkboxElement = this._label.checkboxElement;
     if (setting)

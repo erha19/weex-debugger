@@ -9,7 +9,7 @@ Security.SecurityModel = class extends SDK.SDKModel {
    * @param {!SDK.Target} target
    */
   constructor(target) {
-    super(Security.SecurityModel, target);
+    super(target);
     this._dispatcher = new Security.SecurityDispatcher(this);
     this._securityAgent = target.securityAgent();
     target.registerSecurityDispatcher(this._dispatcher);
@@ -17,14 +17,17 @@ Security.SecurityModel = class extends SDK.SDKModel {
   }
 
   /**
-   * @param {!SDK.Target} target
-   * @return {?Security.SecurityModel}
+   * @return {!SDK.ResourceTreeModel}
    */
-  static fromTarget(target) {
-    var model = /** @type {?Security.SecurityModel} */ (target.model(Security.SecurityModel));
-    if (!model)
-      model = new Security.SecurityModel(target);
-    return model;
+  resourceTreeModel() {
+    return /** @type {!SDK.ResourceTreeModel} */ (this.target().model(SDK.ResourceTreeModel));
+  }
+
+  /**
+   * @return {!SDK.NetworkManager}
+   */
+  networkManager() {
+    return /** @type {!SDK.NetworkManager} */ (this.target().model(SDK.NetworkManager));
   }
 
   /**
@@ -33,33 +36,30 @@ Security.SecurityModel = class extends SDK.SDKModel {
    * @return {number}
    */
   static SecurityStateComparator(a, b) {
-    var securityStateMap;
+    let securityStateMap;
     if (Security.SecurityModel._symbolicToNumericSecurityState) {
       securityStateMap = Security.SecurityModel._symbolicToNumericSecurityState;
     } else {
       securityStateMap = new Map();
-      var ordering = [
+      const ordering = [
         Protocol.Security.SecurityState.Info, Protocol.Security.SecurityState.Insecure,
-        Protocol.Security.SecurityState.Neutral, Protocol.Security.SecurityState.Warning,
-        Protocol.Security.SecurityState.Secure,
+        Protocol.Security.SecurityState.Neutral, Protocol.Security.SecurityState.Secure,
         // Unknown is max so that failed/cancelled requests don't overwrite the origin security state for successful requests,
         // and so that failed/cancelled requests appear at the bottom of the origins list.
         Protocol.Security.SecurityState.Unknown
       ];
-      for (var i = 0; i < ordering.length; i++)
+      for (let i = 0; i < ordering.length; i++)
         securityStateMap.set(ordering[i], i + 1);
       Security.SecurityModel._symbolicToNumericSecurityState = securityStateMap;
     }
-    var aScore = securityStateMap.get(a) || 0;
-    var bScore = securityStateMap.get(b) || 0;
+    const aScore = securityStateMap.get(a) || 0;
+    const bScore = securityStateMap.get(b) || 0;
 
     return aScore - bScore;
   }
-
-  showCertificateViewer() {
-    this._securityAgent.showCertificateViewer();
-  }
 };
+
+SDK.SDKModel.register(Security.SecurityModel, SDK.Target.Capability.Security, false);
 
 /** @enum {symbol} */
 Security.SecurityModel.Events = {
@@ -73,15 +73,17 @@ Security.SecurityModel.Events = {
 Security.PageSecurityState = class {
   /**
    * @param {!Protocol.Security.SecurityState} securityState
+   * @param {boolean} schemeIsCryptographic
    * @param {!Array<!Protocol.Security.SecurityStateExplanation>} explanations
    * @param {?Protocol.Security.InsecureContentStatus} insecureContentStatus
-   * @param {boolean} schemeIsCryptographic
+   * @param {?string} summary
    */
-  constructor(securityState, explanations, insecureContentStatus, schemeIsCryptographic) {
+  constructor(securityState, schemeIsCryptographic, explanations, insecureContentStatus, summary) {
     this.securityState = securityState;
+    this.schemeIsCryptographic = schemeIsCryptographic;
     this.explanations = explanations;
     this.insecureContentStatus = insecureContentStatus;
-    this.schemeIsCryptographic = schemeIsCryptographic;
+    this.summary = summary;
   }
 };
 
@@ -97,13 +99,24 @@ Security.SecurityDispatcher = class {
   /**
    * @override
    * @param {!Protocol.Security.SecurityState} securityState
-   * @param {!Array<!Protocol.Security.SecurityStateExplanation>=} explanations
-   * @param {!Protocol.Security.InsecureContentStatus=} insecureContentStatus
-   * @param {boolean=} schemeIsCryptographic
+   * @param {boolean} schemeIsCryptographic
+   * @param {!Array<!Protocol.Security.SecurityStateExplanation>} explanations
+   * @param {!Protocol.Security.InsecureContentStatus} insecureContentStatus
+   * @param {?string=} summary
    */
-  securityStateChanged(securityState, explanations, insecureContentStatus, schemeIsCryptographic) {
-    var pageSecurityState = new Security.PageSecurityState(
-        securityState, explanations || [], insecureContentStatus || null, schemeIsCryptographic || false);
+  securityStateChanged(securityState, schemeIsCryptographic, explanations, insecureContentStatus, summary) {
+    const pageSecurityState = new Security.PageSecurityState(
+        securityState, schemeIsCryptographic, explanations, insecureContentStatus, summary || null);
     this._model.dispatchEventToListeners(Security.SecurityModel.Events.SecurityStateChanged, pageSecurityState);
+  }
+
+
+  /**
+   * @override
+   * @param {number} eventId
+   * @param {string} errorType
+   * @param {string} requestURL
+   */
+  certificateError(eventId, errorType, requestURL) {
   }
 };

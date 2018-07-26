@@ -37,11 +37,11 @@ InspectorFrontendHostAPI.Events = {
   DispatchMessage: Symbol('dispatchMessage'),
   DispatchMessageChunk: Symbol('dispatchMessageChunk'),
   EnterInspectElementMode: Symbol('enterInspectElementMode'),
-  EvaluateForTestInFrontend: Symbol('evaluateForTestInFrontend'),
+  EyeDropperPickedColor: Symbol('eyeDropperPickedColor'),
   FileSystemsLoaded: Symbol('fileSystemsLoaded'),
   FileSystemRemoved: Symbol('fileSystemRemoved'),
   FileSystemAdded: Symbol('fileSystemAdded'),
-  FileSystemFilesChanged: Symbol('fileSystemFilesChanged'),
+  FileSystemFilesChangedAddedRemoved: Symbol('FileSystemFilesChangedAddedRemoved'),
   IndexingTotalWorkCalculated: Symbol('indexingTotalWorkCalculated'),
   IndexingWorked: Symbol('indexingWorked'),
   IndexingDone: Symbol('indexingDone'),
@@ -62,10 +62,7 @@ InspectorFrontendHostAPI.EventDescriptors = [
   [InspectorFrontendHostAPI.Events.ContextMenuCleared, 'contextMenuCleared', []],
   [InspectorFrontendHostAPI.Events.ContextMenuItemSelected, 'contextMenuItemSelected', ['id']],
   [InspectorFrontendHostAPI.Events.DeviceCountUpdated, 'deviceCountUpdated', ['count']],
-  [
-    InspectorFrontendHostAPI.Events.DevicesDiscoveryConfigChanged, 'devicesDiscoveryConfigChanged',
-    ['discoverUsbDevices', 'portForwardingEnabled', 'portForwardingConfig']
-  ],
+  [InspectorFrontendHostAPI.Events.DevicesDiscoveryConfigChanged, 'devicesDiscoveryConfigChanged', ['config']],
   [
     InspectorFrontendHostAPI.Events.DevicesPortForwardingStatusChanged, 'devicesPortForwardingStatusChanged', ['status']
   ],
@@ -73,11 +70,14 @@ InspectorFrontendHostAPI.EventDescriptors = [
   [InspectorFrontendHostAPI.Events.DispatchMessage, 'dispatchMessage', ['messageObject']],
   [InspectorFrontendHostAPI.Events.DispatchMessageChunk, 'dispatchMessageChunk', ['messageChunk', 'messageSize']],
   [InspectorFrontendHostAPI.Events.EnterInspectElementMode, 'enterInspectElementMode', []],
-  [InspectorFrontendHostAPI.Events.EvaluateForTestInFrontend, 'evaluateForTestInFrontend', ['callId', 'script']],
+  [InspectorFrontendHostAPI.Events.EyeDropperPickedColor, 'eyeDropperPickedColor', ['color']],
   [InspectorFrontendHostAPI.Events.FileSystemsLoaded, 'fileSystemsLoaded', ['fileSystems']],
   [InspectorFrontendHostAPI.Events.FileSystemRemoved, 'fileSystemRemoved', ['fileSystemPath']],
   [InspectorFrontendHostAPI.Events.FileSystemAdded, 'fileSystemAdded', ['errorMessage', 'fileSystem']],
-  [InspectorFrontendHostAPI.Events.FileSystemFilesChanged, 'fileSystemFilesChanged', ['paths']],
+  [
+    InspectorFrontendHostAPI.Events.FileSystemFilesChangedAddedRemoved, 'fileSystemFilesChangedAddedRemoved',
+    ['changed', 'added', 'removed']
+  ],
   [
     InspectorFrontendHostAPI.Events.IndexingTotalWorkCalculated, 'indexingTotalWorkCalculated',
     ['requestId', 'fileSystemPath', 'totalWork']
@@ -87,7 +87,7 @@ InspectorFrontendHostAPI.EventDescriptors = [
   [InspectorFrontendHostAPI.Events.KeyEventUnhandled, 'keyEventUnhandled', ['event']],
   [InspectorFrontendHostAPI.Events.ReloadInspectedPage, 'reloadInspectedPage', ['hard']],
   [InspectorFrontendHostAPI.Events.RevealSourceLine, 'revealSourceLine', ['url', 'lineNumber', 'columnNumber']],
-  [InspectorFrontendHostAPI.Events.SavedURL, 'savedURL', ['url']],
+  [InspectorFrontendHostAPI.Events.SavedURL, 'savedURL', ['url', 'fileSystemPath']],
   [InspectorFrontendHostAPI.Events.SearchCompleted, 'searchCompleted', ['requestId', 'fileSystemPath', 'files']],
   [InspectorFrontendHostAPI.Events.SetInspectedTabId, 'setInspectedTabId', ['tabId']],
   [InspectorFrontendHostAPI.Events.SetUseSoftMenu, 'setUseSoftMenu', ['useSoftMenu']],
@@ -96,100 +96,121 @@ InspectorFrontendHostAPI.EventDescriptors = [
 
 InspectorFrontendHostAPI.prototype = {
   /**
-   * @param {string=} fileSystemPath
+   * @param {string=} type
    */
-  addFileSystem: function(fileSystemPath) {},
+  addFileSystem(type) {},
 
   /**
    * @param {string} url
    * @param {string} content
    */
-  append: function(url, content) {},
+  append(url, content) {},
 
-  loadCompleted: function() {},
+  loadCompleted() {},
 
   /**
    * @param {number} requestId
    * @param {string} fileSystemPath
+   * @param {string} excludedFolders
    */
-  indexPath: function(requestId, fileSystemPath) {},
+  indexPath(requestId, fileSystemPath, excludedFolders) {},
 
   /**
    * @return {string}
    */
-  getSelectionBackgroundColor: function() {},
+  getSelectionBackgroundColor() {},
 
   /**
    * @return {string}
    */
-  getSelectionForegroundColor: function() {},
+  getSelectionForegroundColor() {},
+
+  /**
+   * @return {string}
+   */
+  getInactiveSelectionBackgroundColor() {},
+
+  /**
+   * @return {string}
+   */
+  getInactiveSelectionForegroundColor() {},
 
   /**
    * Requests inspected page to be placed atop of the inspector frontend with specified bounds.
    * @param {{x: number, y: number, width: number, height: number}} bounds
    */
-  setInspectedPageBounds: function(bounds) {},
+  setInspectedPageBounds(bounds) {},
 
   /**
    * @param {!Array<string>} certChain
    */
-  showCertificateViewer: function(certChain) {},
+  showCertificateViewer(certChain) {},
 
   /**
    * @param {string} shortcuts
    */
-  setWhitelistedShortcuts: function(shortcuts) {},
+  setWhitelistedShortcuts(shortcuts) {},
 
-  inspectElementCompleted: function() {},
+  /**
+   * @param {boolean} active
+   */
+  setEyeDropperActive(active) {},
+
+  inspectElementCompleted() {},
 
   /**
    * @param {string} url
    */
-  openInNewTab: function(url) {},
+  openInNewTab(url) {},
 
   /**
    * @param {string} fileSystemPath
    */
-  removeFileSystem: function(fileSystemPath) {},
+  showItemInFolder(fileSystemPath) {},
 
-  requestFileSystems: function() {},
+  /**
+   * @param {string} fileSystemPath
+   */
+  removeFileSystem(fileSystemPath) {},
+
+  requestFileSystems() {},
 
   /**
    * @param {string} url
    * @param {string} content
    * @param {boolean} forceSaveAs
    */
-  save: function(url, content, forceSaveAs) {},
+  save(url, content, forceSaveAs) {},
 
   /**
    * @param {number} requestId
    * @param {string} fileSystemPath
    * @param {string} query
    */
-  searchInPath: function(requestId, fileSystemPath, query) {},
+  searchInPath(requestId, fileSystemPath, query) {},
 
   /**
    * @param {number} requestId
    */
-  stopIndexing: function(requestId) {},
+  stopIndexing(requestId) {},
 
-  bringToFront: function() {},
+  bringToFront() {},
 
-  closeWindow: function() {},
+  closeWindow() {},
 
-  copyText: function(text) {},
+  copyText(text) {},
 
   /**
    * @param {string} url
    */
-  inspectedURLChanged: function(url) {},
+  inspectedURLChanged(url) {},
 
   /**
    * @param {string} fileSystemId
    * @param {string} registeredName
    * @return {?DOMFileSystem}
    */
-  isolatedFileSystem: function(fileSystemId, registeredName) {},
+  isolatedFileSystem(fileSystemId, registeredName) {},
 
   /**
    * @param {string} url
@@ -197,94 +218,94 @@ InspectorFrontendHostAPI.prototype = {
    * @param {number} streamId
    * @param {function(!InspectorFrontendHostAPI.LoadNetworkResourceResult)} callback
    */
-  loadNetworkResource: function(url, headers, streamId, callback) {},
+  loadNetworkResource(url, headers, streamId, callback) {},
 
   /**
    * @param {function(!Object<string, string>)} callback
    */
-  getPreferences: function(callback) {},
+  getPreferences(callback) {},
 
   /**
    * @param {string} name
    * @param {string} value
    */
-  setPreference: function(name, value) {},
+  setPreference(name, value) {},
 
   /**
    * @param {string} name
    */
-  removePreference: function(name) {},
+  removePreference(name) {},
 
-  clearPreferences: function() {},
+  clearPreferences() {},
 
   /**
    * @param {!FileSystem} fileSystem
    */
-  upgradeDraggedFileSystemPermissions: function(fileSystem) {},
+  upgradeDraggedFileSystemPermissions(fileSystem) {},
 
   /**
    * @return {string}
    */
-  platform: function() {},
+  platform() {},
 
   /**
    * @param {string} actionName
    * @param {number} actionCode
    * @param {number} bucketSize
    */
-  recordEnumeratedHistogram: function(actionName, actionCode, bucketSize) {},
+  recordEnumeratedHistogram(actionName, actionCode, bucketSize) {},
 
   /**
    * @param {string} message
    */
-  sendMessageToBackend: function(message) {},
+  sendMessageToBackend(message) {},
 
   /**
-   * @param {boolean} discoverUsbDevices
-   * @param {boolean} portForwardingEnabled
-   * @param {!Adb.PortForwardingConfig} portForwardingConfig
+   * @param {!Adb.Config} config
    */
-  setDevicesDiscoveryConfig: function(discoverUsbDevices, portForwardingEnabled, portForwardingConfig) {},
+  setDevicesDiscoveryConfig(config) {},
 
   /**
    * @param {boolean} enabled
    */
-  setDevicesUpdatesEnabled: function(enabled) {},
+  setDevicesUpdatesEnabled(enabled) {},
 
   /**
    * @param {string} pageId
    * @param {string} action
    */
-  performActionOnRemotePage: function(pageId, action) {},
+  performActionOnRemotePage(pageId, action) {},
 
   /**
    * @param {string} browserId
    * @param {string} url
    */
-  openRemotePage: function(browserId, url) {},
+  openRemotePage(browserId, url) {},
+
+  openNodeFrontend() {},
 
   /**
    * @param {string} origin
    * @param {string} script
    */
-  setInjectedScriptForOrigin: function(origin, script) {},
+  setInjectedScriptForOrigin(origin, script) {},
 
   /**
    * @param {boolean} isDocked
    * @param {function()} callback
    */
-  setIsDocked: function(isDocked, callback) {},
+  setIsDocked(isDocked, callback) {},
 
   /**
    * @return {number}
    */
-  zoomFactor: function() {},
+  zoomFactor() {},
 
-  zoomIn: function() {},
+  zoomIn() {},
 
-  zoomOut: function() {},
+  zoomOut() {},
 
-  resetZoom: function() {},
+  resetZoom() {},
 
   /**
    * @param {number} x
@@ -292,22 +313,24 @@ InspectorFrontendHostAPI.prototype = {
    * @param {!Array.<!InspectorFrontendHostAPI.ContextMenuDescriptor>} items
    * @param {!Document} document
    */
-  showContextMenuAtPoint: function(x, y, items, document) {},
+  showContextMenuAtPoint(x, y, items, document) {},
 
   /**
    * @param {function()} callback
    */
-  reattach: function(callback) {},
+  reattach(callback) {},
+
+  readyForTest() {},
+
+  connectionReady() {},
+
+  /**
+   * @param {boolean} value
+   */
+  setOpenNewWindowForPopups(value) {},
 
   /**
    * @return {boolean}
    */
-  isUnderTest: function() {},
-
-  readyForTest: function() {},
-
-  /**
-   * @return {boolean}
-   */
-  isHostedMode: function() {}
+  isHostedMode() {}
 };

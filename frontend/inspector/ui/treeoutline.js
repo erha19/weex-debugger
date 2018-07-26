@@ -29,29 +29,30 @@
 /**
  * @unrestricted
  */
-var TreeOutline = class extends Common.Object {
-  /**
-   * @param {boolean=} nonFocusable
-   */
-  constructor(nonFocusable) {
+UI.TreeOutline = class extends Common.Object {
+  constructor() {
     super();
     this._createRootElement();
 
+    /** @type {?UI.TreeElement} */
     this.selectedTreeElement = null;
     this.expandTreeElementsWhenArrowing = false;
-    /** @type {?function(!TreeElement, !TreeElement):number} */
+    /** @type {?function(!UI.TreeElement, !UI.TreeElement):number} */
     this._comparator = null;
 
     this.contentElement = this._rootElement._childrenListNode;
     this.contentElement.addEventListener('keydown', this._treeKeyDown.bind(this), true);
 
-    this.setFocusable(!nonFocusable);
-
+    this._focusable = true;
+    this.setFocusable(this._focusable);
+    if (this._focusable)
+      this.contentElement.setAttribute('tabIndex', -1);
     this.element = this.contentElement;
+    UI.ARIAUtils.markAsTree(this.element);
   }
 
   _createRootElement() {
-    this._rootElement = new TreeElement();
+    this._rootElement = new UI.TreeElement();
     this._rootElement.treeOutline = this;
     this._rootElement.root = true;
     this._rootElement.selectable = false;
@@ -60,28 +61,38 @@ var TreeOutline = class extends Common.Object {
   }
 
   /**
-   * @return {!TreeElement}
+   * @return {!UI.TreeElement}
    */
   rootElement() {
     return this._rootElement;
   }
 
   /**
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   firstChild() {
     return this._rootElement.firstChild();
   }
 
   /**
-   * @param {!TreeElement} child
+   * @return {?UI.TreeElement}
+   */
+  _lastDescendent() {
+    let last = this._rootElement.lastChild();
+    while (last.expanded && last.childCount())
+      last = last.lastChild();
+    return last;
+  }
+
+  /**
+   * @param {!UI.TreeElement} child
    */
   appendChild(child) {
     this._rootElement.appendChild(child);
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    * @param {number} index
    */
   insertChild(child, index) {
@@ -89,7 +100,7 @@ var TreeOutline = class extends Common.Object {
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    */
   removeChild(child) {
     this._rootElement.removeChild(child);
@@ -102,14 +113,14 @@ var TreeOutline = class extends Common.Object {
   /**
    * @param {number} x
    * @param {number} y
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   treeElementFromPoint(x, y) {
-    var node = this.contentElement.ownerDocument.deepElementFromPoint(x, y);
+    const node = this.contentElement.ownerDocument.deepElementFromPoint(x, y);
     if (!node)
       return null;
 
-    var listNode = node.enclosingNodeOrSelfWithNodeNameInArray(['ol', 'li']);
+    const listNode = node.enclosingNodeOrSelfWithNodeNameInArray(['ol', 'li']);
     if (listNode)
       return listNode.parentTreeElement || listNode.treeElement;
     return null;
@@ -117,14 +128,14 @@ var TreeOutline = class extends Common.Object {
 
   /**
    * @param {?Event} event
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   treeElementFromEvent(event) {
     return event ? this.treeElementFromPoint(event.pageX, event.pageY) : null;
   }
 
   /**
-   * @param {?function(!TreeElement, !TreeElement):number} comparator
+   * @param {?function(!UI.TreeElement, !UI.TreeElement):number} comparator
    */
   setComparator(comparator) {
     this._comparator = comparator;
@@ -134,18 +145,28 @@ var TreeOutline = class extends Common.Object {
    * @param {boolean} focusable
    */
   setFocusable(focusable) {
-    if (focusable)
-      this.contentElement.setAttribute('tabIndex', 0);
-    else
+    if (focusable) {
+      this._focusable = true;
+      this.contentElement.setAttribute('tabIndex', -1);
+      if (this.selectedTreeElement)
+        this.selectedTreeElement._setFocusable(true);
+    } else {
+      this._focusable = false;
       this.contentElement.removeAttribute('tabIndex');
+      if (this.selectedTreeElement)
+        this.selectedTreeElement._setFocusable(false);
+    }
   }
 
   focus() {
-    this.contentElement.focus();
+    if (this.selectedTreeElement)
+      this.selectedTreeElement.listItemElement.focus();
+    else
+      this.contentElement.focus();
   }
 
   /**
-   * @param {!TreeElement} element
+   * @param {!UI.TreeElement} element
    */
   _bindTreeElement(element) {
     if (element.treeOutline)
@@ -155,7 +176,7 @@ var TreeOutline = class extends Common.Object {
   }
 
   /**
-   * @param {!TreeElement} element
+   * @param {!UI.TreeElement} element
    */
   _unbindTreeElement(element) {
     if (!element.treeOutline)
@@ -170,43 +191,63 @@ var TreeOutline = class extends Common.Object {
    * @return {boolean}
    */
   selectPrevious() {
-    var nextSelectedElement = this.selectedTreeElement.traversePreviousTreeElement(true);
+    let nextSelectedElement = this.selectedTreeElement.traversePreviousTreeElement(true);
     while (nextSelectedElement && !nextSelectedElement.selectable)
       nextSelectedElement = nextSelectedElement.traversePreviousTreeElement(!this.expandTreeElementsWhenArrowing);
-    if (nextSelectedElement) {
-      nextSelectedElement.reveal();
-      nextSelectedElement.select(false, true);
-      return true;
-    }
-    return false;
+    if (!nextSelectedElement)
+      return false;
+    nextSelectedElement.select(false, true);
+    return true;
   }
 
   /**
    * @return {boolean}
    */
   selectNext() {
-    var nextSelectedElement = this.selectedTreeElement.traverseNextTreeElement(true);
+    let nextSelectedElement = this.selectedTreeElement.traverseNextTreeElement(true);
     while (nextSelectedElement && !nextSelectedElement.selectable)
       nextSelectedElement = nextSelectedElement.traverseNextTreeElement(!this.expandTreeElementsWhenArrowing);
-    if (nextSelectedElement) {
-      nextSelectedElement.reveal();
-      nextSelectedElement.select(false, true);
-      return true;
-    }
-    return false;
+    if (!nextSelectedElement)
+      return false;
+    nextSelectedElement.select(false, true);
+    return true;
+  }
+
+  /**
+   * @return {boolean}
+   */
+  _selectFirst() {
+    let first = this.firstChild();
+    while (first && !first.selectable)
+      first = first.traverseNextTreeElement(true);
+    if (!first)
+      return false;
+    first.select(false, true);
+    return true;
+  }
+
+  /**
+   * @return {boolean}
+   */
+  _selectLast() {
+    let last = this._lastDescendent();
+    while (last && !last.selectable)
+      last = last.traversePreviousTreeElement(true);
+    if (!last)
+      return false;
+    last.select(false, true);
+    return true;
   }
 
   /**
    * @param {!Event} event
    */
   _treeKeyDown(event) {
-    if (event.target !== this.contentElement)
+    if (!this.selectedTreeElement || event.target !== this.selectedTreeElement.listItemElement || event.shiftKey ||
+        event.metaKey || event.ctrlKey)
       return;
 
-    if (!this.selectedTreeElement || event.shiftKey || event.metaKey || event.ctrlKey)
-      return;
-
-    var handled = false;
+    let handled = false;
     if (event.key === 'ArrowUp' && !event.altKey) {
       handled = this.selectPrevious();
     } else if (event.key === 'ArrowDown' && !event.altKey) {
@@ -226,6 +267,10 @@ var TreeOutline = class extends Common.Object {
       handled = this.selectedTreeElement.onenter();
     } else if (event.keyCode === UI.KeyboardShortcut.Keys.Space.code) {
       handled = this.selectedTreeElement.onspace();
+    } else if (event.key === 'Home') {
+      handled = this._selectFirst();
+    } else if (event.key === 'End') {
+      handled = this._selectLast();
     }
 
     if (handled)
@@ -233,7 +278,7 @@ var TreeOutline = class extends Common.Object {
   }
 
   /**
-   * @param {!TreeElement} treeElement
+   * @param {!UI.TreeElement} treeElement
    * @param {boolean} center
    */
   _deferredScrollIntoView(treeElement, center) {
@@ -242,7 +287,7 @@ var TreeOutline = class extends Common.Object {
     this._treeElementToScrollIntoView = treeElement;
     this._centerUponScrollIntoView = center;
     /**
-     * @this {TreeOutline}
+     * @this {UI.TreeOutline}
      */
     function deferredScrollIntoView() {
       this._treeElementToScrollIntoView.listItemElement.scrollIntoViewIfNeeded(this._centerUponScrollIntoView);
@@ -253,7 +298,7 @@ var TreeOutline = class extends Common.Object {
 };
 
 /** @enum {symbol} */
-TreeOutline.Events = {
+UI.TreeOutline.Events = {
   ElementAttached: Symbol('ElementAttached'),
   ElementExpanded: Symbol('ElementExpanded'),
   ElementCollapsed: Symbol('ElementCollapsed'),
@@ -263,7 +308,7 @@ TreeOutline.Events = {
 /**
  * @unrestricted
  */
-var TreeOutlineInShadow = class extends TreeOutline {
+UI.TreeOutlineInShadow = class extends UI.TreeOutline {
   constructor() {
     super();
     this.contentElement.classList.add('tree-outline');
@@ -295,29 +340,34 @@ var TreeOutlineInShadow = class extends TreeOutline {
 /**
  * @unrestricted
  */
-var TreeElement = class {
+UI.TreeElement = class {
   /**
    * @param {(string|!Node)=} title
    * @param {boolean=} expandable
    */
   constructor(title, expandable) {
-    /** @type {?TreeOutline} */
+    /** @type {?UI.TreeOutline} */
     this.treeOutline = null;
     this.parent = null;
     this.previousSibling = null;
     this.nextSibling = null;
+    this._boundOnFocus = this._onFocus.bind(this);
+    this._boundOnBlur = this._onBlur.bind(this);
 
     this._listItemNode = createElement('li');
+    this._titleElement = this._listItemNode.createChild('span', 'tree-element-title');
     this._listItemNode.treeElement = this;
     if (title)
       this.title = title;
     this._listItemNode.addEventListener('mousedown', this._handleMouseDown.bind(this), false);
     this._listItemNode.addEventListener('click', this._treeElementToggled.bind(this), false);
     this._listItemNode.addEventListener('dblclick', this._handleDoubleClick.bind(this), false);
+    UI.ARIAUtils.markAsTreeitem(this._listItemNode);
 
     this._childrenListNode = createElement('ol');
     this._childrenListNode.parentTreeElement = this;
     this._childrenListNode.classList.add('children');
+    UI.ARIAUtils.markAsGroup(this._childrenListNode);
 
     this._hidden = false;
     this._selectable = true;
@@ -328,14 +378,14 @@ var TreeElement = class {
   }
 
   /**
-   * @param {?TreeElement} ancestor
+   * @param {?UI.TreeElement} ancestor
    * @return {boolean}
    */
   hasAncestor(ancestor) {
     if (!ancestor)
       return false;
 
-    var currentNode = this.parent;
+    let currentNode = this.parent;
     while (currentNode) {
       if (ancestor === currentNode)
         return true;
@@ -346,7 +396,7 @@ var TreeElement = class {
   }
 
   /**
-   * @param {?TreeElement} ancestor
+   * @param {?UI.TreeElement} ancestor
    * @return {boolean}
    */
   hasAncestorOrSelf(ancestor) {
@@ -354,7 +404,7 @@ var TreeElement = class {
   }
 
   /**
-   * @return {!Array.<!TreeElement>}
+   * @return {!Array.<!UI.TreeElement>}
    */
   children() {
     return this._children || [];
@@ -368,14 +418,14 @@ var TreeElement = class {
   }
 
   /**
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   firstChild() {
     return this._children ? this._children[0] : null;
   }
 
   /**
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   lastChild() {
     return this._children ? this._children[this._children.length - 1] : null;
@@ -383,14 +433,14 @@ var TreeElement = class {
 
   /**
    * @param {number} index
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   childAt(index) {
     return this._children ? this._children[index] : null;
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    * @return {number}
    */
   indexOfChild(child) {
@@ -398,13 +448,13 @@ var TreeElement = class {
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    */
   appendChild(child) {
     if (!this._children)
       this._children = [];
 
-    var insertionIndex;
+    let insertionIndex;
     if (this.treeOutline && this.treeOutline._comparator)
       insertionIndex = this._children.lowerBound(child, this.treeOutline._comparator);
     else
@@ -413,7 +463,7 @@ var TreeElement = class {
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    * @param {number} index
    */
   insertChild(child, index) {
@@ -426,7 +476,7 @@ var TreeElement = class {
     console.assert(
         !child.parent, 'Attempting to insert a child that is already in the tree, reparenting is not supported.');
 
-    var previousChild = (index > 0 ? this._children[index - 1] : null);
+    const previousChild = (index > 0 ? this._children[index - 1] : null);
     if (previousChild) {
       previousChild.nextSibling = child;
       child.previousSibling = previousChild;
@@ -434,7 +484,7 @@ var TreeElement = class {
       child.previousSibling = null;
     }
 
-    var nextChild = this._children[index];
+    const nextChild = this._children[index];
     if (nextChild) {
       nextChild.previousSibling = child;
       child.nextSibling = nextChild;
@@ -449,14 +499,14 @@ var TreeElement = class {
 
     if (this.treeOutline)
       this.treeOutline._bindTreeElement(child);
-    for (var current = child.firstChild(); this.treeOutline && current;
+    for (let current = child.firstChild(); this.treeOutline && current;
          current = current.traverseNextTreeElement(false, child, true))
       this.treeOutline._bindTreeElement(current);
     child.onattach();
     child._ensureSelection();
     if (this.treeOutline)
-      this.treeOutline.dispatchEventToListeners(TreeOutline.Events.ElementAttached, child);
-    var nextSibling = child.nextSibling ? child.nextSibling._listItemNode : null;
+      this.treeOutline.dispatchEventToListeners(UI.TreeOutline.Events.ElementAttached, child);
+    const nextSibling = child.nextSibling ? child.nextSibling._listItemNode : null;
     this._childrenListNode.insertBefore(child._listItemNode, nextSibling);
     this._childrenListNode.insertBefore(child._childrenListNode, nextSibling);
     if (child.selected)
@@ -472,10 +522,10 @@ var TreeElement = class {
     if (childIndex < 0 || childIndex >= this._children.length)
       throw 'childIndex out of range';
 
-    var child = this._children[childIndex];
+    const child = this._children[childIndex];
     this._children.splice(childIndex, 1);
 
-    var parent = child.parent;
+    const parent = child.parent;
     if (this.treeOutline && this.treeOutline.selectedTreeElement &&
         this.treeOutline.selectedTreeElement.hasAncestorOrSelf(child)) {
       if (child.nextSibling)
@@ -494,7 +544,7 @@ var TreeElement = class {
 
     if (this.treeOutline)
       this.treeOutline._unbindTreeElement(child);
-    for (var current = child.firstChild(); this.treeOutline && current;
+    for (let current = child.firstChild(); this.treeOutline && current;
          current = current.traverseNextTreeElement(false, child, true))
       this.treeOutline._unbindTreeElement(current);
 
@@ -502,7 +552,7 @@ var TreeElement = class {
   }
 
   /**
-   * @param {!TreeElement} child
+   * @param {!UI.TreeElement} child
    */
   removeChild(child) {
     if (!child)
@@ -510,7 +560,7 @@ var TreeElement = class {
     if (child.parent !== this)
       return;
 
-    var childIndex = this._children.indexOf(child);
+    const childIndex = this._children.indexOf(child);
     if (childIndex === -1)
       throw 'child not found in this node\'s children';
 
@@ -522,15 +572,15 @@ var TreeElement = class {
         this.treeOutline.selectedTreeElement.hasAncestorOrSelf(this))
       this.select(true);
 
-    for (var i = 0; this._children && i < this._children.length; ++i) {
-      var child = this._children[i];
+    for (let i = 0; this._children && i < this._children.length; ++i) {
+      const child = this._children[i];
       child.previousSibling = null;
       child.nextSibling = null;
       child.parent = null;
 
       if (this.treeOutline)
         this.treeOutline._unbindTreeElement(child);
-      for (var current = child.firstChild(); this.treeOutline && current;
+      for (let current = child.firstChild(); this.treeOutline && current;
            current = current.traverseNextTreeElement(false, child, true))
         this.treeOutline._unbindTreeElement(current);
       child._detach();
@@ -550,6 +600,13 @@ var TreeElement = class {
 
   get listItemElement() {
     return this._listItemNode;
+  }
+
+  /**
+   * @return {!Element}
+   */
+  titleElement() {
+    return this._titleElement;
   }
 
   get childrenListElement() {
@@ -572,7 +629,6 @@ var TreeElement = class {
     this._title = x;
 
     if (typeof x === 'string') {
-      this._titleElement = createElementWithClass('span', 'tree-element-title');
       this._titleElement.textContent = x;
       this.tooltip = x;
     } else {
@@ -581,10 +637,11 @@ var TreeElement = class {
     }
 
     this._listItemNode.removeChildren();
-    if (this._iconElement)
-      this._listItemNode.appendChild(this._iconElement);
-
+    if (this._leadingIconsElement)
+      this._listItemNode.appendChild(this._leadingIconsElement);
     this._listItemNode.appendChild(this._titleElement);
+    if (this._trailingIconsElement)
+      this._listItemNode.appendChild(this._trailingIconsElement);
     this._ensureSelection();
   }
 
@@ -604,16 +661,43 @@ var TreeElement = class {
    */
   startEditingTitle(editingConfig) {
     UI.InplaceEditor.startEditing(this._titleElement, editingConfig);
-    this.treeOutline._shadowRoot.getSelection().setBaseAndExtent(this._titleElement, 0, this._titleElement, 1);
+    this.treeOutline._shadowRoot.getSelection().selectAllChildren(this._titleElement);
   }
 
-  createIcon() {
-    if (!this._iconElement) {
-      this._iconElement = createElementWithClass('div', 'icon');
-      this._listItemNode.insertBefore(this._iconElement, this._listItemNode.firstChild);
+  /**
+   * @param {!Array<!UI.Icon>} icons
+   */
+  setLeadingIcons(icons) {
+    if (!this._leadingIconsElement && !icons.length)
+      return;
+    if (!this._leadingIconsElement) {
+      this._leadingIconsElement = createElementWithClass('div', 'leading-icons');
+      this._leadingIconsElement.classList.add('icons-container');
+      this._listItemNode.insertBefore(this._leadingIconsElement, this._titleElement);
       this._ensureSelection();
     }
+    this._leadingIconsElement.removeChildren();
+    for (const icon of icons)
+      this._leadingIconsElement.appendChild(icon);
   }
+
+  /**
+   * @param {!Array<!UI.Icon>} icons
+   */
+  setTrailingIcons(icons) {
+    if (!this._trailingIconsElement && !icons.length)
+      return;
+    if (!this._trailingIconsElement) {
+      this._trailingIconsElement = createElementWithClass('div', 'trailing-icons');
+      this._trailingIconsElement.classList.add('icons-container');
+      this._listItemNode.appendChild(this._trailingIconsElement);
+      this._ensureSelection();
+    }
+    this._trailingIconsElement.removeChildren();
+    for (const icon of icons)
+      this._trailingIconsElement.appendChild(icon);
+  }
+
 
   /**
    * @return {string}
@@ -649,8 +733,12 @@ var TreeElement = class {
     this._expandable = expandable;
 
     this._listItemNode.classList.toggle('parent', expandable);
-    if (!expandable)
+    if (!expandable) {
       this.collapse();
+      UI.ARIAUtils.unsetExpanded(this._listItemNode);
+    } else {
+      UI.ARIAUtils.setExpanded(this._listItemNode, false);
+    }
   }
 
   /**
@@ -688,6 +776,7 @@ var TreeElement = class {
     }
   }
 
+
   _ensureSelection() {
     if (!this.treeOutline || !this.treeOutline._renderSelection)
       return;
@@ -700,16 +789,13 @@ var TreeElement = class {
    * @param {!Event} event
    */
   _treeElementToggled(event) {
-    var element = event.currentTarget;
+    const element = event.currentTarget;
     if (element.treeElement !== this || element.hasSelection())
       return;
 
-    var toggleOnClick = this.toggleOnClick && !this.selectable;
-    var isInTriangle = this.isEventWithinDisclosureTriangle(event);
+    const toggleOnClick = this.toggleOnClick && !this.selectable;
+    const isInTriangle = this.isEventWithinDisclosureTriangle(event);
     if (!toggleOnClick && !isInTriangle)
-      return;
-
-    if (event.target && event.target.enclosingNodeOrSelfWithNodeName('a'))
       return;
 
     if (this.expanded) {
@@ -730,7 +816,7 @@ var TreeElement = class {
    * @param {!Event} event
    */
   _handleMouseDown(event) {
-    var element = event.currentTarget;
+    const element = event.currentTarget;
     if (!element)
       return;
     if (!this.selectable)
@@ -748,11 +834,11 @@ var TreeElement = class {
    * @param {!Event} event
    */
   _handleDoubleClick(event) {
-    var element = event.currentTarget;
+    const element = event.currentTarget;
     if (!element || element.treeElement !== this)
       return;
 
-    var handled = this.ondblclick(event);
+    const handled = this.ondblclick(event);
     if (handled)
       return;
     if (this._expandable && !this.expanded)
@@ -769,19 +855,27 @@ var TreeElement = class {
       return;
     this._listItemNode.classList.remove('expanded');
     this._childrenListNode.classList.remove('expanded');
+    UI.ARIAUtils.setExpanded(this._listItemNode, false);
     this.expanded = false;
     this.oncollapse();
     if (this.treeOutline)
-      this.treeOutline.dispatchEventToListeners(TreeOutline.Events.ElementCollapsed, this);
+      this.treeOutline.dispatchEventToListeners(UI.TreeOutline.Events.ElementCollapsed, this);
   }
 
   collapseRecursively() {
-    var item = this;
+    let item = this;
     while (item) {
       if (item.expanded)
         item.collapse();
       item = item.traverseNextTreeElement(false, this, true);
     }
+  }
+
+  collapseChildren() {
+    if (!this._children)
+      return;
+    for (const child of this._children)
+      child.collapseRecursively();
   }
 
   expand() {
@@ -797,10 +891,11 @@ var TreeElement = class {
     this._populateIfNeeded();
     this._listItemNode.classList.add('expanded');
     this._childrenListNode.classList.add('expanded');
+    UI.ARIAUtils.setExpanded(this._listItemNode, true);
 
     if (this.treeOutline) {
       this.onexpand();
-      this.treeOutline.dispatchEventToListeners(TreeOutline.Events.ElementExpanded, this);
+      this.treeOutline.dispatchEventToListeners(UI.TreeOutline.Events.ElementExpanded, this);
     }
   }
 
@@ -808,9 +903,9 @@ var TreeElement = class {
    * @param {number=} maxDepth
    */
   expandRecursively(maxDepth) {
-    var item = this;
-    var info = {};
-    var depth = 0;
+    let item = this;
+    const info = {};
+    let depth = 0;
 
     // The Inspector uses TreeOutlines to represents object properties, so recursive expansion
     // in some case can be infinite, since JavaScript objects can hold circular references.
@@ -847,17 +942,14 @@ var TreeElement = class {
       return true;
     }
 
-    var nextSelectedElement = this.parent;
+    let nextSelectedElement = this.parent;
     while (nextSelectedElement && !nextSelectedElement.selectable)
       nextSelectedElement = nextSelectedElement.parent;
 
-    if (nextSelectedElement) {
-      nextSelectedElement.reveal();
-      nextSelectedElement.select(false, true);
-      return true;
-    }
-
-    return false;
+    if (!nextSelectedElement)
+      return false;
+    nextSelectedElement.select(false, true);
+    return true;
   }
 
   /**
@@ -876,24 +968,21 @@ var TreeElement = class {
       return true;
     }
 
-    var nextSelectedElement = this.firstChild();
+    let nextSelectedElement = this.firstChild();
     while (nextSelectedElement && !nextSelectedElement.selectable)
       nextSelectedElement = nextSelectedElement.nextSibling;
 
-    if (nextSelectedElement) {
-      nextSelectedElement.reveal();
-      nextSelectedElement.select(false, true);
-      return true;
-    }
-
-    return false;
+    if (!nextSelectedElement)
+      return false;
+    nextSelectedElement.select(false, true);
+    return true;
   }
 
   /**
    * @param {boolean=} center
    */
   reveal(center) {
-    var currentAncestor = this.parent;
+    let currentAncestor = this.parent;
     while (currentAncestor && !currentAncestor.root) {
       if (!currentAncestor.expanded)
         currentAncestor.expand();
@@ -907,7 +996,7 @@ var TreeElement = class {
    * @return {boolean}
    */
   revealed() {
-    var currentAncestor = this.parent;
+    let currentAncestor = this.parent;
     while (currentAncestor && !currentAncestor.root) {
       if (!currentAncestor.expanded)
         return false;
@@ -920,6 +1009,14 @@ var TreeElement = class {
   selectOnMouseDown(event) {
     if (this.select(false, true))
       event.consume(true);
+
+    if (this._listItemNode.draggable && this._selectionElement) {
+      const marginLeft =
+          this.treeOutline.element.getBoundingClientRect().left - this._listItemNode.getBoundingClientRect().left;
+      // By default the left margin extends far off screen. This is not a problem except when dragging an element.
+      // Setting the margin once here should be fine, because we believe the left margin should never change.
+      this._selectionElement.style.setProperty('margin-left', marginLeft + 'px');
+    }
   }
 
   /**
@@ -930,26 +1027,52 @@ var TreeElement = class {
   select(omitFocus, selectedByUser) {
     if (!this.treeOutline || !this.selectable || this.selected)
       return false;
-
-    if (this.treeOutline.selectedTreeElement)
-      this.treeOutline.selectedTreeElement.deselect();
+    // Wait to deselect this element so that focus only changes once
+    const lastSelected = this.treeOutline.selectedTreeElement;
     this.treeOutline.selectedTreeElement = null;
 
-    if (this.treeOutline._rootElement === this)
+    if (this.treeOutline._rootElement === this) {
+      if (lastSelected)
+        lastSelected.deselect();
       return false;
+    }
 
     this.selected = true;
 
-    if (!omitFocus)
-      this.treeOutline.focus();
-
-    // Focusing on another node may detach "this" from tree.
-    if (!this.treeOutline)
-      return false;
     this.treeOutline.selectedTreeElement = this;
+    if (this.treeOutline._focusable)
+      this._setFocusable(true);
+    if (!omitFocus || this.treeOutline.contentElement.hasFocus())
+      this.listItemElement.focus();
+
     this._listItemNode.classList.add('selected');
-    this.treeOutline.dispatchEventToListeners(TreeOutline.Events.ElementSelected, this);
+    this.treeOutline.dispatchEventToListeners(UI.TreeOutline.Events.ElementSelected, this);
+    if (lastSelected)
+      lastSelected.deselect();
     return this.onselect(selectedByUser);
+  }
+
+  /**
+   * @param {boolean} focusable
+   */
+  _setFocusable(focusable) {
+    if (focusable) {
+      this._listItemNode.setAttribute('tabIndex', 0);
+      this._listItemNode.addEventListener('focus', this._boundOnFocus, false);
+      this._listItemNode.addEventListener('blur', this._boundOnBlur, false);
+    } else {
+      this._listItemNode.removeAttribute('tabIndex');
+      this._listItemNode.removeEventListener('focus', this._boundOnFocus, false);
+      this._listItemNode.removeEventListener('blur', this._boundOnBlur, false);
+    }
+  }
+
+  _onFocus() {
+    this._listItemNode.classList.add('force-white-icons');
+  }
+
+  _onBlur() {
+    this._listItemNode.classList.remove('force-white-icons');
   }
 
   /**
@@ -960,16 +1083,17 @@ var TreeElement = class {
     this.select(omitFocus);
   }
 
-  /**
-   * @param {boolean=} supressOnDeselect
-   */
-  deselect(supressOnDeselect) {
-    if (!this.treeOutline || this.treeOutline.selectedTreeElement !== this || !this.selected)
-      return;
-
+  deselect() {
+    const hadFocus = this._listItemNode.hasFocus();
     this.selected = false;
-    this.treeOutline.selectedTreeElement = null;
     this._listItemNode.classList.remove('selected');
+    this._setFocusable(false);
+
+    if (this.treeOutline && this.treeOutline.selectedTreeElement === this) {
+      this.treeOutline.selectedTreeElement = null;
+      if (hadFocus)
+        this.treeOutline.focus();
+    }
   }
 
   _populateIfNeeded() {
@@ -1037,10 +1161,10 @@ var TreeElement = class {
 
   /**
    * @param {boolean} skipUnrevealed
-   * @param {?TreeElement=} stayWithin
+   * @param {?UI.TreeElement=} stayWithin
    * @param {boolean=} dontPopulate
    * @param {!Object=} info
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   traverseNextTreeElement(skipUnrevealed, stayWithin, dontPopulate, info) {
     if (!dontPopulate)
@@ -1049,7 +1173,7 @@ var TreeElement = class {
     if (info)
       info.depthChange = 0;
 
-    var element = skipUnrevealed ? (this.revealed() ? this.firstChild() : null) : this.firstChild();
+    let element = skipUnrevealed ? (this.revealed() ? this.firstChild() : null) : this.firstChild();
     if (element && (!skipUnrevealed || (skipUnrevealed && this.expanded))) {
       if (info)
         info.depthChange = 1;
@@ -1081,10 +1205,10 @@ var TreeElement = class {
   /**
    * @param {boolean} skipUnrevealed
    * @param {boolean=} dontPopulate
-   * @return {?TreeElement}
+   * @return {?UI.TreeElement}
    */
   traversePreviousTreeElement(skipUnrevealed, dontPopulate) {
-    var element = skipUnrevealed ? (this.revealed() ? this.previousSibling : null) : this.previousSibling;
+    let element = skipUnrevealed ? (this.revealed() ? this.previousSibling : null) : this.previousSibling;
     if (!dontPopulate && element)
       element._populateIfNeeded();
 
@@ -1111,13 +1235,22 @@ var TreeElement = class {
    */
   isEventWithinDisclosureTriangle(event) {
     // FIXME: We should not use getComputedStyle(). For that we need to get rid of using ::before for disclosure triangle. (http://webk.it/74446)
-    var paddingLeftValue = window.getComputedStyle(this._listItemNode).paddingLeft;
+    const paddingLeftValue = window.getComputedStyle(this._listItemNode).paddingLeft;
     console.assert(paddingLeftValue.endsWith('px'));
-    var computedLeftPadding = parseFloat(paddingLeftValue);
-    var left = this._listItemNode.totalOffsetLeft() + computedLeftPadding;
-    return event.pageX >= left && event.pageX <= left + TreeElement._ArrowToggleWidth && this._expandable;
+    const computedLeftPadding = parseFloat(paddingLeftValue);
+    const left = this._listItemNode.totalOffsetLeft() + computedLeftPadding;
+    return event.pageX >= left && event.pageX <= left + UI.TreeElement._ArrowToggleWidth && this._expandable;
   }
 };
 
 /** @const */
-TreeElement._ArrowToggleWidth = 10;
+UI.TreeElement._ArrowToggleWidth = 10;
+
+(function() {
+const img = new Image();
+if (window.devicePixelRatio > 1)
+  img.src = 'Images/treeoutlineTriangles_2x.png';
+else
+  img.src = 'Images/treeoutlineTriangles.png';
+UI.TreeElement._imagePreload = img;
+})();

@@ -11,9 +11,8 @@ FormatterWorker.AcornTokenizer = class {
   constructor(content) {
     this._content = content;
     this._comments = [];
-    this._tokenizer = acorn.tokenizer(this._content, {ecmaVersion: 6, onComment: this._comments});
-    this._lineEndings = this._content.computeLineEndings();
-    this._lineNumber = 0;
+    this._tokenizer = acorn.tokenizer(this._content, {ecmaVersion: 8, onComment: this._comments});
+    this._textCursor = new TextUtils.TextCursor(this._content.computeLineEndings());
     this._tokenLineStart = 0;
     this._tokenLineEnd = 0;
     this._nextTokenInternal();
@@ -36,8 +35,8 @@ FormatterWorker.AcornTokenizer = class {
    * @return {boolean}
    */
   static keyword(token, keyword) {
-    return !!token.type.keyword && token.type !== acorn.tokTypes._true && token.type !== acorn.tokTypes._false &&
-        token.type !== acorn.tokTypes._null && (!keyword || token.type.keyword === keyword);
+    return !!token.type.keyword && token.type !== acorn.tokTypes['_true'] && token.type !== acorn.tokTypes['_false'] &&
+        token.type !== acorn.tokTypes['_null'] && (!keyword || token.type.keyword === keyword);
   }
 
   /**
@@ -71,34 +70,26 @@ FormatterWorker.AcornTokenizer = class {
   _nextTokenInternal() {
     if (this._comments.length)
       return this._comments.shift();
-    var token = this._bufferedToken;
+    const token = this._bufferedToken;
 
     this._bufferedToken = this._tokenizer.getToken();
     return token;
   }
 
   /**
-   * @param {number} position
-   * @return {number}
-   */
-  _rollLineNumberToPosition(position) {
-    while (this._lineNumber + 1 < this._lineEndings.length && position > this._lineEndings[this._lineNumber])
-      ++this._lineNumber;
-    return this._lineNumber;
-  }
-
-  /**
    * @return {?Acorn.TokenOrComment}
    */
   nextToken() {
-    var token = this._nextTokenInternal();
+    const token = this._nextTokenInternal();
     if (token.type === acorn.tokTypes.eof)
       return null;
 
-    this._tokenLineStart = this._rollLineNumberToPosition(token.start);
-    this._tokenLineEnd = this._rollLineNumberToPosition(token.end);
-    this._tokenColumnStart =
-        this._tokenLineStart > 0 ? token.start - this._lineEndings[this._tokenLineStart - 1] - 1 : token.start;
+    this._textCursor.advance(token.start);
+    this._tokenLineStart = this._textCursor.lineNumber();
+    this._tokenColumnStart = this._textCursor.columnNumber();
+
+    this._textCursor.advance(token.end);
+    this._tokenLineEnd = this._textCursor.lineNumber();
     return token;
   }
 

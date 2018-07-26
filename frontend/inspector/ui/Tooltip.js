@@ -30,12 +30,12 @@ UI.Tooltip = class {
 
   /**
    * @param {!Element} element
-   * @param {!Element|string} tooltipContent
+   * @param {?Element|string} tooltipContent
    * @param {string=} actionId
    * @param {!Object=} options
    */
   static install(element, tooltipContent, actionId, options) {
-    if (typeof tooltipContent === 'string' && tooltipContent === '') {
+    if (!tooltipContent) {
       delete element[UI.Tooltip._symbol];
       return;
     }
@@ -53,16 +53,17 @@ UI.Tooltip = class {
    * @param {!Event} event
    */
   _mouseMove(event) {
-    var mouseEvent = /** @type {!MouseEvent} */ (event);
-    var path = mouseEvent.path;
+    const mouseEvent = /** @type {!MouseEvent} */ (event);
+    const path = mouseEvent.path;
     if (!path || mouseEvent.buttons !== 0 || (mouseEvent.movementX === 0 && mouseEvent.movementY === 0))
       return;
 
     if (this._anchorElement && path.indexOf(this._anchorElement) === -1)
       this._hide(false);
 
-    for (var element of path) {
-      if (element === this._anchorElement) {
+    for (const element of path) {
+      // The offsetParent is null when the element or an ancestor has 'display: none'.
+      if (element === this._anchorElement || (element.nodeName !== 'CONTENT' && element.offsetParent === null)) {
         return;
       } else if (element[UI.Tooltip._symbol]) {
         this._show(element, mouseEvent);
@@ -76,12 +77,12 @@ UI.Tooltip = class {
    * @param {!Event} event
    */
   _show(anchorElement, event) {
-    var tooltip = anchorElement[UI.Tooltip._symbol];
+    const tooltip = anchorElement[UI.Tooltip._symbol];
     this._anchorElement = anchorElement;
     this._tooltipElement.removeChildren();
 
     // Check if native tooltips should be used.
-    for (var element of UI.Tooltip._nativeOverrideContainer) {
+    for (const element of UI.Tooltip._nativeOverrideContainer) {
       if (this._anchorElement.isSelfOrDescendant(element)) {
         Object.defineProperty(this._anchorElement, 'title', UI.Tooltip._nativeTitle);
         this._anchorElement.title = tooltip.content;
@@ -95,9 +96,9 @@ UI.Tooltip = class {
       this._tooltipElement.appendChild(tooltip.content);
 
     if (tooltip.actionId) {
-      var shortcuts = UI.shortcutRegistry.shortcutDescriptorsForAction(tooltip.actionId);
-      for (var shortcut of shortcuts) {
-        var shortcutElement = this._tooltipElement.createChild('div', 'tooltip-shortcut');
+      const shortcuts = UI.shortcutRegistry.shortcutDescriptorsForAction(tooltip.actionId);
+      for (const shortcut of shortcuts) {
+        const shortcutElement = this._tooltipElement.createChild('div', 'tooltip-shortcut');
         shortcutElement.textContent = shortcut.name;
       }
     }
@@ -107,38 +108,36 @@ UI.Tooltip = class {
     this._tooltipElement.positionAt(0, 0);
 
     // Show tooltip instantly if a tooltip was shown recently.
-    var now = Date.now();
-    var instant = (this._tooltipLastClosed && now - this._tooltipLastClosed < UI.Tooltip.Timing.InstantThreshold);
+    const now = Date.now();
+    const instant = (this._tooltipLastClosed && now - this._tooltipLastClosed < UI.Tooltip.Timing.InstantThreshold);
     this._tooltipElement.classList.toggle('instant', instant);
     this._tooltipLastOpened = instant ? now : now + UI.Tooltip.Timing.OpeningDelay;
 
     // Get container element.
-    var container = UI.Dialog.modalHostView().element;
-    if (!anchorElement.isDescendant(container))
-      container = this.element.parentElement;
-
-    // Posititon tooltip based on the anchor element.
-    var containerBox = container.boxInWindow(this.element.window());
-    var anchorBox = this._anchorElement.boxInWindow(this.element.window());
+    const container = UI.GlassPane.container(/** @type {!Document} */ (anchorElement.ownerDocument));
+    // Position tooltip based on the anchor element.
+    const containerBox = container.boxInWindow(this.element.window());
+    const anchorBox = this._anchorElement.boxInWindow(this.element.window());
     const anchorOffset = 2;
     const pageMargin = 2;
-    var cursorOffset = 10;
+    const cursorOffset = 10;
     this._tooltipElement.classList.toggle('tooltip-breakword', !this._tooltipElement.textContent.match('\\s'));
     this._tooltipElement.style.maxWidth = (containerBox.width - pageMargin * 2) + 'px';
     this._tooltipElement.style.maxHeight = '';
-    var tooltipWidth = this._tooltipElement.offsetWidth;
-    var tooltipHeight = this._tooltipElement.offsetHeight;
-    var anchorTooltipAtElement = this._anchorElement.nodeName === 'BUTTON' || this._anchorElement.nodeName === 'LABEL';
-    var tooltipX = anchorTooltipAtElement ? anchorBox.x : event.x + cursorOffset;
+    const tooltipWidth = this._tooltipElement.offsetWidth;
+    const tooltipHeight = this._tooltipElement.offsetHeight;
+    const anchorTooltipAtElement =
+        this._anchorElement.nodeName === 'BUTTON' || this._anchorElement.nodeName === 'LABEL';
+    let tooltipX = anchorTooltipAtElement ? anchorBox.x : event.x + cursorOffset;
     tooltipX = Number.constrain(
         tooltipX, containerBox.x + pageMargin, containerBox.x + containerBox.width - tooltipWidth - pageMargin);
-    var tooltipY;
+    let tooltipY;
     if (!anchorTooltipAtElement) {
       tooltipY = event.y + cursorOffset + tooltipHeight < containerBox.y + containerBox.height ?
           event.y + cursorOffset :
-          event.y - tooltipHeight;
+          event.y - tooltipHeight - 1;
     } else {
-      var onBottom =
+      const onBottom =
           anchorBox.y + anchorOffset + anchorBox.height + tooltipHeight < containerBox.y + containerBox.height;
       tooltipY = onBottom ? anchorBox.y + anchorBox.height + anchorOffset : anchorBox.y - tooltipHeight - anchorOffset;
     }
@@ -186,7 +185,7 @@ Object.defineProperty(HTMLElement.prototype, 'title', {
    * @this {!Element}
    */
   get: function() {
-    var tooltip = this[UI.Tooltip._symbol];
+    const tooltip = this[UI.Tooltip._symbol];
     return tooltip ? tooltip.content : '';
   },
 

@@ -1,6 +1,7 @@
 // Copyright 2014 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
 /**
  * @unrestricted
  */
@@ -8,93 +9,70 @@ Emulation.InspectedPagePlaceholder = class extends UI.Widget {
   constructor() {
     super(true);
     this.registerRequiredCSS('emulation/inspectedPagePlaceholder.css');
-    UI.zoomManager.addEventListener(UI.ZoomManager.Events.ZoomChanged, this._scheduleUpdate, this);
-    this._margins = {top: 0, right: 0, bottom: 0, left: 0};
-    this.restoreMinimumSizeAndMargins();
-  }
-
-  _findMargins() {
-    var margins = {top: 0, right: 0, bottom: 0, left: 0};
-
-    if (this._useMargins) {
-      var adjacent = {top: true, right: true, bottom: true, left: true};
-      var widget = this;
-      while (widget.parentWidget()) {
-        var parent = widget.parentWidget();
-        // This view assumes it's always inside the main split widget element, not a sidebar.
-        // Every parent which is not a split widget, must be of the same size as this widget.
-        if (parent instanceof UI.SplitWidget) {
-          var side = parent.sidebarSide();
-          if (adjacent[side] && !parent.hasCustomResizer() && parent.isResizable())
-            margins[side] = Emulation.InspectedPagePlaceholder.MarginValue;
-          adjacent[side] = false;
-        }
-        widget = parent;
-      }
-    }
-
-    if (this._margins.top !== margins.top || this._margins.left !== margins.left ||
-        this._margins.right !== margins.right || this._margins.bottom !== margins.bottom) {
-      this._margins = margins;
-      this._scheduleUpdate();
-    }
+    UI.zoomManager.addEventListener(UI.ZoomManager.Events.ZoomChanged, this.onResize, this);
+    this.restoreMinimumSize();
   }
 
   /**
    * @override
    */
   onResize() {
-    this._findMargins();
-    this._scheduleUpdate();
-  }
-
-  _scheduleUpdate() {
     if (this._updateId)
       this.element.window().cancelAnimationFrame(this._updateId);
-    this._updateId = this.element.window().requestAnimationFrame(this.update.bind(this));
+    this._updateId = this.element.window().requestAnimationFrame(this.update.bind(this, false));
   }
 
-  restoreMinimumSizeAndMargins() {
-    this._useMargins = true;
+  restoreMinimumSize() {
     this.setMinimumSize(150, 150);
-    this._findMargins();
   }
 
-  clearMinimumSizeAndMargins() {
-    this._useMargins = false;
+  clearMinimumSize() {
     this.setMinimumSize(1, 1);
-    this._findMargins();
   }
 
   _dipPageRect() {
-    var zoomFactor = UI.zoomManager.zoomFactor();
-    var rect = this.element.getBoundingClientRect();
-    var bodyRect = this.element.ownerDocument.body.getBoundingClientRect();
+    const zoomFactor = UI.zoomManager.zoomFactor();
+    const rect = this.element.getBoundingClientRect();
+    const bodyRect = this.element.ownerDocument.body.getBoundingClientRect();
 
-    var left = Math.max(rect.left * zoomFactor + this._margins.left, bodyRect.left * zoomFactor);
-    var top = Math.max(rect.top * zoomFactor + this._margins.top, bodyRect.top * zoomFactor);
-    var bottom = Math.min(rect.bottom * zoomFactor - this._margins.bottom, bodyRect.bottom * zoomFactor);
-    var right = Math.min(rect.right * zoomFactor - this._margins.right, bodyRect.right * zoomFactor);
+    const left = Math.max(rect.left * zoomFactor, bodyRect.left * zoomFactor);
+    const top = Math.max(rect.top * zoomFactor, bodyRect.top * zoomFactor);
+    const bottom = Math.min(rect.bottom * zoomFactor, bodyRect.bottom * zoomFactor);
+    const right = Math.min(rect.right * zoomFactor, bodyRect.right * zoomFactor);
 
     return {x: left, y: top, width: right - left, height: bottom - top};
   }
 
-  update() {
+  /**
+   * @param {boolean=} force
+   */
+  update(force) {
     delete this._updateId;
-    var rect = this._dipPageRect();
-    var bounds = {
+    const rect = this._dipPageRect();
+    const bounds = {
       x: Math.round(rect.x),
       y: Math.round(rect.y),
       height: Math.max(1, Math.round(rect.height)),
-      width: Math.max(1, Math.round(rect.width))
+      width: Math.max(1, Math.round(rect.width)),
     };
+    if (force) {
+      // Short term fix for Lighthouse interop.
+      --bounds.height;
+      this.dispatchEventToListeners(Emulation.InspectedPagePlaceholder.Events.Update, bounds);
+      ++bounds.height;
+    }
     this.dispatchEventToListeners(Emulation.InspectedPagePlaceholder.Events.Update, bounds);
   }
+};
+
+/**
+ * @return {!Emulation.InspectedPagePlaceholder}
+ */
+Emulation.InspectedPagePlaceholder.instance = function() {
+  return self.singleton(Emulation.InspectedPagePlaceholder);
 };
 
 /** @enum {symbol} */
 Emulation.InspectedPagePlaceholder.Events = {
   Update: Symbol('Update')
 };
-
-Emulation.InspectedPagePlaceholder.MarginValue = 3;

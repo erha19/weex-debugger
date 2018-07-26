@@ -4,9 +4,6 @@
  * found in the LICENSE file.
  */
 
-/**
- * @unrestricted
- */
 SDK.TargetManager = class extends Common.Object {
   constructor() {
     super();
@@ -15,21 +12,22 @@ SDK.TargetManager = class extends Common.Object {
     /** @type {!Array.<!SDK.TargetManager.Observer>} */
     this._observers = [];
     this._observerCapabiliesMaskSymbol = Symbol('observerCapabilitiesMask');
-    /** @type {!Map<symbol, !Array<{modelClass: !Function, thisObject: (!Object|undefined), listener: function(!Common.Event)}>>} */
-    this._modelListeners = new Map();
+    /** @type {!Multimap<symbol, !{modelClass: !Function, thisObject: (!Object|undefined), listener: function(!Common.Event)}>} */
+    this._modelListeners = new Multimap();
+    /** @type {!Multimap<function(new:SDK.SDKModel, !SDK.Target), !SDK.SDKModelObserver>} */
+    this._modelObservers = new Multimap();
     this._isSuspended = false;
   }
 
+  /**
+   * @return {!Promise}
+   */
   suspendAllTargets() {
     if (this._isSuspended)
-      return;
+      return Promise.resolve();
     this._isSuspended = true;
     this.dispatchEventToListeners(SDK.TargetManager.Events.SuspendStateChanged);
-
-    for (var i = 0; i < this._targets.length; ++i) {
-      for (var model of this._targets[i].models())
-        model.suspendModel();
-    }
+    return Promise.all(this._targets.map(target => target.suspend()));
   }
 
   /**
@@ -37,21 +35,10 @@ SDK.TargetManager = class extends Common.Object {
    */
   resumeAllTargets() {
     if (!this._isSuspended)
-      throw new Error('Not suspended');
+      return Promise.resolve();
     this._isSuspended = false;
     this.dispatchEventToListeners(SDK.TargetManager.Events.SuspendStateChanged);
-
-    var promises = [];
-    for (var i = 0; i < this._targets.length; ++i) {
-      for (var model of this._targets[i].models())
-        promises.push(model.resumeModel());
-    }
-    return Promise.all(promises);
-  }
-
-  suspendAndResumeAllTargets() {
-    this.suspendAllTargets();
-    this.resumeAllTargets();
+    return Promise.all(this._targets.map(target => target.resume()));
   }
 
   /**
@@ -62,6 +49,21 @@ SDK.TargetManager = class extends Common.Object {
   }
 
   /**
+   * @param {function(new:T,!SDK.Target)} modelClass
+   * @return {!Array<!T>}
+   * @template T
+   */
+  models(modelClass) {
+    const result = [];
+    for (let i = 0; i < this._targets.length; ++i) {
+      const model = this._targets[i].model(modelClass);
+      if (model)
+        result.push(model);
+    }
+    return result;
+  }
+
+  /**
    * @return {string}
    */
   inspectedURL() {
@@ -69,26 +71,44 @@ SDK.TargetManager = class extends Common.Object {
   }
 
   /**
-   * @param {!SDK.TargetManager.Events} eventName
-   * @param {!Common.Event} event
+   * @param {function(new:T,!SDK.Target)} modelClass
+   * @param {!SDK.SDKModelObserver<T>} observer
+   * @template T
    */
-  _redispatchEvent(eventName, event) {
-    this.dispatchEventToListeners(eventName, event.data);
+  observeModels(modelClass, observer) {
+    const models = this.models(modelClass);
+    this._modelObservers.set(modelClass, observer);
+    for (const model of models)
+      observer.modelAdded(model);
   }
 
   /**
-   * @param {boolean=} bypassCache
-   * @param {string=} injectedScript
+   * @param {function(new:T,!SDK.Target)} modelClass
+   * @param {!SDK.SDKModelObserver<T>} observer
+   * @template T
    */
-  reloadPage(bypassCache, injectedScript) {
-    if (!this._targets.length)
-      return;
+  unobserveModels(modelClass, observer) {
+    this._modelObservers.delete(modelClass, observer);
+  }
 
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(this._targets[0]);
-    if (!resourceTreeModel)
-      return;
+  /**
+   * @param {!SDK.Target} target
+   * @param {function(new:SDK.SDKModel,!SDK.Target)} modelClass
+   * @param {!SDK.SDKModel} model
+   */
+  modelAdded(target, modelClass, model) {
+    for (const observer of this._modelObservers.get(modelClass).valuesArray())
+      observer.modelAdded(model);
+  }
 
-    resourceTreeModel.reloadPage(bypassCache, injectedScript);
+  /**
+   * @param {!SDK.Target} target
+   * @param {function(new:SDK.SDKModel,!SDK.Target)} modelClass
+   * @param {!SDK.SDKModel} model
+   */
+  _modelRemoved(target, modelClass, model) {
+    for (const observer of this._modelObservers.get(modelClass).valuesArray())
+      observer.modelRemoved(model);
   }
 
   /**
@@ -98,14 +118,12 @@ SDK.TargetManager = class extends Common.Object {
    * @param {!Object=} thisObject
    */
   addModelListener(modelClass, eventType, listener, thisObject) {
-    for (var i = 0; i < this._targets.length; ++i) {
-      var model = this._targets[i].model(modelClass);
+    for (let i = 0; i < this._targets.length; ++i) {
+      const model = this._targets[i].model(modelClass);
       if (model)
         model.addEventListener(eventType, listener, thisObject);
     }
-    if (!this._modelListeners.has(eventType))
-      this._modelListeners.set(eventType, []);
-    this._modelListeners.get(eventType).push({modelClass: modelClass, thisObject: thisObject, listener: listener});
+    this._modelListeners.set(eventType, {modelClass: modelClass, thisObject: thisObject, listener: listener});
   }
 
   /**
@@ -118,20 +136,16 @@ SDK.TargetManager = class extends Common.Object {
     if (!this._modelListeners.has(eventType))
       return;
 
-    for (var i = 0; i < this._targets.length; ++i) {
-      var model = this._targets[i].model(modelClass);
+    for (let i = 0; i < this._targets.length; ++i) {
+      const model = this._targets[i].model(modelClass);
       if (model)
         model.removeEventListener(eventType, listener, thisObject);
     }
 
-    var listeners = this._modelListeners.get(eventType);
-    for (var i = 0; i < listeners.length; ++i) {
-      if (listeners[i].modelClass === modelClass && listeners[i].listener === listener &&
-          listeners[i].thisObject === thisObject)
-        listeners.splice(i--, 1);
+    for (const info of this._modelListeners.get(eventType)) {
+      if (info.modelClass === modelClass && info.listener === listener && info.thisObject === thisObject)
+        this._modelListeners.delete(eventType, info);
     }
-    if (!listeners.length)
-      this._modelListeners.delete(eventType);
   }
 
   /**
@@ -155,55 +169,35 @@ SDK.TargetManager = class extends Common.Object {
   }
 
   /**
+   * @param {string} id
    * @param {string} name
    * @param {number} capabilitiesMask
-   * @param {!InspectorBackendClass.Connection.Factory} connectionFactory
+   * @param {!Protocol.InspectorBackend.Connection.Factory} connectionFactory
    * @param {?SDK.Target} parentTarget
+   * @param {boolean} isNodeJS
    * @return {!SDK.Target}
    */
-  createTarget(name, capabilitiesMask, connectionFactory, parentTarget) {
-    var target = new SDK.Target(this, name, capabilitiesMask, connectionFactory, parentTarget);
+  createTarget(id, name, capabilitiesMask, connectionFactory, parentTarget, isNodeJS) {
+    const target =
+        new SDK.Target(this, id, name, capabilitiesMask, connectionFactory, parentTarget, this._isSuspended, isNodeJS);
+    target.createModels(new Set(this._modelObservers.keysArray()));
+    this._targets.push(target);
 
-    var logAgent = target.hasLogCapability() ? target.logAgent() : null;
+    const copy = this._observersForTarget(target);
+    for (let i = 0; i < copy.length; ++i)
+      copy[i].targetAdded(target);
 
-    /** @type {!SDK.ConsoleModel} */
-    target.consoleModel = new SDK.ConsoleModel(target, logAgent);
+    for (const modelClass of target.models().keys())
+      this.modelAdded(target, modelClass, target.models().get(modelClass));
 
-    var networkManager = null;
-    var resourceTreeModel = null;
-    if (target.hasNetworkCapability())
-      networkManager = new SDK.NetworkManager(target);
-    if (networkManager && target.hasDOMCapability()) {
-      resourceTreeModel =
-          new SDK.ResourceTreeModel(target, networkManager, SDK.SecurityOriginManager.fromTarget(target));
-      new SDK.NetworkLog(target, resourceTreeModel, networkManager);
+    for (const key of this._modelListeners.keysArray()) {
+      for (const info of this._modelListeners.get(key)) {
+        const model = target.model(info.modelClass);
+        if (model)
+          model.addEventListener(key, info.listener, info.thisObject);
+      }
     }
 
-    /** @type {!SDK.RuntimeModel} */
-    target.runtimeModel = new SDK.RuntimeModel(target);
-
-    if (target.hasJSCapability())
-      new SDK.DebuggerModel(target);
-
-    if (resourceTreeModel) {
-      var domModel = new SDK.DOMModel(target);
-      // TODO(eostroukhov) CSSModel should not depend on RTM
-      new SDK.CSSModel(target, domModel);
-    }
-
-    /** @type {?SDK.SubTargetsManager} */
-    target.subTargetsManager = target.hasTargetCapability() ? new SDK.SubTargetsManager(target) : null;
-    /** @type {!SDK.CPUProfilerModel} */
-    target.cpuProfilerModel = new SDK.CPUProfilerModel(target);
-    /** @type {!SDK.HeapProfilerModel} */
-    target.heapProfilerModel = new SDK.HeapProfilerModel(target);
-
-    target.tracingManager = new SDK.TracingManager(target);
-
-    if (target.subTargetsManager && target.hasBrowserCapability())
-      target.serviceWorkerManager = new SDK.ServiceWorkerManager(target, target.subTargetsManager);
-
-    this.addTarget(target);
     return target;
   }
 
@@ -213,47 +207,7 @@ SDK.TargetManager = class extends Common.Object {
    */
   _observersForTarget(target) {
     return this._observers.filter(
-        (observer) => target.hasAllCapabilities(observer[this._observerCapabiliesMaskSymbol] || 0));
-  }
-
-  /**
-   * @param {!SDK.Target} target
-   */
-  addTarget(target) {
-    this._targets.push(target);
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    if (this._targets.length === 1 && resourceTreeModel) {
-      resourceTreeModel[SDK.TargetManager._listenersSymbol] = [
-        setupRedispatch.call(
-            this, SDK.ResourceTreeModel.Events.MainFrameNavigated, SDK.TargetManager.Events.MainFrameNavigated),
-        setupRedispatch.call(this, SDK.ResourceTreeModel.Events.Load, SDK.TargetManager.Events.Load),
-        setupRedispatch.call(
-            this, SDK.ResourceTreeModel.Events.PageReloadRequested, SDK.TargetManager.Events.PageReloadRequested),
-        setupRedispatch.call(this, SDK.ResourceTreeModel.Events.WillReloadPage, SDK.TargetManager.Events.WillReloadPage)
-      ];
-    }
-    var copy = this._observersForTarget(target);
-    for (var i = 0; i < copy.length; ++i)
-      copy[i].targetAdded(target);
-
-    for (var pair of this._modelListeners) {
-      var listeners = pair[1];
-      for (var i = 0; i < listeners.length; ++i) {
-        var model = target.model(listeners[i].modelClass);
-        if (model)
-          model.addEventListener(/** @type {symbol} */ (pair[0]), listeners[i].listener, listeners[i].thisObject);
-      }
-    }
-
-    /**
-     * @param {!SDK.ResourceTreeModel.Events} sourceEvent
-     * @param {!SDK.TargetManager.Events} targetEvent
-     * @return {!Common.EventTarget.EventDescriptor}
-     * @this {SDK.TargetManager}
-     */
-    function setupRedispatch(sourceEvent, targetEvent) {
-      return resourceTreeModel.addEventListener(sourceEvent, this._redispatchEvent.bind(this, targetEvent));
-    }
+        observer => target.hasAllCapabilities(observer[this._observerCapabiliesMaskSymbol] || 0));
   }
 
   /**
@@ -262,22 +216,20 @@ SDK.TargetManager = class extends Common.Object {
   removeTarget(target) {
     if (!this._targets.includes(target))
       return;
-    this._targets.remove(target);
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    var treeModelListeners = resourceTreeModel && resourceTreeModel[SDK.TargetManager._listenersSymbol];
-    if (treeModelListeners)
-      Common.EventTarget.removeEventListeners(treeModelListeners);
 
-    var copy = this._observersForTarget(target);
-    for (var i = 0; i < copy.length; ++i)
+    this._targets.remove(target);
+    for (const modelClass of target.models().keys())
+      this._modelRemoved(target, modelClass, target.models().get(modelClass));
+
+    const copy = this._observersForTarget(target);
+    for (let i = 0; i < copy.length; ++i)
       copy[i].targetRemoved(target);
 
-    for (var pair of this._modelListeners) {
-      var listeners = pair[1];
-      for (var i = 0; i < listeners.length; ++i) {
-        var model = target.model(listeners[i].modelClass);
+    for (const key of this._modelListeners.keysArray()) {
+      for (const info of this._modelListeners.get(key)) {
+        const model = target.model(info.modelClass);
         if (model)
-          model.removeEventListener(/** @type {symbol} */ (pair[0]), listeners[i].listener, listeners[i].thisObject);
+          model.removeEventListener(key, info.listener, info.thisObject);
       }
     }
   }
@@ -290,16 +242,16 @@ SDK.TargetManager = class extends Common.Object {
     if (!capabilitiesMask)
       return this._targets.slice();
     else
-      return this._targets.filter((target) => target.hasAllCapabilities(capabilitiesMask || 0));
+      return this._targets.filter(target => target.hasAllCapabilities(capabilitiesMask || 0));
   }
 
   /**
-   *
-   * @param {number} id
+   * @param {string} id
    * @return {?SDK.Target}
    */
   targetById(id) {
-    for (var i = 0; i < this._targets.length; ++i) {
+    // TODO(dgozman): add a map id -> target.
+    for (let i = 0; i < this._targets.length; ++i) {
       if (this._targets[i].id() === id)
         return this._targets[i];
     }
@@ -312,86 +264,15 @@ SDK.TargetManager = class extends Common.Object {
   mainTarget() {
     return this._targets[0] || null;
   }
-
-  /**
-   * @param {!SDK.Target} target
-   */
-  suspendReload(target) {
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    if (resourceTreeModel)
-      resourceTreeModel.suspendReload();
-  }
-
-  /**
-   * @param {!SDK.Target} target
-   */
-  resumeReload(target) {
-    var resourceTreeModel = SDK.ResourceTreeModel.fromTarget(target);
-    if (resourceTreeModel)
-      setImmediate(resourceTreeModel.resumeReload.bind(resourceTreeModel));
-  }
-
-  /**
-   * @param {function()} webSocketConnectionLostCallback
-   */
-  connectToMainTarget(webSocketConnectionLostCallback) {
-    this._webSocketConnectionLostCallback = webSocketConnectionLostCallback;
-    this._connectAndCreateMainTarget();
-  }
-
-  _connectAndCreateMainTarget() {
-    var capabilities = SDK.Target.Capability.Browser | SDK.Target.Capability.DOM | SDK.Target.Capability.JS |
-        SDK.Target.Capability.Log | SDK.Target.Capability.Network | SDK.Target.Capability.Target;
-    if (Runtime.queryParam('isSharedWorker')) {
-      capabilities = SDK.Target.Capability.Browser | SDK.Target.Capability.Log | SDK.Target.Capability.Network |
-          SDK.Target.Capability.Target;
-    } else if (Runtime.queryParam('v8only')) {
-      capabilities = SDK.Target.Capability.JS;
-    }
-
-    var target = this.createTarget(Common.UIString('Main'), capabilities, this._createMainConnection.bind(this), null);
-    target.runtimeAgent().runIfWaitingForDebugger();
-  }
-
-  /**
-   * @param {!InspectorBackendClass.Connection.Params} params
-   * @return {!InspectorBackendClass.Connection}
-   */
-  _createMainConnection(params) {
-    if (Runtime.queryParam('ws')) {
-      var ws = 'ws://' + Runtime.queryParam('ws');
-      this._mainConnection = new SDK.WebSocketConnection(ws, this._webSocketConnectionLostCallback, params);
-    } else if (InspectorFrontendHost.isHostedMode()) {
-      this._mainConnection = new SDK.StubConnection(params);
-    } else {
-      this._mainConnection = new SDK.MainConnection(params);
-    }
-    return this._mainConnection;
-  }
-
-  /**
-   * @param {function(string)} onMessage
-   * @return {!Promise<!InspectorBackendClass.Connection>}
-   */
-  interceptMainConnection(onMessage) {
-    var params = {onMessage: onMessage, onDisconnect: this._connectAndCreateMainTarget.bind(this)};
-    return this._mainConnection.disconnect().then(this._createMainConnection.bind(this, params));
-  }
 };
 
 /** @enum {symbol} */
 SDK.TargetManager.Events = {
+  AvailableTargetsChanged: Symbol('AvailableTargetsChanged'),
   InspectedURLChanged: Symbol('InspectedURLChanged'),
-  Load: Symbol('Load'),
-  MainFrameNavigated: Symbol('MainFrameNavigated'),
   NameChanged: Symbol('NameChanged'),
-  PageReloadRequested: Symbol('PageReloadRequested'),
-  WillReloadPage: Symbol('WillReloadPage'),
-  TargetDisposed: Symbol('TargetDisposed'),
   SuspendStateChanged: Symbol('SuspendStateChanged')
 };
-
-SDK.TargetManager._listenersSymbol = Symbol('SDK.TargetManager.Listeners');
 
 /**
  * @interface
@@ -402,12 +283,30 @@ SDK.TargetManager.Observer.prototype = {
   /**
    * @param {!SDK.Target} target
    */
-  targetAdded: function(target) {},
+  targetAdded(target) {},
 
   /**
    * @param {!SDK.Target} target
    */
-  targetRemoved: function(target) {},
+  targetRemoved(target) {},
+};
+
+/**
+ * @interface
+ * @template T
+ */
+SDK.SDKModelObserver = function() {};
+
+SDK.SDKModelObserver.prototype = {
+  /**
+   * @param {!T} model
+   */
+  modelAdded(model) {},
+
+  /**
+   * @param {!T} model
+   */
+  modelRemoved(model) {},
 };
 
 /**

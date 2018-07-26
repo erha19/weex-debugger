@@ -8,14 +8,37 @@ Persistence.PersistenceUtils = class {
    * @return {string}
    */
   static tooltipForUISourceCode(uiSourceCode) {
-    var binding = Persistence.persistence.binding(uiSourceCode);
+    const binding = Persistence.persistence.binding(uiSourceCode);
     if (!binding)
       return '';
-    if (uiSourceCode === binding.network)
-      return Common.UIString('Persisted to file system: %s', binding.fileSystem.url().trimMiddle(150));
+    if (uiSourceCode === binding.network) {
+      const path = Common.ParsedURL.urlToPlatformPath(binding.fileSystem.url(), Host.isWin()).trimMiddle(150);
+      return ls`Linked to ${path}`;
+    }
     if (binding.network.contentType().isFromSourceMap())
       return Common.UIString('Linked to source map: %s', binding.network.url().trimMiddle(150));
     return Common.UIString('Linked to %s', binding.network.url().trimMiddle(150));
+  }
+
+  /**
+   * @param {!Workspace.UISourceCode} uiSourceCode
+   * @return {?UI.Icon}
+   */
+  static iconForUISourceCode(uiSourceCode) {
+    const binding = Persistence.persistence.binding(uiSourceCode);
+    if (binding) {
+      const icon = UI.Icon.create('mediumicon-file-sync');
+      icon.title = Persistence.PersistenceUtils.tooltipForUISourceCode(binding.network);
+      // TODO(allada) This will not work properly with dark theme.
+      if (Persistence.networkPersistenceManager.project() === binding.fileSystem.project())
+        icon.style.filter = 'hue-rotate(160deg)';
+      return icon;
+    }
+    if (uiSourceCode.project().type() !== Workspace.projectTypes.FileSystem)
+      return null;
+    const icon = UI.Icon.create('mediumicon-file');
+    icon.title = Persistence.PersistenceUtils.tooltipForUISourceCode(uiSourceCode);
+    return icon;
   }
 };
 
@@ -37,7 +60,7 @@ Persistence.PersistenceUtils.LinkDecorator = class extends Common.Object {
    * @param {!Common.Event} event
    */
   _bindingChanged(event) {
-    var binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
+    const binding = /** @type {!Persistence.PersistenceBinding} */ (event.data);
     this.dispatchEventToListeners(Components.LinkDecorator.Events.LinkIconChanged, binding.network);
   }
 
@@ -47,11 +70,6 @@ Persistence.PersistenceUtils.LinkDecorator = class extends Common.Object {
    * @return {?UI.Icon}
    */
   linkIcon(uiSourceCode) {
-    var binding = Persistence.persistence.binding(uiSourceCode);
-    if (!binding)
-      return null;
-    var icon = UI.Icon.create('smallicon-green-checkmark');
-    icon.title = Persistence.PersistenceUtils.tooltipForUISourceCode(uiSourceCode);
-    return icon;
+    return Persistence.PersistenceUtils.iconForUISourceCode(uiSourceCode);
   }
 };

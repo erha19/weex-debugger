@@ -26,97 +26,74 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- * @implements {SDK.TargetManager.Observer}
+ * @implements {SDK.SDKModelObserver<!SDK.OverlayModel>}
  * @unrestricted
  */
 Elements.InspectElementModeController = class {
   constructor() {
     this._toggleSearchAction = UI.actionRegistry.action('elements.toggle-element-search');
-    if (Runtime.experiments.isEnabled('layoutEditor')) {
-      this._layoutEditorButton =
-          new UI.ToolbarToggle(Common.UIString('Toggle Layout Editor'), 'largeicon-layout-editor');
-      this._layoutEditorButton.addEventListener('click', this._toggleLayoutEditor, this);
-    }
-
-    this._mode = Protocol.DOM.InspectMode.None;
+    this._mode = Protocol.Overlay.InspectMode.None;
     SDK.targetManager.addEventListener(SDK.TargetManager.Events.SuspendStateChanged, this._suspendStateChanged, this);
-    SDK.targetManager.observeTargets(this, SDK.Target.Capability.DOM);
+    SDK.targetManager.addModelListener(
+        SDK.OverlayModel, SDK.OverlayModel.Events.ScreenshotRequested,
+        () => this._setMode(Protocol.Overlay.InspectMode.None));
+    SDK.targetManager.observeModels(SDK.OverlayModel, this);
   }
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.OverlayModel} overlayModel
    */
-  targetAdded(target) {
+  modelAdded(overlayModel) {
     // When DevTools are opening in the inspect element mode, the first target comes in
     // much later than the InspectorFrontendAPI.enterInspectElementMode event.
-    if (this._mode === Protocol.DOM.InspectMode.None)
+    if (this._mode === Protocol.Overlay.InspectMode.None)
       return;
-    var domModel = SDK.DOMModel.fromTarget(target);
-    domModel.setInspectMode(this._mode);
+    overlayModel.setInspectMode(this._mode);
   }
 
   /**
    * @override
-   * @param {!SDK.Target} target
+   * @param {!SDK.OverlayModel} overlayModel
    */
-  targetRemoved(target) {
+  modelRemoved(overlayModel) {
   }
 
   /**
    * @return {boolean}
    */
   isInInspectElementMode() {
-    return this._mode === Protocol.DOM.InspectMode.SearchForNode ||
-        this._mode === Protocol.DOM.InspectMode.SearchForUAShadowDOM;
-  }
-
-  /**
-   * @return {boolean}
-   */
-  isInLayoutEditorMode() {
-    return this._mode === Protocol.DOM.InspectMode.ShowLayoutEditor;
+    return this._mode === Protocol.Overlay.InspectMode.SearchForNode ||
+        this._mode === Protocol.Overlay.InspectMode.SearchForUAShadowDOM;
   }
 
   stopInspection() {
-    if (this._mode && this._mode !== Protocol.DOM.InspectMode.None)
+    if (this._mode && this._mode !== Protocol.Overlay.InspectMode.None)
       this._toggleInspectMode();
-  }
-
-  _toggleLayoutEditor() {
-    var mode = this.isInLayoutEditorMode() ? Protocol.DOM.InspectMode.None : Protocol.DOM.InspectMode.ShowLayoutEditor;
-    this._setMode(mode);
   }
 
   _toggleInspectMode() {
     if (SDK.targetManager.allTargetsSuspended())
       return;
 
-    var mode;
+    let mode;
     if (this.isInInspectElementMode()) {
-      mode = Protocol.DOM.InspectMode.None;
+      mode = Protocol.Overlay.InspectMode.None;
     } else {
-      mode = Common.moduleSetting('showUAShadowDOM').get() ? Protocol.DOM.InspectMode.SearchForUAShadowDOM :
-                                                             Protocol.DOM.InspectMode.SearchForNode;
+      mode = Common.moduleSetting('showUAShadowDOM').get() ? Protocol.Overlay.InspectMode.SearchForUAShadowDOM :
+                                                             Protocol.Overlay.InspectMode.SearchForNode;
     }
 
     this._setMode(mode);
   }
 
   /**
-   * @param {!Protocol.DOM.InspectMode} mode
+   * @param {!Protocol.Overlay.InspectMode} mode
    */
   _setMode(mode) {
     this._mode = mode;
-    for (var domModel of SDK.DOMModel.instances())
-      domModel.setInspectMode(mode);
-
-    if (this._layoutEditorButton) {
-      this._layoutEditorButton.setEnabled(!this.isInInspectElementMode());
-      this._layoutEditorButton.setToggled(this.isInLayoutEditorMode());
-    }
-
-    this._toggleSearchAction.setEnabled(!this.isInLayoutEditorMode());
+    for (const overlayModel of SDK.targetManager.models(SDK.OverlayModel))
+      overlayModel.setInspectMode(mode);
     this._toggleSearchAction.setToggled(this.isInInspectElementMode());
   }
 
@@ -124,10 +101,8 @@ Elements.InspectElementModeController = class {
     if (!SDK.targetManager.allTargetsSuspended())
       return;
 
-    this._mode = Protocol.DOM.InspectMode.None;
+    this._mode = Protocol.Overlay.InspectMode.None;
     this._toggleSearchAction.setToggled(false);
-    if (this._layoutEditorButton)
-      this._layoutEditorButton.setToggled(false);
   }
 };
 
@@ -147,23 +122,6 @@ Elements.InspectElementModeController.ToggleSearchActionDelegate = class {
       return false;
     Elements.inspectElementModeController._toggleInspectMode();
     return true;
-  }
-};
-
-/**
- * @implements {UI.ToolbarItem.Provider}
- * @unrestricted
- */
-Elements.InspectElementModeController.LayoutEditorButtonProvider = class {
-  /**
-   * @override
-   * @return {?UI.ToolbarItem}
-   */
-  item() {
-    if (!Elements.inspectElementModeController)
-      return null;
-
-    return Elements.inspectElementModeController._layoutEditorButton;
   }
 };
 
