@@ -2,7 +2,7 @@ const queryParser = require("querystring");
 const URL = require("url");
 const path = require("path");
 const fse = require("fs-extra");
-const { util } = require("./index");
+const util = require("./util");
 
 const bundleWrapper = (code, sourceUrl) => {
   const injectedGlobals = [

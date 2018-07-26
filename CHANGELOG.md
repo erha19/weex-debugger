@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.1
+##### Changed
+  - Fix util function missing error.
+
 ### 1.1.0
 ##### Changed
   - Upgrade chrome devtool to version 70.
