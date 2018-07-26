@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -54,9 +54,9 @@
     "ipromise": "^1.0.2",
     "koa": "^2.4.1",
     "koa-bodyparser": "^4.2.0",
-    "koa-router": "^5.4.0",
+    "koa-router": "^7.4.0",
     "koa-static": "^5.0.0",
-    "koa-websocket": "^2.1.0",
+    "koa-websocket": "^5.0.1",
     "mkdirp": "^0.5.1",
     "node-simctl": "^3.11.1",
     "node-watch": "^0.3.5",
@@ -65,7 +65,7 @@
     "parse-hosts": "^1.0.1",
     "puppeteer": "^1.0.0",
     "request": "^2.83.0",
-    "weex-builder": "^0.3.18",
+    "weex-builder": "^0.4.0",
     "ws": "^2.2.0"
   },
   "bin": {

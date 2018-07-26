@@ -8,41 +8,39 @@ const proxyDebuggerHub = mlink.Hub.get("page.debugger");
 const runtimeWorkerHub = mlink.Hub.get("runtime.worker");
 const entryHub = mlink.Hub.get("page.entry");
 const wsRouter = Router();
-const { logger } = require("../../util");
 
-wsRouter.all("/page/entry", function*(next) {
-  logger.verbose(`Joined entry hub joined`);
-  entryHub.join(new WebsocketTerminal(this.websocket));
+wsRouter.all("/page/entry", async (ctx, next) => {
+  const terminal = new WebsocketTerminal(ctx.websocket);
+  entryHub.join(terminal, true);
+  await next();
 });
-wsRouter.all("/debugProxy/inspector/:channelId", function*(next) {
-  const terminal = new WebsocketTerminal(this.websocket);
-  terminal.channelId = this.params.channelId;
-  logger.verbose(`Joined entry hub joined, channelId -> ${terminal.channelId}`);
+
+wsRouter.all("/debugProxy/inspector/:channelId", async (ctx, next) => {
+  const terminal = new WebsocketTerminal(ctx.websocket);
+  terminal.channelId = ctx.params.channelId;
   inspectorHub.join(terminal, true);
-  yield next;
+  await next();
 });
 
-wsRouter.all("/debugProxy/debugger/:channelId", function*(next) {
-  const terminal = new WebsocketTerminal(this.websocket);
-  terminal.channelId = this.params.channelId;
-  logger.verbose(`Joined entry hub joined, channelId -> ${terminal.channelId}`);
+wsRouter.all("/debugProxy/debugger/:channelId", async (ctx, next) => {
+  const terminal = new WebsocketTerminal(ctx.websocket);
+  terminal.channelId = ctx.params.channelId;
   proxyDebuggerHub.join(terminal, true);
-  yield next;
+  await next();
 });
 
-wsRouter.all("/debugProxy/runtime/:channelId", function*(next) {
-  const terminal = new WebsocketTerminal(this.websocket);
-  terminal.channelId = this.params.channelId;
-  logger.verbose(`Joined entry hub joined, channelId -> ${terminal.channelId}`);
-  runtimeWorkerHub.join(terminal);
-  yield next;
+wsRouter.all("/debugProxy/runtime/:channelId", async (ctx, next) => {
+  const terminal = new WebsocketTerminal(ctx.websocket);
+  terminal.channelId = ctx.params.channelId;
+  runtimeWorkerHub.join(terminal, true);
+  await next();
 });
 
-wsRouter.all("/debugProxy/native/:channelId", function*(next) {
-  const terminal = new WebsocketTerminal(this.websocket);
-  terminal.channelId = this.params.channelId;
-  logger.verbose(`Joined entry hub joined, channelId -> ${terminal.channelId}`);
+wsRouter.all("/debugProxy/native/:channelId", async (ctx, next) => {
+  const terminal = new WebsocketTerminal(ctx.websocket);
+  terminal.channelId = ctx.params.channelId;
   proxyNativeHub.join(terminal, true);
-  yield next;
+  await next();
 });
+
 module.exports = wsRouter;

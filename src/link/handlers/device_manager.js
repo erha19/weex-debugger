@@ -28,7 +28,7 @@ debuggerRouter.on(Router.Event.TERMINAL_JOINED, "page.debugger", function(
     method: "WxDebug.pushDebuggerInfo",
     params: {
       device,
-      bundles: config.BUNDLE_DIRECTORY,
+      bundles: config.BUNDLE_URLS || [],
       connectUrl: util.getConnectUrl(signal.channelId)
     }
   });
@@ -45,7 +45,7 @@ debuggerRouter
         method: "WxDebug.pushDebuggerInfo",
         params: {
           device,
-          bundles: config.BUNDLE_DIRECTORY,
+          bundles: config.BUNDLE_URLS || [],
           connectUrl: util.getConnectUrl(message.channelId)
         }
       };

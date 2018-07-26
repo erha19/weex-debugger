@@ -117,7 +117,7 @@ exports.launch = function(ip, port) {
 
 exports.resolveBundlesAndEntry = function(entry, bundles, ip, port) {
   let entryUrl;
-  const bundleUrls = bundles.map(b => resolveBundleUrl(b, ip, port));
+  const bundleUrls = bundles.filter(bundle => !/\.js\.map/.test(bundle)).map(b => resolveBundleUrl(b, ip, port));
   if (isUrl(entry)) {
     entryUrl = resolveRealUrl(entry);
     entryUrl = entryUrl.replace(/127\.0\.0\.1/g, ip);
@@ -148,18 +148,18 @@ exports.start = function(target, config, cb) {
     let shouldReloadDebugger = false;
     builder.build(
       filePath,
-      path.join(__dirname, "../../frontend/weex"),
+      path.join(__dirname, "../frontend", config.BUNDLE_DIRECTORY),
       {
         watch: true,
         ext: config.ext,
         min: config.min,
-        devtool: "inline-source-map"
+        devtool: "source-map"
       },
       (err, output, json) => {
         if (err) {
           logger.error(err);
         } else {
-          logger.info("Build completed!\nChild");
+          logger.log("Build completed!\n");
           logger.log(output.toString());
           if (!shouldReloadDebugger) {
             shouldReloadDebugger = true;
@@ -170,7 +170,7 @@ exports.start = function(target, config, cb) {
               config.ip,
               config.port
             );
-            config.bundleUrls = bundleUrls;
+            config.BUNDLE_URLS = bundleUrls;
             this.startServerAndLaunch(
               config.ip,
               config.port,

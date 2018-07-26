@@ -1,6 +1,12 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.0.28
+### Changed
+  - Upgrade koa-router to 7.4.0, koa-websocket to 5.0.1, weex-builder to 0.4.0.
+### Fixed
+  - Fix builder logic on debugger.
+
 ### 1.0.27
 ### Changed
   - Mock window.navigator for some environment judgement.

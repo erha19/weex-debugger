@@ -169,14 +169,6 @@ websocket.onmessage = function (event) {
                 })
                 var qrcodeBtn=$('#qrcode_btn')
                 var bundleQrcode=$('.bundle-qrcode')
-                new QRCode(qrcodeBtn, {
-                    text: '请点击',
-                    width: 52,
-                    height: 52,
-                    colorDark: "#000000",
-                    colorLight: "#E0E0E0",
-                    correctLevel: QRCode.CorrectLevel.L
-                });
                 qrcodeBtn.style.visibility='visible'
                 qrcodeBtn.onclick=function(){
                     bundleQrcode.style.display='block'
@@ -235,14 +227,6 @@ function init() {
             websocket.send(JSON.stringify({method: 'WxDebug.reload'}))
         }
         shouldReloadApp=false
-        // $('#inspector').contentDocument.addEventListener('keydown' , function (evt) {
-        //     if (evt.key == 'r' && (evt.metaKey || evt.altKey) || evt.key == 'F5') {
-        //         // evt.preventDefault()
-        //         // evt.stopPropagation()
-        //         // websocket.send(JSON.stringify({method: 'WxDebug.refresh'}))
-        //         // return false
-        //     }
-        // },true)
     }
 }
 $help.onclick=function(){

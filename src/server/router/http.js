@@ -12,7 +12,13 @@ const { logger, bundleWrapper } = require("../../util");
 
 const httpRouter = new Router();
 
-function getRemote(url) {
+let syncApiIndex = 0;
+const SyncTerminal = mlink.Terminal.SyncTerminal;
+const syncHub = mlink.Hub.get("sync");
+
+const rSourceMapDetector = /\.map$/;
+
+const getRemote = (url) => {
   return new Promise(function(resolve, reject) {
     const urlObj = URL.parse(url);
     (protocols[urlObj.protocol] || protocols["http:"])
@@ -42,53 +48,51 @@ function getRemote(url) {
       });
   });
 }
-const rSourceMapDetector = /\.map$/;
-httpRouter.get("/source/*", function*(next) {
-  const path = this.params[0];
+
+httpRouter.get("/source/*", async (ctx, next) => {
+  const path = ctx.params[0];
   if (rSourceMapDetector.test(path)) {
     logger.verbose(`Fetch sourcemap ${path}`);
-    const content = yield getRemote("http://" + path);
+    const content = await getRemote("http://" + path);
     if (!content) {
-      this.response.status = 404;
+      ctx.response.status = 404;
     } else {
-      this.response.status = 200;
-      this.response["content-type"] = "text/javascript";
-      this.set("Access-Control-Allow-Origin", "*");
-      this.response.body = content;
+      ctx.response.status = 200;
+      ctx.response["content-type"] = "text/javascript";
+      ctx.set("Access-Control-Allow-Origin", "*");
+      ctx.response.body = content;
     }
   } else {
-    let query = this.request.url.split("?");
+    let query = ctx.request.url.split("?");
     query = query[1] ? "?" + query.slice(1).join("?") : "";
     const file = MemoryFile.get(path + query);
     if (file) {
-      this.response.status = 200;
-      this.response["content-type"] = "text/javascript";
+      ctx.response.status = 200;
+      ctx.response["content-type"] = "text/javascript";
       if (file.url && config.proxy) {
         logger.verbose(`Fetch jsbundle ${file.url}`);
-        const content = yield getRemote(file.url).catch(function(e) {
+        const content = await getRemote(file.url).catch(function(e) {
           // If file not found or got other http error.
           logger.verbose(e);
         });
         if (!content) {
-          this.response.body = file.getContent();
+          ctx.response.body = file.getContent();
         } else {
-          this.response.body = bundleWrapper(content, file.getUrl());
+          ctx.response.body = bundleWrapper(content, file.getUrl());
         }
       } else {
-        this.response.body = file.getContent();
+        ctx.response.body = file.getContent();
       }
     } else {
-      this.response.status = 404;
+      ctx.response.status = 404;
     }
   }
+  await next();
 });
 
-let syncApiIndex = 0;
-const SyncTerminal = mlink.Terminal.SyncTerminal;
-const syncHub = mlink.Hub.get("sync");
-httpRouter.post("/syncApi", function*() {
+httpRouter.post("/syncApi", async (ctx, next) => {
   const idx = syncApiIndex++;
-  const payload = this.request.body;
+  const payload = ctx.request.body;
   const device = DeviceManager.getDevice(payload.channelId);
   if (device) {
     const terminal = new SyncTerminal();
@@ -96,13 +100,15 @@ httpRouter.post("/syncApi", function*() {
     syncHub.join(terminal, true);
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
-    const data = yield terminal.send(payload);
-    this.response.status = 200;
-    this.type = "application/json";
-    this.response.body = JSON.stringify(data);
+    const data = await terminal.send(payload);
+    ctx.response.status = 200;
+    ctx.type = "application/json";
+    ctx.response.body = JSON.stringify(data);
   } else {
-    this.response.status = 500;
+    ctx.response.status = 500;
     // this.response.body = JSON.stringify({ error: 'device not found!' });
   }
+  await next();
 });
+
 module.exports = httpRouter;
