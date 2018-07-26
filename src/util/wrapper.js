@@ -211,7 +211,20 @@ self.callRemoveEvent = function (instance, ref, event) {
   __postData__(payload);
 }`
     : "";
-  let environment = `// mock console
+  let environment = `// mock navigator
+Object.defineProperty(navigator, 'appCodeName', {
+  get: function() {
+    return 'WxDebugger';
+  }
+});
+  
+Object.defineProperty(navigator, 'product', {
+  get: function() {
+    return 'Weex';
+  }
+});
+
+// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
   var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
@@ -380,7 +393,20 @@ ${worker}
 
 const generateWorkerEntry = env => {
   const worker = fse.readFileSync(path.join(__dirname, "../worker/worker.js"));
-  let environment = `// mock console
+  let environment = `// mock navigator
+Object.defineProperty(navigator, 'appCodeName', {
+  get: function() {
+    return 'WxDebugger';
+  }
+});
+    
+Object.defineProperty(navigator, 'product', {
+  get: function() {
+    return 'weex';
+  }
+});
+
+// mock console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
   var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
