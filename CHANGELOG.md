@@ -1,8 +1,12 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.2
+##### Fixed
+  - Fix compilation failure of the QRcode.
+
 ### 1.1.1
-##### Changed
+##### Fixed
   - Fix util function missing error.
 
 ### 1.1.0

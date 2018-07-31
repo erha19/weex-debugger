@@ -181,7 +181,7 @@ websocket.on('WxDebug.pushDebuggerInfo', function (message) {
     if (bundles && bundles.length > 0) {
       bundles.forEach(function (url, i) {
         var q = document.createElement('div')
-        url += `?_wx_tpl=${url}&wh_weex=true`
+        url += `?_wx_tpl=${url}`
         q.innerHTML = '<p>' + new URL(url).pathname.split('/').slice(-1)[0] + '</p>'
         q.className = 'bundle-qr'
         bundleQrcodeCtn.appendChild(q)
