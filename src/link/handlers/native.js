@@ -46,6 +46,9 @@ debuggerRouter
         `[Runtime]-${path.basename(bundleUrl)}`,
         generateWorkerEntry(env[message.channelId])
       ).getUrl();
+      if (env[message.channelId]["importScripts"]) {
+        payload.params.importScripts = env[message.channelId]["importScripts"];
+      }
       debuggerRouter.pushMessageByChannelId(
         "page.debugger",
         message.channelId,
@@ -67,6 +70,9 @@ debuggerRouter
           `${pickDomain(options.bundleUrl)}/rax-api.js`,
           dependenceCode
         ).getUrl();
+      }
+      if (env[message.channelId]["importScripts"]) {
+        payload.params.importScripts = env[message.channelId]["importScripts"];
       }
       payload.params.workerjs = new MemoryFile(
         `[Runtime]-${path.basename(options.bundleUrl)}`,

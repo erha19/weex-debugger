@@ -9,3 +9,5 @@ dest/
 frontend/weex
 
 !frontend/lib/
+
+frontend/lib/temp

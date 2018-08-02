@@ -246,6 +246,11 @@ __eventEmitter__.on("WxDebug.initWorker", function(message) {
       self[key] = message.params.env[key];
     }
   }
+  if (message.params.importScripts) {
+    message.params.importScripts.forEach(function(script){
+      importScripts(script);
+    })
+  }
   __rewriteLog__(message.params.env.WXEnvironment.logLevel);
   self.createInstance(
     message.params.args[0],

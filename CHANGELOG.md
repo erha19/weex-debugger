@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.3
+##### Changed
+  - Import Jsservice source util the WxEnvironment has been register.
+
 ### 1.1.2
 ##### Fixed
   - Fix compilation failure of the QRcode.

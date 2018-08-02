@@ -20,6 +20,6 @@ exports.start = (port, cb) => {
   app.on("error", (err, ctx) => {
     logger.verbose(err);
   });
-  
+
   app.listen(port, cb);
 };

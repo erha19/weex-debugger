@@ -102,6 +102,11 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
       self[key] = message.params.env[key];
     }
   }
+  if (message.params.importScripts) {
+    message.params.importScripts.forEach(function(script){
+      importScripts(script);
+    })
+  }
   if (message.params.dependenceUrl) {
     importScripts(message.params.dependenceUrl);
   }
