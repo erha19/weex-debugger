@@ -7,6 +7,7 @@ const { hook } = require("../../util");
 debuggerRouter
   .registerHandler(function(message, next) {
     const payload = message.payload;
+    console.log('Debugger->',payload.method)
     const device = DeviceManager.getDevice(message.channelId);
     if (!device) {
       message.discard = true;
@@ -94,7 +95,7 @@ debuggerRouter
         feature: "Tracing",
         status: payload.params.status
       });
-    }
+    } 
     message.to("proxy.native");
   })
   .at("page.debugger");

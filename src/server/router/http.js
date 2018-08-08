@@ -14,7 +14,8 @@ const httpRouter = new Router();
 
 let syncApiIndex = 0;
 const SyncTerminal = mlink.Terminal.SyncTerminal;
-const syncHub = mlink.Hub.get("sync");
+const syncNativeHub = mlink.Hub.get("sync.native");
+const syncV8Hub = mlink.Hub.get("sync.v8");
 
 const rSourceMapDetector = /\.map$/;
 
@@ -97,10 +98,41 @@ httpRouter.post("/syncApi", async (ctx, next) => {
   if (device) {
     const terminal = new SyncTerminal();
     terminal.channelId = payload.channelId;
-    syncHub.join(terminal, true);
+    syncNativeHub.join(terminal, true);
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
     const data = await terminal.send(payload);
+    ctx.response.status = 200;
+    ctx.type = "application/json";
+    console.log('sync', data)
+    ctx.response.body = JSON.stringify(data);
+  } else {
+    ctx.response.status = 500;
+    // this.response.body = JSON.stringify({ error: 'device not found!' });
+  }
+  await next();
+});
+
+httpRouter.post("/syncCallJS/*", async (ctx, next) => {
+  const idx = syncApiIndex++;
+  const channelId = ctx.params[0];
+  const payload = ctx.request.body;
+  const device = DeviceManager.getDevice(channelId);
+  const instanceId = payload.params.args[0];
+  if (device) {
+    const terminal = new SyncTerminal();
+    let data;
+    terminal.channelId = channelId;
+    syncV8Hub.join(terminal, true);
+    payload.params.syncId = 100000 + idx;
+    payload.id = 100000 + idx;
+    if (config.ACTIVE_INSTANCEID !== instanceId) {
+      data = {};
+    }
+    else {
+      data = await terminal.send(payload);
+    }
+    // const data = {result: 16, x:2,y:8}
     ctx.response.status = 200;
     ctx.type = "application/json";
     ctx.response.body = JSON.stringify(data);

@@ -4,6 +4,7 @@ var BrowserChannelId
 var cacheWeexEnv;
 var cacheJsbundleImportMessage;
 var cacheRegisterLoop = [];
+var cacheSyncList = [];
 var activeWorkerId;
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
 
@@ -49,11 +50,13 @@ function connect(channelId) {
 
   RuntimeSocket.on('WxDebug.callJS', function (message) {
     var instanceId = message.params.args[0];
+    console.log(message.params.method)
     if (message.params.method === 'createInstanceContext') {
       destroyJSRuntime(message)
       message.channelId = BrowserChannelId;
       message.method = 'WxDebug.initSandboxWorker';
       message.params.env = cacheWeexEnv;
+      message.params.syncList = cacheSyncList.splice(0, cacheSyncList.length);
       initJSRuntime(message)
     }
     else if(message.params.method === 'createInstance') {

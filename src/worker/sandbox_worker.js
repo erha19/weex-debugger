@@ -3,6 +3,7 @@ importScripts("/lib/constructors/_EventEmitter.js");
 var __channelId__;
 var ___shouldReturnResult__ = false;
 var __requestId__;
+var __instanceId__;
 var __eventEmitter__ = new __EventEmitter__();
 
 // The argument maybe an undefine value
@@ -51,12 +52,26 @@ self.onmessage = function(message) {
 };
 __eventEmitter__.on("WxDebug.callJS", function(data) {
   var method = data.params.method;
+  console.log(method, data.params.args)
   if (method === "importScript") {
     importScripts(data.params.sourceUrl);
   } else if (method === "destroyInstance") {
     // close worker
     self.destroyInstance(data.params.args[0]);
-  } else if (self[method]) {
+  }
+  else if (method === "callJS") {
+    if (__instanceId__ !== data.params.args[0]) {
+      return ;
+    }
+    var payload = self[method].apply(null, data.params.args);
+    __postData__({
+      method: 'syncReturn',
+      params: {
+        0: payload[0]
+      }
+    })
+  }
+  else if (self[method]) {
     self[method].apply(null, data.params.args);
   } else {
     self.console.warn(
@@ -82,7 +97,7 @@ __eventEmitter__.on("WxDebug.importScript", function(message) {
 });
 
 __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
-  var instanceid = message.params.args[0];
+  var instanceid = __instanceId__ = message.params.args[0];
   var options = message.params.args[1];
   var instanceData = message.params.args[2];
   var instanceContext = self.createInstanceContext(
@@ -90,7 +105,7 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
     options,
     instanceData
   );
-
+  console.log(instanceid)
   __channelId__ = message.channelId;
   for (var prop in instanceContext) {
     if (instanceContext.hasOwnProperty(prop) && prop !== "callNative") {

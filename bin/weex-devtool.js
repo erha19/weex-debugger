@@ -10,15 +10,15 @@ const detect = require('detect-port');
 const del = require('del');
 const os = require('os');
 const packageInfo = require('../package.json');
-const config = require('../lib/config');
-const devtool = require('../lib/index');
-const hook = require('../lib/util/hook');
-const env = require('../lib/util/env');
-const hosts = require('../lib/util/hosts');
-const headless = require('../lib/server/headless');
+const config = require('../src/config');
+const devtool = require('../src/index');
+const hook = require('../src/util/hook');
+const env = require('../src/util/env');
+const hosts = require('../src/util/hosts');
+const headless = require('../src/server/headless');
 const {
   logger
-} =require('../lib/util')
+} =require('../src/util')
 
 program
 .option('-v, --version', 'display version')

@@ -1,6 +1,7 @@
 const mlink = require("../index");
 const Router = mlink.Router;
 const DeviceManager = require("../managers/device_manager");
+const config = require("../../config")
 const {
   bundleWrapper,
   transformUrlToLocalUrl,
@@ -16,6 +17,7 @@ const env = {};
 debuggerRouter
   .registerHandler(function(message) {
     const payload = message.payload;
+    console.log('Native->',payload.method, '->', payload.params.method )
     const device = DeviceManager.getDevice(message.channelId);
     if (payload.method === "WxDebug.initJSRuntime") {
       if (!env[message.channelId]) {
@@ -65,6 +67,7 @@ debuggerRouter
     ) {
       const options = payload.params.args[1];
       const dependenceCode = payload.params.args[3];
+      config.ACTIVE_INSTANCEID = payload.params.args[0];
       if (dependenceCode) {
         payload.params.dependenceUrl = new MemoryFile(
           `${pickDomain(options.bundleUrl)}/rax-api.js`,
@@ -114,12 +117,11 @@ debuggerRouter
         error: payload.error,
         ret: payload.params && payload.params.ret
       };
-      message.to("sync");
+      message.to("sync.native");
       return;
     } else if (payload.method === "WxDebug.sendTracingData") {
       message.to("page.debugger");
       return;
-    } else if (payload.params.method === "callJS") {
     } else if (payload.method === "WxDebug.sendSummaryInfo") {
       message.to("page.debugger");
       return;
@@ -186,14 +188,12 @@ debuggerRouter
         error: payload.error,
         ret: payload.result.params && payload.result.params.ret
       };
-      message.to("sync");
+      message.to("sync.native");
       return;
     } else if (payload.result && payload.id === undefined) {
       message.discard();
     }
-
     message.to("proxy.inspector");
-    // message.to('proxy.inspector');
   })
   .at("proxy.native")
   .when('!payload.method||payload.method.split(".")[0]!=="WxDebug"');

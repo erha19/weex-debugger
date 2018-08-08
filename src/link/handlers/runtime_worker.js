@@ -11,10 +11,27 @@ debuggerRouter
   .registerHandler(function(message) {
     message.to("proxy.native");
   })
-  .at("sync");
+  .at("sync.native");
+
 debuggerRouter
   .registerHandler(function(message) {
-    message.to("proxy.native");
+    const payload = message.payload;
+    console.log('V8->',payload.method)
+    // message.payload.params.method = '__WEEX_CALL_JAVASCRIPT__'
+    message.to("runtime.worker");
+  })
+  .at("sync.v8");
+
+debuggerRouter
+  .registerHandler(function(message) {
+    const payload = message.payload;
+    if (payload.method === "syncReturn") {
+      message.payload = payload.params;
+      message.to("sync.v8");
+    }
+    else {
+      message.to("proxy.native");
+    }
   })
   .at("runtime.worker");
 
