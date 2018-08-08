@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.4
+##### Fixed
+  - Fix entry for calling debug api.
+
 ### 1.1.3
 ##### Changed
   - Import Jsservice source util the WxEnvironment has been register.

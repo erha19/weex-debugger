@@ -1,5 +1,5 @@
-const Devtool = require('./lib/lib/devtool');
-const Config = require('./lib/lib/config');
+const Devtool = require('./lib/index');
+const Config = require('./lib/config');
 const IP = require('ip');
 
 /**
