@@ -15,9 +15,6 @@ debuggerRouter
 
 debuggerRouter
   .registerHandler(function(message) {
-    const payload = message.payload;
-    console.log('V8->',payload.method)
-    // message.payload.params.method = '__WEEX_CALL_JAVASCRIPT__'
     message.to("runtime.worker");
   })
   .at("sync.v8");
@@ -28,8 +25,7 @@ debuggerRouter
     if (payload.method === "syncReturn") {
       message.payload = payload.params;
       message.to("sync.v8");
-    }
-    else {
+    } else {
       message.to("proxy.native");
     }
   })

@@ -1,7 +1,7 @@
 const mlink = require("../index");
 const Router = mlink.Router;
 const DeviceManager = require("../managers/device_manager");
-const config = require("../../config")
+const config = require("../../config");
 const {
   bundleWrapper,
   transformUrlToLocalUrl,
@@ -17,7 +17,6 @@ const env = {};
 debuggerRouter
   .registerHandler(function(message) {
     const payload = message.payload;
-    console.log('Native->',payload.method, '->', payload.params.method )
     const device = DeviceManager.getDevice(message.channelId);
     if (payload.method === "WxDebug.initJSRuntime") {
       if (!env[message.channelId]) {
@@ -61,6 +60,11 @@ debuggerRouter
           }
         }
       );
+    } else if (
+      payload.method === "WxDebug.callJS" &&
+      payload.params.method === "destroyInstance"
+    ) {
+      config.ACTIVE_INSTANCEID = "";
     } else if (
       payload.method === "WxDebug.callJS" &&
       payload.params.method === "createInstanceContext"

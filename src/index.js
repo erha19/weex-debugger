@@ -37,8 +37,10 @@ function resolveRealUrl(url) {
 
 function resolveConnectUrl(config) {
   const host = config.ip + ":" + config.port;
-  util.setConnectUrl(config.connectUrl ||
-    `http://${host}/devtool_fake.html?_wx_devtool=ws://${host}/debugProxy/native/{channelId}`)
+  util.setConnectUrl(
+    config.connectUrl ||
+      `http://${host}/devtool_fake.html?_wx_devtool=ws://${host}/debugProxy/native/{channelId}`
+  );
 }
 
 exports.startServerAndLaunch = function(ip, port, manual, cb) {
@@ -117,7 +119,9 @@ exports.launch = function(ip, port) {
 
 exports.resolveBundlesAndEntry = function(entry, bundles, ip, port) {
   let entryUrl;
-  const bundleUrls = bundles.filter(bundle => !/\.js\.map/.test(bundle)).map(b => resolveBundleUrl(b, ip, port));
+  const bundleUrls = bundles
+    .filter(bundle => !/\.js\.map/.test(bundle))
+    .map(b => resolveBundleUrl(b, ip, port));
   if (isUrl(entry)) {
     entryUrl = resolveRealUrl(entry);
     entryUrl = entryUrl.replace(/127\.0\.0\.1/g, ip);

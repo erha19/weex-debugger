@@ -7,7 +7,6 @@ const { hook } = require("../../util");
 debuggerRouter
   .registerHandler(function(message, next) {
     const payload = message.payload;
-    console.log('Debugger->',payload.method)
     const device = DeviceManager.getDevice(message.channelId);
     if (!device) {
       message.discard = true;
@@ -70,17 +69,7 @@ debuggerRouter
         method: "WxDebug.reloadRuntime"
       });
     } else if (payload.method === "WxDebug.enable") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "remoteDebug",
-        status: true
-      });
       device && (device.remoteDebug = true);
-      // debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-      //   method: 'WxDebug.reloadInspector'
-      // });
-      // debuggerRouter.pushMessage('page.debugger', message.terminalId, {
-      //   method: 'WxDebug.reloadRuntime'
-      // });
     } else if (payload.method === "WxDebug.disable") {
       hook.record("/weex_tool.weex_debugger.scenes", {
         feature: "remoteDebug",
@@ -95,7 +84,7 @@ debuggerRouter
         feature: "Tracing",
         status: payload.params.status
       });
-    } 
+    }
     message.to("proxy.native");
   })
   .at("page.debugger");

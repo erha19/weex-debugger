@@ -19,7 +19,7 @@ const syncV8Hub = mlink.Hub.get("sync.v8");
 
 const rSourceMapDetector = /\.map$/;
 
-const getRemote = (url) => {
+const getRemote = url => {
   return new Promise(function(resolve, reject) {
     const urlObj = URL.parse(url);
     (protocols[urlObj.protocol] || protocols["http:"])
@@ -48,7 +48,7 @@ const getRemote = (url) => {
         reject(e);
       });
   });
-}
+};
 
 httpRouter.get("/source/*", async (ctx, next) => {
   const path = ctx.params[0];
@@ -104,7 +104,6 @@ httpRouter.post("/syncApi", async (ctx, next) => {
     const data = await terminal.send(payload);
     ctx.response.status = 200;
     ctx.type = "application/json";
-    console.log('sync', data)
     ctx.response.body = JSON.stringify(data);
   } else {
     ctx.response.status = 500;
@@ -128,8 +127,7 @@ httpRouter.post("/syncCallJS/*", async (ctx, next) => {
     payload.id = 100000 + idx;
     if (config.ACTIVE_INSTANCEID !== instanceId) {
       data = {};
-    }
-    else {
+    } else {
       data = await terminal.send(payload);
     }
     // const data = {result: 16, x:2,y:8}

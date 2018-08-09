@@ -1,5 +1,3 @@
-// mock environment
-importScripts("/lib/constructors/_EventEmitter.js");
 var __channelId__;
 var ___shouldReturnResult__ = false;
 var __requestId__;
@@ -21,7 +19,6 @@ var __postData__ = function(payload) {
     return;
   }
   try {
-    // self.console.debug(`CallNative with some json data:`, payload);
     postMessage(payload);
   } catch (e) {
     self.console.warn(`CallNative with some non-json data:`, payload);
@@ -247,9 +244,9 @@ __eventEmitter__.on("WxDebug.initWorker", function(message) {
     }
   }
   if (message.params.importScripts) {
-    message.params.importScripts.forEach(function(script){
+    message.params.importScripts.forEach(function(script) {
       importScripts(script);
-    })
+    });
   }
   __rewriteLog__(message.params.env.WXEnvironment.logLevel);
   self.createInstance(

@@ -1,5 +1,3 @@
-// mock environment
-importScripts("/lib/constructors/_EventEmitter.js");
 var __channelId__;
 var ___shouldReturnResult__ = false;
 var __requestId__;
@@ -22,7 +20,6 @@ var __postData__ = function(payload) {
     return;
   }
   try {
-    // self.console.debug(`CallNative with some json data:`, payload);
     postMessage(payload);
   } catch (e) {
     self.console.warn(`CallNative with some non-json data:`, payload);
@@ -52,26 +49,23 @@ self.onmessage = function(message) {
 };
 __eventEmitter__.on("WxDebug.callJS", function(data) {
   var method = data.params.method;
-  console.log(method, data.params.args)
   if (method === "importScript") {
     importScripts(data.params.sourceUrl);
   } else if (method === "destroyInstance") {
     // close worker
     self.destroyInstance(data.params.args[0]);
-  }
-  else if (method === "callJS") {
+  } else if (method === "callJS") {
     if (__instanceId__ !== data.params.args[0]) {
-      return ;
+      return;
     }
     var payload = self[method].apply(null, data.params.args);
     __postData__({
-      method: 'syncReturn',
+      method: "syncReturn",
       params: {
         0: payload[0]
       }
-    })
-  }
-  else if (self[method]) {
+    });
+  } else if (self[method]) {
     self[method].apply(null, data.params.args);
   } else {
     self.console.warn(
@@ -97,7 +91,7 @@ __eventEmitter__.on("WxDebug.importScript", function(message) {
 });
 
 __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
-  var instanceid = __instanceId__ = message.params.args[0];
+  var instanceid = (__instanceId__ = message.params.args[0]);
   var options = message.params.args[1];
   var instanceData = message.params.args[2];
   var instanceContext = self.createInstanceContext(
@@ -105,7 +99,6 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
     options,
     instanceData
   );
-  console.log(instanceid)
   __channelId__ = message.channelId;
   for (var prop in instanceContext) {
     if (instanceContext.hasOwnProperty(prop) && prop !== "callNative") {
@@ -118,9 +111,9 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
     }
   }
   if (message.params.importScripts) {
-    message.params.importScripts.forEach(function(script){
+    message.params.importScripts.forEach(function(script) {
       importScripts(script);
-    })
+    });
   }
   if (message.params.dependenceUrl) {
     importScripts(message.params.dependenceUrl);
