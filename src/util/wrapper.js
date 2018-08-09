@@ -88,7 +88,7 @@ const transformUrlToLocalUrl = sourceURl => {
   return "/source/" + bundleUrl;
 };
 
-const eventConstructor = `// Event constructor
+const eventConstructor = `// event constructor
 function __EventEmitter__() {
   this._handlers = {};
 }
@@ -151,7 +151,7 @@ __EventEmitter__.prototype = {
   }
 };`;
 
-const mockBrowserApi = `// mock navigator
+const mockBrowserApi = `// Redefine navigator 
 Object.defineProperty(navigator, 'appCodeName', {
   get: function() {
     return 'WxDebugger';
@@ -164,7 +164,7 @@ Object.defineProperty(navigator, 'product', {
   }
 });
 
-// mock console
+// Redefine console
 var __origConsole__ = this.console;
 var __rewriteLog__ = function () {
   var LEVELS = ['error', 'warn', 'info', 'log', 'debug'];
@@ -175,7 +175,6 @@ var __rewriteLog__ = function () {
     log: __origConsole__.log,
     debug: __origConsole__.debug
   };
-  
   function resetConsole() {
     self.console.error = backupConsole.error;
     self.console.warn = backupConsole.warn;
@@ -195,7 +194,7 @@ var __rewriteLog__ = function () {
   }
 }();
 
-// mock timer
+// Redefine timer
 var __cachedSetTimeout__ = this.setTimeout;
 Object.defineProperty(this, 'setTimeout', {
   get: function () {
@@ -225,17 +224,30 @@ Object.defineProperty(this, 'clearInterval', {
   set: function () {}
 });`;
 
-const mockContextApi = `// mock context api
+const mockContextApi = `// Redefine the JSFramework API
+var __syncRequest__ = function(data, channelId) {
+  var request = new XMLHttpRequest();
+  request.open("POST", \`/syncCallNative/$\{channelId\}\`, false); // "false" makes the request synchronous
+  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  request.send(JSON.stringify(data));
+  if (request.status === 200) {
+    return JSON.parse(request.responseText);
+  } else {
+    return {
+      error: request.responseText
+    };
+  }
+};
+
 self.callNativeModule = function () {
   var message = {
     method: 'WxDebug.syncCall',
     params: {
       method: 'callNativeModule',
       args: __protectedAragument__(arguments)
-    },
-    channelId: __channelId__
+    }
   }
-  var result = __syncRequest__(message);
+  var result = __syncRequest__(message, __channelId__);
   if (___shouldReturnResult__ && __requestId__) {
     __postData__({
       id: __requestId__,
@@ -263,10 +275,9 @@ self.callNativeComponent = function () {
     params: {
       method: 'callNativeComponent',
       args: args
-    },
-    channelId: __channelId__
+    }
   }
-  var result = __syncRequest__(message);
+  var result = __syncRequest__(message, __channelId__);
   if (result.error) {
     self.console.error(result.error);
     // throw new Error(result.error);

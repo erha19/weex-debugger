@@ -5,16 +5,20 @@ class SyncTerminal extends EventEmitter {
   constructor() {
     super();
     this.id = uuid();
+    this.promise = new Promise();
   }
 
   send(data) {
-    this.promise = new Promise();
     this.emit("message", data);
     return this.promise;
   }
 
   read(message) {
     this.emit("destroy");
+    if (Array.isArray(message) && !message[0]) {
+      message = [{}];
+    }
+    console.log('PROMISE_RETURN:', message)
     this.promise.resolve(message);
   }
 }

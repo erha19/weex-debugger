@@ -28,20 +28,6 @@ var __postData__ = function(payload) {
   }
 };
 
-var __syncRequest__ = function(data) {
-  var request = new XMLHttpRequest();
-  request.open("POST", "/syncApi", false); // `false` makes the request synchronous
-  request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-  request.send(JSON.stringify(data));
-  if (request.status === 200) {
-    return JSON.parse(request.responseText);
-  } else {
-    return {
-      error: request.responseText
-    };
-  }
-};
-
 self.__WEEX_DEVTOOL__ = true;
 
 self.onmessage = function(message) {
@@ -54,17 +40,25 @@ __eventEmitter__.on("WxDebug.callJS", function(data) {
   } else if (method === "destroyInstance") {
     // close worker
     self.destroyInstance(data.params.args[0]);
-  } else if (method === "callJS") {
+  } else if ((method === "__WEEX_CALL_JAVASCRIPT__" || method === "callJS") && data.params.args[1] && data.params.args[1][0] && data.params.args[1][0].method === 'componentHook') {
     if (__instanceId__ !== data.params.args[0]) {
       return;
     }
     var payload = self[method].apply(null, data.params.args);
-    __postData__({
-      method: "syncReturn",
-      params: {
-        0: payload[0]
-      }
-    });
+    if (method === "callJS") {
+      __postData__({
+        method: "syncReturn",
+        params: {
+          0: payload[0]
+        }
+      });
+    }
+    else {
+      __postData__({
+        method: "syncReturn",
+        params: payload
+      });
+    }
   } else if (self[method]) {
     self[method].apply(null, data.params.args);
   } else {

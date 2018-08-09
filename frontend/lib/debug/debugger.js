@@ -271,7 +271,7 @@ websocket.on('Page.startScreencast', function (message) {
 })
 
 function init() {
-  $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}&remoteFrontend=0`
+  $('#inspector').src = `/inspector/inspector.html?ws=${location.host}/debugProxy/inspector/${channelId}`
   var shouldReloadApp = true
   $('#inspector').onload = function () {
     if (!shouldReloadApp && $('#remote_debug').checked) {
