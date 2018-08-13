@@ -2,7 +2,6 @@ const mlink = require("../index");
 const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const URL = require("url");
 const WebSocket = require("ws");
-const os = require("os");
 const { request } = require("../../util");
 const config = require("../../config");
 const { logger } = require("../../util");
@@ -68,15 +67,6 @@ class RuntimeManager {
       const popTerminal = terminals.pop();
       popTerminal.websocket.close();
     } else {
-      const params = Object.assign(
-        {
-          stack: "ERROR: Try to remove a non-exist runtime",
-          os: os.platform(),
-          node: config.nodeVersion,
-          npm: config.npmVersion
-        },
-        config.weexVersion
-      );
       logger.error("Try to remove a non-exist runtime");
     }
   }

@@ -10,15 +10,14 @@ const detect = require('detect-port');
 const del = require('del');
 const os = require('os');
 const packageInfo = require('../package.json');
-const config = require('../src/config');
-const devtool = require('../src/index');
-const hook = require('../src/util/hook');
-const env = require('../src/util/env');
-const hosts = require('../src/util/hosts');
-const headless = require('../src/server/headless');
+const config = require('../lib/config');
+const devtool = require('../lib/index');
+const env = require('../lib/util/env');
+const hosts = require('../lib/util/hosts');
+const headless = require('../lib/server/headless');
 const {
   logger
-} =require('../src/util')
+} =require('../lib/util')
 
 program
 .option('-v, --version', 'display version')
@@ -59,10 +58,6 @@ if (program.version === undefined) {
 if (program.host && !hosts.isValidLocalHost(program.host)) {
   logger.error('[' + program.host + '] is not your local address!');
   exit(0);
-}
-
-if (program.telemetry) {
-  hook.allowTarck()
 }
 
 if (program.loglevel) {
@@ -106,7 +101,6 @@ process.on('uncaughtException', (err) => {
       node: config.nodeVersion,
       npm: config.npmVersion
     }, config.weexVersion);
-    hook.record('/weex_tool.weex_debugger.app_crash', params);
     killTimer = setTimeout(function () {
       process.exit(1);
     }, 30000);
@@ -123,7 +117,6 @@ process.on('unhandledRejection', (reason, p) => {logger
     node: config.nodeVersion,
     npm: config.npmVersion
   }, config.weexVersion);
-  hook.record('/weex_tool.weex_debugger.app_crash', params);
   logger.error(reason);
   if (/simctl error/.test(reason)) {
     logger.warn(`The simulator debug need Xcode environment, you can run \`simctl --version\` to check if you have the correct environment.`);

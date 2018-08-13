@@ -227,7 +227,7 @@ Object.defineProperty(this, 'clearInterval', {
 const mockContextApi = `// Redefine the JSFramework API
 var __syncRequest__ = function(data, channelId) {
   var request = new XMLHttpRequest();
-  request.open("POST", \`/syncCallNative/$\{channelId\}\`, false); // "false" makes the request synchronous
+  request.open("POST", \`/syncCallNative/$\{channelId}\`, false); // "false" makes the request synchronous
   request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
   request.send(JSON.stringify(data));
   if (request.status === 200) {

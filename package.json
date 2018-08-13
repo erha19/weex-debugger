@@ -87,9 +87,7 @@
   },
   "changelog": {
     "messages": [
-      "[Bugfix] Fix compilation failure",
-      "[Change] Upgrade chrome devtool to version 70.",
-      "[Feature] Improve the debugging logic of weex in the sandbox debugging environment."
+      "[Feature] Support RecycleList debug (need to upgrade WeesSDK)."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }

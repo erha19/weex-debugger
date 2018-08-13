@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.5
+##### Changed
+  - Support RecycleList debug.
+
 ### 1.1.4
 ##### Fixed
   - Fix entry for calling debug api.
