@@ -24,7 +24,6 @@ debuggerRouter
     const payload = message.payload;
     if (payload.method === "syncReturn") {
       message.payload = payload.params;
-      console.log('EXCUTE_JS_RETURN:', payload.params)
       message.to("sync.v8");
     } else {
       message.to("proxy.native");

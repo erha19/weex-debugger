@@ -45,20 +45,10 @@ __eventEmitter__.on("WxDebug.callJS", function(data) {
       return;
     }
     var payload = self[method].apply(null, data.params.args);
-    if (method === "callJS") {
-      __postData__({
-        method: "syncReturn",
-        params: {
-          0: payload[0]
-        }
-      });
-    }
-    else {
-      __postData__({
-        method: "syncReturn",
-        params: payload
-      });
-    }
+    __postData__({
+      method: "syncReturn",
+      params: payload
+    });
   } else if (self[method]) {
     self[method].apply(null, data.params.args);
   } else {

@@ -14,12 +14,13 @@ class SyncTerminal extends EventEmitter {
   }
 
   read(message) {
-    this.emit("destroy");
     if (Array.isArray(message) && !message[0]) {
       message = [{}];
     }
-    console.log('PROMISE_RETURN:', message)
     this.promise.resolve(message);
+    // never destory
+    // cause the terminal will be destory before the socket send message
+    // this.emit('destroy')
   }
 }
 class WebsocketTerminal extends EventEmitter {

@@ -18,7 +18,7 @@ exports.start = (port, cb) => {
   app.use(serve(rootPath));
 
   app.on("error", (err, ctx) => {
-    logger.verbose(err);
+    logger.error(err);
   });
 
   app.listen(port, cb);

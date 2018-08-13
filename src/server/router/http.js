@@ -55,7 +55,13 @@ httpRouter.get("/source/*", async (ctx, next) => {
   const path = ctx.params[0];
   if (rSourceMapDetector.test(path)) {
     logger.verbose(`Fetch sourcemap ${path}`);
-    const content = await getRemote("http://" + path);
+    let content;
+    try {
+      content = await getRemote("http://" + path);
+    }
+    catch(e) {
+      logger.verbose(`Failed to fetch, reason: ${e.stack}`)
+    }
     if (!content) {
       ctx.response.status = 404;
     } else {
@@ -117,7 +123,6 @@ httpRouter.post("/syncCallJS/*", async (ctx, next) => {
   const idx = syncCallJSIndex++;
   const channelId = ctx.params[0];
   const payload = ctx.request.body;
-  console.log('HTTP RECIVE: ', payload)
   const device = DeviceManager.getDevice(channelId);
   const instanceId = payload.params.args[0];
   if (device) {
@@ -128,13 +133,12 @@ httpRouter.post("/syncCallJS/*", async (ctx, next) => {
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
     if (config.ACTIVE_INSTANCEID !== instanceId) {
-      data = {};
+      data = [{}];
     } else {
       data = await terminal.send(payload);
     }
     ctx.response.status = 200;
     ctx.type = "application/json";
-    console.log('HTTP RETURN:' , data)
     ctx.response.body = JSON.stringify(data);
   } else {
     ctx.response.status = 500;
