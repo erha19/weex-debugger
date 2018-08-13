@@ -3,7 +3,7 @@ const WebsocketTerminal = mlink.Terminal.WebsocketTerminal;
 const URL = require("url");
 const WebSocket = require("ws");
 const os = require("os");
-const { hook, request } = require("../../util");
+const { request } = require("../../util");
 const config = require("../../config");
 const { logger } = require("../../util");
 
@@ -77,7 +77,6 @@ class RuntimeManager {
         },
         config.weexVersion
       );
-      hook.record("/weex_tool.weex_debugger.app_crash", params);
       logger.error("Try to remove a non-exist runtime");
     }
   }

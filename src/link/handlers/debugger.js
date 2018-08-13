@@ -2,7 +2,6 @@ const mlink = require("../index");
 const Router = mlink.Router;
 const debuggerRouter = Router.get("debugger");
 const DeviceManager = require("../managers/device_manager");
-const { hook } = require("../../util");
 
 debuggerRouter
   .registerHandler(function(message, next) {
@@ -13,10 +12,6 @@ debuggerRouter
       return;
     }
     if (payload.method === "WxDebug.setLogLevel") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "setLogLevel",
-        status: payload.params.data
-      });
       device.logLevel = payload.params.data;
       message.payload = {
         method: "WxDebug.setLogLevel",
@@ -31,11 +26,6 @@ debuggerRouter
         method: "WxDebug.reloadRuntime"
       });
     } else if (payload.method === "WxDebug.setElementMode") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "setElementMode",
-        status: payload.params.data
-      });
-
       device.elementMode = payload.params.data;
       message.payload = {
         method: "WxDebug.setElementMode",
@@ -51,10 +41,6 @@ debuggerRouter
         method: "WxDebug.reloadRuntime"
       });
     } else if (payload.method === "WxDebug.network") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "network",
-        status: payload.params.enable
-      });
       device && (device.network = payload.params.enable);
       message.payload = {
         method: "WxDebug.network",
@@ -71,18 +57,9 @@ debuggerRouter
     } else if (payload.method === "WxDebug.enable") {
       device && (device.remoteDebug = true);
     } else if (payload.method === "WxDebug.disable") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "remoteDebug",
-        status: false
-      });
       device && (device.remoteDebug = false);
       debuggerRouter.pushMessage("page.debugger", message.terminalId, {
         method: "WxDebug.reloadInspector"
-      });
-    } else if (payload.method === "WxDebug.enableTracing") {
-      hook.record("/weex_tool.weex_debugger.scenes", {
-        feature: "Tracing",
-        status: payload.params.status
       });
     }
     message.to("proxy.native");

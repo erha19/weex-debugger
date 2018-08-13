@@ -1,6 +1,6 @@
 const mlink = require("../index");
 const Router = mlink.Router;
-const { hook, simulator, util } = require("../../util");
+const { simulator, util } = require("../../util");
 const debuggerRouter = Router.get("debugger");
 
 debuggerRouter
@@ -17,10 +17,6 @@ debuggerRouter
       message.reply();
     } else if (message.payload.method === "WxDebug.simrun") {
       simulator.connect(message.payload.params).catch(e => {
-        hook.record("/weex_tool.weex_debugger.scenes", {
-          feature: "simrun",
-          status: "fail"
-        });
         debuggerRouter.pushMessage("page.entry", {
           method: "WxDebug.prompt",
           params: {

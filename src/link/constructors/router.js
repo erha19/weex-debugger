@@ -150,20 +150,13 @@ class Router extends Emitter {
               }`
             );
             channel.join(signal.hubId, signal.terminalId, signal.forced);
-          } else {
-            logger.warn(
-              "There should be a connection that is not closed properly, the channel [" +
-                signal.channelId +
-                "] of terminal [" +
-                signal.terminalId +
-                "] is not found!"
+
+            const cacheMessages = channel.getCache(
+              signal.hubId,
+              signal.terminalId
             );
+            cacheMessages.forEach(m => this._dispatchMessage(m));
           }
-          const cacheMessages = channel.getCache(
-            signal.hubId,
-            signal.terminalId
-          );
-          cacheMessages.forEach(m => this._dispatchMessage(m));
         }
         this.emit(
           Router.Event.TERMINAL_JOINED,
