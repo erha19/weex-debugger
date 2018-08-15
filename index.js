@@ -18,7 +18,7 @@ const startServerAndLaunchDevtool = (entry, options, cb) => {
     config.port = options.port || 8088;
     config.manual = options.manual || false;
     config.REMOTE_DEBUG_PORT = options.REMOTE_DEBUG_PORT || options.remoteDebugPort || 9222;
-    config.ENABLE_HEADLESS = !(options.ENABLE_HEADLESS === false) || !(options.enableHeadless === false);
+    config.ENABLE_HEADLESS = typeof options.ENABLE_HEADLESS === 'boolean' ? options.ENABLE_HEADLESS : typeof options.enableHeadless === 'boolean' ? options.enableHeadless : true;
   }
   devtool.start(entry, config, cb);
 };

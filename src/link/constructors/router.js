@@ -105,9 +105,9 @@ class Router extends Emitter {
             if (others.length === 0) channel.pushCache(message.selectOne(to));
             return others;
           } else {
-            logger.warn(
-              `There should be a connection that request to a close device, invalid channelId: ${channelId}`
-            );
+            // logger.warn(
+            //   `There should be a connection that request to a close device, invalid channelId: ${channelId}`
+            // );
           }
         } else {
           logger.error("invalid message no channelId");

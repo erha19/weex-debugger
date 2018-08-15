@@ -1,9 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
-### 1.1.7
+### 1.1.7 - 1.1.8
 ##### Changed
-  - Update api entry file.
+  - Fix entry for calling debug api.
+  - Remove useless log message.
 
 ### 1.1.6
 ##### Changed

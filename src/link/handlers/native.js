@@ -17,7 +17,6 @@ const env = {};
 debuggerRouter
   .registerHandler(function(message) {
     const payload = message.payload;
-    console.log(payload.method , '->' , payload.params.method)
     const device = DeviceManager.getDevice(message.channelId);
     if (payload.method === "WxDebug.initJSRuntime") {
       if (!env[message.channelId]) {
