@@ -87,7 +87,8 @@
   },
   "changelog": {
     "messages": [
-      "[Feature] Support RecycleList debug (need to upgrade WeesSDK)."
+      "[Feature] Support Embed Component.",
+      "[Feature] Support RecycleList Component (need to upgrade WeesSDK)."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }

@@ -1,9 +1,13 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.6
+##### Changed
+  - Support Embed Component.
+
 ### 1.1.5
 ##### Changed
-  - Support RecycleList debug.
+  - Support RecycleList Component.
 
 ### 1.1.4
 ##### Fixed
