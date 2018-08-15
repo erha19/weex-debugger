@@ -154,13 +154,13 @@ __EventEmitter__.prototype = {
 const mockBrowserApi = `// Redefine navigator 
 Object.defineProperty(navigator, 'appCodeName', {
   get: function() {
-    return 'WxDebugger';
+    return 'WEEXDEBUGGER';
   }
 });
   
 Object.defineProperty(navigator, 'product', {
   get: function() {
-    return 'Weex';
+    return 'WEEX';
   }
 });
 

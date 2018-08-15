@@ -3,7 +3,6 @@ var ___shouldReturnResult__ = false;
 var __requestId__;
 var __instanceId__;
 var __eventEmitter__ = new __EventEmitter__();
-
 // The argument maybe an undefine value
 var __protectedAragument__ = function(arg) {
   var args = Array.prototype.slice.call(arg);
@@ -22,7 +21,6 @@ var __postData__ = function(payload) {
   try {
     postMessage(payload);
   } catch (e) {
-    self.console.warn(`CallNative with some non-json data:`, payload);
     payload = JSON.parse(JSON.stringify(payload));
     postMessage(payload);
   }
@@ -49,7 +47,13 @@ __eventEmitter__.on("WxDebug.callJS", function(data) {
       method: "syncReturn",
       params: payload
     });
+  } else if ((method === "__WEEX_CALL_JAVASCRIPT__" || method === "callJS") && data.params.args[1] && data.params.args[1][0] && data.params.args[1][0].method === 'callback') {
+    if (__instanceId__ !== data.params.args[0]) {
+      return;
+    }
+    var payload = self[method].apply(null, data.params.args);
   } else if (self[method]) {
+    console.log('MESSAGE_>>>>>>  ', data)
     self[method].apply(null, data.params.args);
   } else {
     self.console.warn(
