@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.7
+##### Changed
+  - Update api entry file.
+
 ### 1.1.6
 ##### Changed
   - Support Embed Component.

@@ -1,5 +1,5 @@
-const Devtool = require('./lib/index');
-const Config = require('./lib/config');
+const devtool = require('./lib/index');
+const config = require('./lib/config');
 const IP = require('ip');
 
 /**
@@ -12,18 +12,20 @@ const IP = require('ip');
  * - enableHeadless enable to start headless chromium or not.
  * @param {Function} cb
  */
-const startServerAndLaunchDevtool = (entry, config, cb) => {
-  Config.ip = config.ip || IP.address();
-  Config.port = config.port || 8088;
-  config.REMOTE_DEBUG_PORT = config.REMOTE_DEBUG_PORT || 9222;
-  config.ENABLE_HEADLESS = !(config.ENABLE_HEADLESS === false);
-  Config.manual = config.manual || false;
-  Devtool.start(entry, Config, cb);
+const startServerAndLaunchDevtool = (entry, options, cb) => {
+  if (options) {
+    config.ip = options.ip || IP.address();
+    config.port = options.port || 8088;
+    config.manual = options.manual || false;
+    config.REMOTE_DEBUG_PORT = options.REMOTE_DEBUG_PORT || options.remoteDebugPort || 9222;
+    config.ENABLE_HEADLESS = !(options.ENABLE_HEADLESS === false) || !(options.enableHeadless === false);
+  }
+  devtool.start(entry, config, cb);
 };
 
 const api = {
   startServerAndLaunchDevtool: startServerAndLaunchDevtool,
-  reload: Devtool.reload
+  reload: devtool.reload
 };
 
 module.exports = {
