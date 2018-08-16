@@ -53,7 +53,6 @@ __eventEmitter__.on("WxDebug.callJS", function(data) {
     }
     var payload = self[method].apply(null, data.params.args);
   } else if (self[method]) {
-    console.log('MESSAGE_>>>>>>  ', data)
     self[method].apply(null, data.params.args);
   } else {
     self.console.warn(

@@ -22,11 +22,10 @@ debuggerRouter
       if (!env[message.channelId]) {
         env[message.channelId] = {};
       }
-      // env[message.channelId]["jsframework"] = new MemoryFile(
-      //   "js-framework.js",
-      //   payload.params.source
-      // ).getUrl();
-      env[message.channelId]["jsframework"] = '/lib/temp/js-framework.js'
+      env[message.channelId]["jsframework"] = new MemoryFile(
+        "js-framework.js",
+        payload.params.source
+      ).getUrl();
       if (device && device.logLevel) {
         payload.params.env.WXEnvironment.logLevel = device.logLevel;
       }
