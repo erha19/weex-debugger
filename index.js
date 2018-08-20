@@ -17,6 +17,7 @@ const startServerAndLaunchDevtool = (entry, options, cb) => {
     config.ip = options.ip || IP.address();
     config.port = options.port || 8088;
     config.manual = options.manual || false;
+    config.CHANNELID = options.CHANNELID || options.channelId;
     config.REMOTE_DEBUG_PORT = options.REMOTE_DEBUG_PORT || options.remoteDebugPort || 9222;
     config.ENABLE_HEADLESS = typeof options.ENABLE_HEADLESS === 'boolean' ? options.ENABLE_HEADLESS : typeof options.enableHeadless === 'boolean' ? options.enableHeadless : true;
   }

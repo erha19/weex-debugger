@@ -1,6 +1,11 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.10 - 1.1.11
+#### Changed
+  - Fix host search logic.
+  - Support for specifying channelid. 
+
 ### 1.1.7 - 1.1.9
 ##### Changed
   - Fix entry for calling debug api.

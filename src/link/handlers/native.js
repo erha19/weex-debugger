@@ -78,7 +78,7 @@ debuggerRouter
           dependenceCode
         ).getUrl();
       }
-      if (env[message.channelId]["importScripts"]) {
+      if (env[message.channelId] && env[message.channelId]["importScripts"]) {
         payload.params.importScripts = env[message.channelId]["importScripts"];
       }
       payload.params.workerjs = new MemoryFile(

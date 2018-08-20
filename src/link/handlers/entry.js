@@ -1,4 +1,5 @@
 const mlink = require("../index");
+const config = require('../../config');
 const Router = mlink.Router;
 const { simulator, util } = require("../../util");
 const debuggerRouter = Router.get("debugger");
@@ -6,7 +7,7 @@ const debuggerRouter = Router.get("debugger");
 debuggerRouter
   .registerHandler(message => {
     if (message.payload.method === "WxDebug.applyChannelId") {
-      const channelId = debuggerRouter.newChannel();
+      const channelId = debuggerRouter.newChannel(config.CHANNELID);
       message.payload = {
         method: "WxDebug.pushChannelId",
         params: {

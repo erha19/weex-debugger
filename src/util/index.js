@@ -7,6 +7,7 @@ const request = require("./request");
 const simrun = require("./simrun");
 const wrapper = require("./wrapper");
 const simulator = require("./simulator");
+const hosts = require("./hosts");
 
 module.exports = {
   util,
@@ -17,5 +18,6 @@ module.exports = {
   request,
   simrun,
   wrapper,
-  simulator
+  simulator,
+  hosts
 };
