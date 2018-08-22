@@ -8,7 +8,10 @@ const protocols = {
   "http:": require("http"),
   "https:": require("https")
 };
-const { logger, wrapper } = require("../../util");
+const {
+  logger,
+  wrapper
+} = require("../../util");
 
 const httpRouter = new Router();
 
@@ -21,11 +24,10 @@ const syncV8Hub = mlink.Hub.get("sync.v8");
 const rSourceMapDetector = /\.map$/;
 
 const getRemote = url => {
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     const urlObj = URL.parse(url);
     (protocols[urlObj.protocol] || protocols["http:"])
-      .get(
-        {
+    .get({
           hostname: urlObj.hostname,
           port: urlObj.port,
           path: urlObj.path,
@@ -34,18 +36,18 @@ const getRemote = url => {
             "User-Agent": "Weex/1.0.0"
           }
         },
-        function(res) {
+        function (res) {
           let chunks = [];
-          res.on("data", function(chunk) {
+          res.on("data", function (chunk) {
             chunks.push(chunk);
           });
-          res.on("end", function() {
+          res.on("end", function () {
             resolve(Buffer.concat(chunks).toString());
             chunks = null;
           });
         }
       )
-      .on("error", function(e) {
+      .on("error", function (e) {
         reject(e);
       });
   });
@@ -58,8 +60,7 @@ httpRouter.get("/source/*", async (ctx, next) => {
     let content;
     try {
       content = await getRemote("http://" + path);
-    }
-    catch(e) {
+    } catch (e) {
       logger.verbose(`Failed to fetch, reason: ${e.stack}`)
     }
     if (!content) {
@@ -77,20 +78,7 @@ httpRouter.get("/source/*", async (ctx, next) => {
     if (file) {
       ctx.response.status = 200;
       ctx.response["content-type"] = "text/javascript";
-      if (file.url && config.proxy) {
-        logger.verbose(`Fetch jsbundle ${file.url}`);
-        const content = await getRemote(file.url).catch(function(e) {
-          // If file not found or got other http error.
-          logger.verbose(e);
-        });
-        if (!content) {
-          ctx.response.body = file.getContent();
-        } else {
-          ctx.response.body = wrapper.bundleWrapper(content, file.getUrl());
-        }
-      } else {
-        ctx.response.body = file.getContent();
-      }
+      ctx.response.body = file.getContent();
     } else {
       ctx.response.status = 404;
     }
