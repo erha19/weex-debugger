@@ -144,6 +144,9 @@ debuggerRouter
     const device = DeviceManager.getDevice(message.channelId);
     if (payload.method === "Page.screencastFrame") {
       payload.params.sessionId = 1;
+      if (device && device.platform === 'android') {
+        payload.params.metadata.pageScaleFactor = 0.999
+      }
     } else if (payload.method === "Console.messageAdded") {
       // issue: https://github.com/weexteam/weex-toolkit/issues/408
       // TODO: make it can be control by user
