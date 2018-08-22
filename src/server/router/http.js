@@ -8,7 +8,7 @@ const protocols = {
   "http:": require("http"),
   "https:": require("https")
 };
-const { logger, bundleWrapper } = require("../../util");
+const { logger, wrapper } = require("../../util");
 
 const httpRouter = new Router();
 
@@ -86,7 +86,7 @@ httpRouter.get("/source/*", async (ctx, next) => {
         if (!content) {
           ctx.response.body = file.getContent();
         } else {
-          ctx.response.body = bundleWrapper(content, file.getUrl());
+          ctx.response.body = wrapper.bundleWrapper(content, file.getUrl());
         }
       } else {
         ctx.response.body = file.getContent();
