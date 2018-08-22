@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.12
+##### Fixed
+  - Fix weexteam/weex-toolkit/issues/439.
+
 ### 1.1.10 - 1.1.11
 #### Changed
   - Fix host search logic.

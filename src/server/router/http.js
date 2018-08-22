@@ -9,8 +9,7 @@ const protocols = {
   "https:": require("https")
 };
 const {
-  logger,
-  wrapper
+  logger
 } = require("../../util");
 
 const httpRouter = new Router();
