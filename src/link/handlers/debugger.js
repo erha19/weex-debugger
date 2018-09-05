@@ -33,7 +33,6 @@ debuggerRouter
           mode: payload.params.data
         }
       };
-      // setTimeout(function(){})
       debuggerRouter.pushMessage("page.debugger", message.terminalId, {
         method: "WxDebug.reloadInspector"
       });

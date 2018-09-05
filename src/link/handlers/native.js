@@ -14,6 +14,7 @@ const debuggerRouter = Router.get("debugger");
 const crypto = require("../../util/crypto");
 const path = require("path");
 const env = {};
+
 debuggerRouter
   .registerHandler(function(message) {
     const payload = message.payload;
@@ -150,25 +151,23 @@ debuggerRouter
     } else if (payload.method === "Console.messageAdded") {
       // issue: https://github.com/weexteam/weex-toolkit/issues/408
       // TODO: make it can be control by user
-
-      // if (LOGLEVEL[payload.params.message.level] >= LOGLEVEL[device && device.logLevel ? device.logLevel : 'debug']) {
-      //   message.payload = {
-      //     'method': 'Runtime.consoleAPICalled',
-      //     'params': {
-      //       'type': payload.params.message.level,
-      //       'args': [{
-      //         type: 'string',
-      //         value: payload.params.message.text
-      //       }] || [],
-      //       'executionContextId': 1
-      //       // "stackTrace": payload.params.message.stackTrace
-      //     }
-      //   };
-      // }
-      // else {
-      //   message.discard();
-      // }
-      message.discard();
+      if (device.remoteDebug) {
+        message.discard();
+      }
+      else {
+        message.payload = {
+          'method': 'Runtime.consoleAPICalled',
+          'params': {
+            'type': payload.params.message.level,
+            'args': [{
+              type: 'string',
+              value: payload.params.message.text
+            }] || [],
+            'executionContextId': 1
+            // "stackTrace": payload.params.message.stackTrace
+          }
+        };
+      }
     } else if (payload.method === "DOM.childNodeRemoved") {
       // 此处是为了 扫bundle二维码通知页面关掉bundle二维码界面这个功能
       // 当没有打开JS Debug时 weex加载bundle devtool是不知道的 只能模糊的通过childNodeRemoved判断
