@@ -83,7 +83,7 @@ debuggerRouter
         payload.params.importScripts = env[message.channelId]["importScripts"];
       }
       payload.params.workerjs = new MemoryFile(
-        `[Runtime]-${path.basename(options.bundleUrl)}`,
+        `[Runtime]-${path.basename(options.bundleUrl || '')}`,
         generateSandboxWorkerEntry(env[message.channelId])
       ).getUrl();
       debuggerRouter.pushMessageByChannelId(
@@ -191,6 +191,7 @@ debuggerRouter
       payload.result.method === "WxDebug.syncReturn"
     ) {
       message.payload = {
+        id: payload.result.params && payload.result.id && payload.result.params.syncId,
         error: payload.error,
         ret: payload.result.params && payload.result.params.ret
       };

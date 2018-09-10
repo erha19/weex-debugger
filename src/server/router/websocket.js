@@ -11,14 +11,14 @@ const wsRouter = Router();
 
 wsRouter.all("/page/entry", async (ctx, next) => {
   const terminal = new WebsocketTerminal(ctx.websocket);
-  entryHub.join(terminal, true);
+  entryHub.join(terminal, false);
   await next();
 });
 
 wsRouter.all("/debugProxy/inspector/:channelId", async (ctx, next) => {
   const terminal = new WebsocketTerminal(ctx.websocket);
   terminal.channelId = ctx.params.channelId;
-  inspectorHub.join(terminal, true);
+  inspectorHub.join(terminal, false);
   await next();
 });
 

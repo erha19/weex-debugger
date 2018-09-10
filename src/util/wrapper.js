@@ -247,20 +247,14 @@ self.callNativeModule = function () {
       args: __protectedAragument__(arguments)
     }
   }
-  var result = __syncRequest__(message, __channelId__);
-  if (___shouldReturnResult__ && __requestId__) {
-    __postData__({
-      id: __requestId__,
-      result: null,
-      error: {
-        errorCode: 0
-      }
-    });
-  }
+  var result = __syncRequest__(message, __channelId__); 
   if (result && result.error) {
     self.console.error(result.error);
     // throw new Error(result.error);
-  } else return result && result.ret;
+  }
+  else {
+    return result && result.ret
+  };
 }
 
 self.callNativeComponent = function () {
@@ -281,7 +275,10 @@ self.callNativeComponent = function () {
   if (result.error) {
     self.console.error(result.error);
     // throw new Error(result.error);
-  } else return result.ret;
+  }
+  else {
+    return result.ret;
+  };
 };
 
 self.callNative = function (instance, tasks, callback) {

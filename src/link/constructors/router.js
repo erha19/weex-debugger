@@ -20,7 +20,7 @@ class Router extends Emitter {
   static check() {
     Object.keys(_routerInstances).forEach(id => {
       if (Object.keys(_routerInstances[id].hubs).length === 0) {
-        console.warn(
+        logger.warn(
           "[Mlink Warning] Router[" +
             id +
             "] do not has any hub.make sure your id is correct"
@@ -35,7 +35,7 @@ class Router extends Emitter {
     Object.keys(_routerInstances).forEach(id => {
       const router = _routerInstances[id];
       for (const hid in router.hubs) {
-        console.log("Router[" + id + "]" + "<---->" + "Hub[" + hid + "]");
+        logger.log("Router[" + id + "]" + "<---->" + "Hub[" + hid + "]");
       }
     });
   }
@@ -80,13 +80,19 @@ class Router extends Emitter {
   _pushMessage(message) {
     message.destination.forEach(dest => {
       if (this.hubs[dest.hubId]) {
-        if (dest.terminalId) {
+        if (Array.isArray(dest.terminalId) && dest.terminalId.length > 0) {
+          dest.terminalId.forEach(terminal => {
+            this.hubs[dest.hubId].pushToTerminal(terminal, message);
+          })
+        }
+        else if (typeof dest.terminalId === 'string' && dest.terminalId) {
           this.hubs[dest.hubId].pushToTerminal(dest.terminalId, message);
-        } else {
+        } 
+        else {
           this.hubs[dest.hubId].broadcast(message);
         }
       } else {
-        logger.error("Hub [" + dest.hubId + "] not found!");
+        logger.error(new Error("Hub [" + dest.hubId + "] not found!"));
       }
     });
     message.destroy();
@@ -110,7 +116,7 @@ class Router extends Emitter {
             // );
           }
         } else {
-          logger.error("invalid message no channelId");
+          logger.error(new Error("invalid message no channelId"));
         }
       });
       this._pushMessage(message);
@@ -129,7 +135,7 @@ class Router extends Emitter {
         this._dispatchMessage(message);
       })
       .catch(e => {
-        console.error(e);
+        logger.error(e);
       });
   }
   registerHandler(handler) {

@@ -67,7 +67,7 @@ class RuntimeManager {
       const popTerminal = terminals.pop();
       popTerminal.websocket.close();
     } else {
-      logger.error("Try to remove a non-exist runtime");
+      logger.error(new Error("Try to remove a non-exist runtime"));
     }
   }
   has(channelId) {

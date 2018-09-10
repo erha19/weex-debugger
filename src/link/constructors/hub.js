@@ -100,7 +100,7 @@ class Hub {
     if (this.terminalMap[terminalId]) {
       this.terminalMap[terminalId].read(message.payload);
     } else {
-      throw new Error("Terminal [" + terminalId + "] not found! @" + this.id);
+      logger.verbose(new Error("Terminal [" + terminalId + "] not found! @" + this.id));
     }
   }
 

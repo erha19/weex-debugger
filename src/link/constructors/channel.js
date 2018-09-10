@@ -52,7 +52,7 @@ class Channel {
 
   has(hubId, terminalId) {
     return (
-      this.hubMap[hubId] && (!terminalId || this.hubMap[hubId] === terminalId)
+      this.hubMap[hubId] && (!terminalId || this.hubMap[hubId].indexOf(terminalId) >= 0)
     );
   }
 
@@ -78,29 +78,39 @@ class Channel {
   }
 
   join(hubId, terminalId, forced) {
+    // change: forced can be removed
+    // cause the hubMap should be {[key:string]: string[]}
     if (this.hubMap[hubId]) {
       if (forced) {
-        this.hubMap[hubId] = terminalId;
-      } else {
-        throw new Error(
-          "Join failed! There already exist one terminal in the same hub"
-        );
+        this.hubMap[hubId] = [terminalId];
       }
-    } else {
+      else {
+        if (this.hubMap[hubId].indexOf(terminalId) === -1) {
+          this.hubMap[hubId].push(terminalId);
+        }
+        else {
+          this.hubMap[hubId] = [terminalId];
+        }
+      }
+    }
+    else {
       const hubIds = Object.keys(this.hubMap);
       if (this.mode === CHANNEL_MODE.P2P && hubIds.length >= 2) {
         throw new Error("A channel can just link two hub in p2p mode");
       }
-      this.hubMap[hubId] = terminalId;
+      this.hubMap[hubId] = [terminalId];
     }
   }
 
   leave(hubId, terminalId) {
-    if (this.has(hubId, terminalId)) {
+    if (this.has(hubId, terminalId) && Array.isArray(this.hubMap[hubId])) {
       this.cache = this.cache.filter(
         c => c.hubId !== hubId || (terminalId && c.terminalId !== terminalId)
       );
-      delete this.hubMap[hubId];
+      let index = this.hubMap[hubId].indexOf(terminalId);
+      if (index) {
+        this.hubMap[hubId].splice(index, 1);
+      }
     }
   }
 }

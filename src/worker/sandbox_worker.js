@@ -1,6 +1,4 @@
 var __channelId__;
-var ___shouldReturnResult__ = false;
-var __requestId__;
 var __instanceId__;
 var __eventEmitter__ = new __EventEmitter__();
 // The argument maybe an undefine value
@@ -45,7 +43,10 @@ __eventEmitter__.on("WxDebug.callJS", function(data) {
     var payload = self[method].apply(null, data.params.args);
     __postData__({
       method: "syncReturn",
-      params: payload
+      params: {
+        ret: payload,
+        id: data.params.syncId
+      }
     });
   } else if ((method === "__WEEX_CALL_JAVASCRIPT__" || method === "callJS") && data.params.args[1] && data.params.args[1][0] && data.params.args[1][0].method === 'callback') {
     if (__instanceId__ !== data.params.args[0]) {

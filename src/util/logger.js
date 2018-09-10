@@ -40,7 +40,7 @@ const formatError = (error, isVerbose) => {
     if (isVerbose) {
       message = error.stack;
     } else {
-      message = error.stack;
+      message = error;
     }
   } else {
     // Plain text error message

@@ -23,7 +23,10 @@ debuggerRouter
   .registerHandler(function(message) {
     const payload = message.payload;
     if (payload.method === "syncReturn") {
-      message.payload = payload.params;
+      message.payload = {
+        ret: payload.params.ret,
+        id: payload.params.syncId
+      };
       message.to("sync.v8");
     } else {
       message.to("proxy.native");

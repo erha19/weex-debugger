@@ -80,10 +80,10 @@ function connect(channelId) {
       cacheRegisterLoop.push(message);
     }
     else {
-      if (message.params && message.params.args && message.params.args[0]) {
+      if (message.params && message.params.args && message.params.args[0] && workers[message.params.args[0]]) {
         workers[message.params.args[0]].postMessage(message);
       }
-      else if (activeWorkerId) {
+      else if (activeWorkerId && workers[activeWorkerId]) {
         workers[activeWorkerId].postMessage(message);
       }
     }

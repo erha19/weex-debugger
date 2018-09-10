@@ -61,26 +61,6 @@ class Message {
         this._payload.length > 1 ? this._payload : this.payload
       );
     }
-    if (this.destination.length > 0) {
-      this.destination.forEach(dest => {
-        const isReply = this._from.terminalId === dest.terminalId;
-        logger.verbose(
-          `${this.id}#[${this._from.hubId}@${
-            this._from.terminalId.split("-")[0]
-          }-${this.channelId ? this.channelId.split("-")[0] : "*"}]` +
-            `-->${isReply ? "reply-->" : ""}[${dest.hubId}@${dest.terminalId &&
-              dest.terminalId.split("-")[0]}]:`,
-          this._payload.length > 1 ? this._payload : this.payload
-        );
-      });
-    } else {
-      logger.verbose(
-        `${this.id}#[${this._from.hubId}@${
-          this._from.terminalId.split("-")[0]
-        }-${this.channelId ? this.channelId.split("-")[0] : "*"}] ->lost`,
-        this._payload.length > 1 ? this._payload : this.payload
-      );
-    }
     _messageBuffer = _messageBuffer.filter(m => m.id !== this.id);
   }
 

@@ -93,7 +93,7 @@ httpRouter.post("/syncCallNative/*", async (ctx, next) => {
   if (device) {
     const terminal = new SyncTerminal();
     terminal.channelId = channelId;
-    syncNativeHub.join(terminal, true);
+    syncNativeHub.join(terminal, false);
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
     const data = await terminal.send(payload);
@@ -116,7 +116,7 @@ httpRouter.post("/syncCallJS/*", async (ctx, next) => {
     const terminal = new SyncTerminal();
     let data;
     terminal.channelId = channelId;
-    syncV8Hub.join(terminal, true);
+    syncV8Hub.join(terminal, false);
     payload.params.syncId = 100000 + idx;
     payload.id = 100000 + idx;
     if (config.ACTIVE_INSTANCEID !== instanceId) {
@@ -126,7 +126,7 @@ httpRouter.post("/syncCallJS/*", async (ctx, next) => {
     }
     ctx.response.status = 200;
     ctx.type = "application/json";
-    ctx.response.body = JSON.stringify(data);
+    ctx.response.body = JSON.stringify(data.ret);
   } else {
     ctx.response.status = 500;
   }

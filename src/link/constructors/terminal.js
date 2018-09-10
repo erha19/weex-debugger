@@ -1,6 +1,8 @@
 const EventEmitter = require("events").EventEmitter;
 const uuid = require("uuid");
 const Promise = require("ipromise");
+const { logger } = require("../../util");
+
 class SyncTerminal extends EventEmitter {
   constructor() {
     super();
@@ -10,6 +12,7 @@ class SyncTerminal extends EventEmitter {
 
   send(data) {
     this.emit("message", data);
+    this.syncId = data.params.syncId;
     return this.promise;
   }
 
@@ -17,10 +20,17 @@ class SyncTerminal extends EventEmitter {
     if (Array.isArray(message) && !message[0]) {
       message = [{}];
     }
-    this.promise.resolve(message);
+    if (message.id && this.syncId === message.id) {
+      this.promise.resolve(message);
+    }
+    else if (!message.id) {
+      // while android sdk has not support, should return promise while getting message
+      this.promise.resolve(message);
+    }
     // never destory
     // cause the terminal will be destory before the socket send message
     // this.emit('destroy')
+
   }
 }
 class WebsocketTerminal extends EventEmitter {
@@ -37,7 +47,7 @@ class WebsocketTerminal extends EventEmitter {
       this.emit("destroy");
     });
     websocket.on("error", err => {
-      console.error(err);
+      logger.error(err);
     });
   }
 
