@@ -1,6 +1,12 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.13
+#### Fixed
+  - Fix sync callNative or callJS request queue.
+#### Changed
+  - Re-use native log again.
+
 ### 1.1.12
 ##### Fixed
   - Fix weexteam/weex-toolkit/issues/439.

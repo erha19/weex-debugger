@@ -247,7 +247,7 @@ self.callNativeModule = function () {
       args: __protectedAragument__(arguments)
     }
   }
-  var result = __syncRequest__(message, __channelId__); 
+  var result = __syncRequest__(message, __channelId__);
   if (result && result.error) {
     self.console.error(result.error);
     // throw new Error(result.error);

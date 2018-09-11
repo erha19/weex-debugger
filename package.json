@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -87,8 +87,8 @@
   },
   "changelog": {
     "messages": [
-      "[Feature] Support Embed Component.",
-      "[Feature] Support RecycleList Component (need to upgrade WeesSDK)."
+      "[Feature] Fix sync callNative or callJS request queue.",
+      "[Feature] Re-use native log again."
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }
