@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.14
+#### Fixed
+  - Fix `remoteDebug` not found bug.
+
 ### 1.1.13
 #### Fixed
   - Fix sync callNative or callJS request queue.

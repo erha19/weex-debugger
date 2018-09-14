@@ -151,7 +151,7 @@ debuggerRouter
     } else if (payload.method === "Console.messageAdded") {
       // issue: https://github.com/weexteam/weex-toolkit/issues/408
       // TODO: make it can be control by user
-      if (device.remoteDebug) {
+      if (device && device.remoteDebug) {
         message.discard();
       }
       else {
