@@ -57,7 +57,7 @@ debuggerRouter
         {
           method: "WxDebug.bundleRendered",
           params: {
-            bundleUrl: payload.params.args[2].bundleUrl
+            bundleUrl: bundleUrl
           }
         }
       );
@@ -92,7 +92,7 @@ debuggerRouter
         {
           method: "WxDebug.bundleRendered",
           params: {
-            bundleUrl: payload.params.args[2].bundleUrl
+            bundleUrl: options.bundleUrl
           }
         }
       );

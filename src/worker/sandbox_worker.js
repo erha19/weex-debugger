@@ -82,17 +82,6 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
   var instanceid = (__instanceId__ = message.params.args[0]);
   var options = message.params.args[1];
   var instanceData = message.params.args[2];
-  var instanceContext = self.createInstanceContext(
-    instanceid,
-    options,
-    instanceData
-  );
-  __channelId__ = message.channelId;
-  for (var prop in instanceContext) {
-    if (instanceContext.hasOwnProperty(prop) && prop !== "callNative") {
-      self[prop] = instanceContext[prop];
-    }
-  }
   for (var key in message.params.env) {
     if (message.params.env.hasOwnProperty(key)) {
       self[key] = message.params.env[key];
@@ -103,6 +92,19 @@ __eventEmitter__.on("WxDebug.initSandboxWorker", function(message) {
       importScripts(script);
     });
   }
+  var instanceContext = self.createInstanceContext(
+    instanceid,
+    options,
+    instanceData
+  );
+  __channelId__ = message.channelId;
+ 
+  for (var prop in instanceContext) {
+    if (instanceContext.hasOwnProperty(prop) && prop !== "callNative") {
+      self[prop] = instanceContext[prop];
+    }
+  }
+
   if (message.params.dependenceUrl) {
     importScripts(message.params.dependenceUrl);
   }

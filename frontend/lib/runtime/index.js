@@ -124,10 +124,10 @@ function initJSRuntime(message) {
   cacheRegisterLoop.forEach(function(message) {
     workers[instanceId].postMessage(message)
   })
-  workers[instanceId].postMessage(message);
   if (cacheJsbundleImportMessage) {
     workers[instanceId].postMessage(message);
   }
+  workers[instanceId].postMessage(message);
 }
 
 function getPrevWorker(workers) {
