@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.16
+#### Fixed
+  - Remove unuseful worker while page reload.
+
 ### 1.1.15
 #### Fixed
   - Fix JSService debugging.

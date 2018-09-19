@@ -1,4 +1,5 @@
 var workers = {};
+var instanceMaps = {};
 var RuntimeSocket
 var BrowserChannelId
 var cacheWeexEnv;
@@ -101,6 +102,10 @@ function connect(channelId) {
 
 function destroyJSRuntime(message) {
   var instanceId = message.params.args[0];
+  var workerjs = message.params.workerjs;
+  if (workerjs) {
+    instanceId = instanceMaps[workerjs]
+  }
   if (workers[instanceId]) {
     if (workers[instanceId].prev) {
       activeWorkerId = workers[instanceId].prev;
@@ -115,6 +120,7 @@ function destroyJSRuntime(message) {
 
 function initJSRuntime(message) {
   var instanceId = activeWorkerId = message.params.args[0];
+  instanceMaps[message.params.workerjs] = instanceId;
   workers[instanceId] = new Worker(message.params.workerjs);
   workers[instanceId]['prev'] = getPrevWorker(workers);
   workers[instanceId].onmessage = function (message) {
