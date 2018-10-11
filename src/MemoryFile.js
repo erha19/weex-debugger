@@ -5,7 +5,19 @@ const { util, crypto } = require("./util");
 
 class MemoryFile {
   static get(name) {
-    return _memoryFileMap[name];
+    if (_memoryFileMap[name]) {
+      return _memoryFileMap[name];
+    } else {
+      const keys = _memoryFileMap;
+      let content;
+      for (let key in keys) {
+        if (key.indexOf(name) >= 0) {
+          content = _memoryFileMap[key];
+          break;
+        }
+      }
+      return content
+    }
   }
   static dump() {
     return Object.keys(_memoryFileMap);

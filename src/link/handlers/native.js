@@ -45,7 +45,7 @@ debuggerRouter
       ).getUrl();
       payload.params.sourceUrl = env[message.channelId]["sourceUrl"];
       payload.params.workerjs = new MemoryFile(
-        `[Runtime]-${path.basename(bundleUrl)}`,
+        `Runtime/${path.basename(bundleUrl)}`,
         generateWorkerEntry(env[message.channelId])
       ).getUrl();
       if (env[message.channelId]["importScripts"]) {
@@ -83,7 +83,7 @@ debuggerRouter
         payload.params.importScripts = env[message.channelId]["importScripts"];
       }
       payload.params.workerjs = new MemoryFile(
-        `[Runtime]-${path.basename(options.bundleUrl || '')}`,
+        `Runtime/${path.basename(options.bundleUrl || '')}`,
         generateSandboxWorkerEntry(env[message.channelId])
       ).getUrl();
       debuggerRouter.pushMessageByChannelId(

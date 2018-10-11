@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.1.18
+#### Fixed
+  - Support url include '#'.
+  
 ### 1.1.17
 #### Fixed
   - Fix importscript error while the source response as text/plain.
