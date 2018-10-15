@@ -66,7 +66,7 @@ httpRouter.get("/source/*", async (ctx, next) => {
       ctx.response.status = 404;
     } else {
       ctx.response.status = 200;
-      ctx.response["content-type"] = "text/javascript";
+      ctx.type = "text/javascript";
       ctx.set("Access-Control-Allow-Origin", "*");
       ctx.response.body = content;
     }
@@ -76,7 +76,7 @@ httpRouter.get("/source/*", async (ctx, next) => {
     const file = MemoryFile.get(path + query);
     if (file) {
       ctx.response.status = 200;
-      ctx.response["content-type"] = "text/javascript";
+      ctx.type = "text/javascript";
       ctx.response.body = file.getContent();
     } else {
       ctx.response.status = 404;
