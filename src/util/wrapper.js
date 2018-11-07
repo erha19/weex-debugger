@@ -463,11 +463,132 @@ ${worker}
 
 const generateWorkerEntry = env => {
   const worker = fse.readFileSync(path.join(__dirname, "../worker/worker.js"));
-  let environment = `${eventConstructor}
+  const androidMockApi = env.isLayoutAndSandbox
+    ? `self.callCreateBody = function (instance, domStr) {
+  if (!domStr) return;
+  var payload = {
+    method: 'WxDebug.callCreateBody',
+    params: {
+      instance: instance,
+      domStr: domStr
+    }
+  };
+  __postData__(payload);
+};
 
+self.callUpdateFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callUpdateFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+};
+
+self.callCreateFinish = function (instance) {
+  var payload = {
+    method: 'WxDebug.callCreateFinish',
+    params: {
+      instance: instance
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRefreshFinish = function (instance, tasks, callback) {
+  var payload = {
+    method: 'WxDebug.callRefreshFinish',
+    params: {
+      instance: instance,
+      tasks: tasks,
+      callback: callback
+    }
+  };
+  __postData__(payload);
+}
+
+self.callUpdateAttrs = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateAttrs',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  __postData__(payload);
+}
+
+self.callUpdateStyle = function (instance, ref, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateStyle',
+    params: {
+      instance: instance,
+      ref: ref,
+      data: data
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRemoveElement = function (instance, ref) {
+  var payload = {
+    method: 'WxDebug.callRemoveElement',
+    params: {
+      instance: instance,
+      ref: ref
+    }
+  };
+  __postData__(payload);
+}
+
+self.callMoveElement = function (instance, ref, parentRef, index_str) {
+  var payload = {
+    method: 'WxDebug.callMoveElement',
+    params: {
+      instance: instance,
+      ref: ref,
+      parentRef: parentRef,
+      index_str: index_str
+    }
+  };
+  __postData__(payload);;
+}
+
+self.callAddEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callAddEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  __postData__(payload);
+}
+
+self.callRemoveEvent = function (instance, ref, event) {
+  var payload = {
+    method: 'WxDebug.callRemoveEvent',
+    params: {
+      instance: instance,
+      ref: ref,
+      event: event
+    }
+  };
+  __postData__(payload);
+}`
+    : "";
+  let environment = `${eventConstructor}
+  
 ${mockBrowserApi}
 
 ${mockContextApi}
+
+${androidMockApi}
 
 self.$$frameworkFlag = {};
 `;
