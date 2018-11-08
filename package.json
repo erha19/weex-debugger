@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -87,9 +87,7 @@
   },
   "changelog": {
     "messages": [
-      "[Feature] Re-use native log again.",
-      "[Bugfix] Fix sync callNative or callJS request queue.",
-      "[Bugfix] Fix JSService debugging."
+      "[Feature] Support for weex playground app v0.19.0"
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }

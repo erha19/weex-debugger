@@ -134,6 +134,9 @@ websocket.on('WxDebug.pushDebuggerInfo', function (message) {
           websocket.send({
             method: 'WxDebug.' + (checked ? 'enable' : 'disable')
           })
+          websocket.send({
+            method: 'WxDebug.reloadInspector'
+          })
         }, 500)
       }
     }

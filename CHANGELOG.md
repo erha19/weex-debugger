@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.2.0 - 1.2.1
+#### Changed
+  - Support for weex playground app v0.19.0.
+
 ### 1.1.18 - 1.1.19
 #### Fixed
   - Support url include '#'.
