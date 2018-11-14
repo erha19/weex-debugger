@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -87,7 +87,8 @@
   },
   "changelog": {
     "messages": [
-      "[Feature] Support for weex playground app v0.19.0"
+      "[Feature] Support for weex playground app v0.19.0",
+      "[Feature] Support specify a unique id for communication channel"
     ],
     "url": "https://github.com/weexteam/weex-debugger/blob/master/CHANGELOG.md"
   }

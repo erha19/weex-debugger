@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.2.2
+#### Changed
+  - Support specify a unique id for communication channel.
+
 ### 1.2.0 - 1.2.1
 #### Changed
   - Support for weex playground app v0.19.0.

@@ -27,6 +27,7 @@ program
 .option('-m, --manual', 'manual mode,this mode will not auto open chrome')
 .option('-e,--ext [ext]', 'set enabled extname for compiler default is vue')
 .option('--min', 'minimize the jsbundle')
+.option('--channelid [id]', 'Specify a unique id for communication channel')
 .option('--telemetry', 'upload usage data to help us improve the toolkit')
 .option('--verbose', 'display all logs of debugger server')
 .option('--loglevel [loglevel]', 'set log level silent|error|warn|info|log|debug', 'error')
@@ -73,6 +74,10 @@ if (program.verbose) {
 
 if (program.remotedebugport) {
   config.REMOTE_DEBUG_PORT = program.remotedebugport;
+}
+
+if (program.channelid) {
+  config.CHANNELID = program.channelid
 }
 
 // Get the local environment
