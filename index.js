@@ -26,7 +26,8 @@ const startServerAndLaunchDevtool = (entry, options, cb) => {
 
 const api = {
   startServerAndLaunchDevtool: startServerAndLaunchDevtool,
-  reload: devtool.reload
+  reload: devtool.reload,
+  refresh: devtool.refresh
 };
 
 module.exports = {
