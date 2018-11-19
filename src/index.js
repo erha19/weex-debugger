@@ -136,6 +136,12 @@ exports.reload = function() {
   });
 };
 
+exports.refresh = function () {
+  Router.get("debugger").pushMessage("proxy.native", {
+    method: "WxDebug.refresh"
+  })
+};
+
 exports.start = function(target, config, cb) {
   resolveConnectUrl(config);
   if (isUrl(target)) {
