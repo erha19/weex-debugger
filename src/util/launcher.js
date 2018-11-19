@@ -1,29 +1,13 @@
-const opn = require("opn");
+const chromeOpn = require("chrome-opn");
 
-function getChromeAppName() {
-  switch (process.platform) {
-    case "darwin":
-      return "google chrome";
-    case "win32":
-      return "chrome";
-    default:
-      return "google-chrome";
-  }
-}
 const pendingList = [];
 let pending = false;
 const launchChrome = function(url, remoteDebugPort, wait, callback) {
   if (!pending) {
     pending = true;
     url = url.replace(/[&*]/g, "\\&");
-    const args = [getChromeAppName()];
-    if (remoteDebugPort > 0) {
-      args.push("-remote-debugging-port=" + remoteDebugPort);
-    }
-    opn(url, {
-      app: args,
-      wait: !!wait
-    }).then(cp => {
+    const args = remoteDebugPort > 0 ? ["-remote-debugging-port=" + remoteDebugPort] : null;
+    chromeOpn(url, args, !!wait).then(cp => {
       cp.once("close", e => {
         callback && callback(null);
         if (pendingList.length > 0) {
