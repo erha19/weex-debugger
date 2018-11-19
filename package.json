@@ -1,7 +1,7 @@
 {
   "name": "weex-debugger",
   "description": "weex developer tool for debugging weex app with chrome devtool",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "author": "erha19 <faterrole@gmail.com>",
   "license": "MIT",
   "main": "index.js",
@@ -87,6 +87,7 @@
   },
   "changelog": {
     "messages": [
+      "[Feature] Replace opn with chrome-opn to prevent duplicate tabs",
       "[Feature] Support for weex playground app v0.19.0",
       "[Feature] Support specify a unique id for communication channel"
     ],

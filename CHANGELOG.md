@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.2.3
+#### Changed
+  - [Replace opn with chrome-opn to prevent duplicate tabs](https://github.com/weexteam/weex-debugger/pull/32).
+
 ### 1.2.2
 #### Changed
   - Support specify a unique id for communication channel.
