@@ -325,7 +325,7 @@ const generateSandboxWorkerEntry = env => {
   const worker = fse.readFileSync(
     path.join(__dirname, "../worker/sandbox_worker.js")
   );
-  const androidMockApi = env.isLayoutAndSandbox
+  const androidMockApi = env && env.isLayoutAndSandbox
     ? `self.callCreateBody = function (instance, domStr) {
   if (!domStr) return;
   var payload = {
@@ -463,7 +463,7 @@ ${worker}
 
 const generateWorkerEntry = env => {
   const worker = fse.readFileSync(path.join(__dirname, "../worker/worker.js"));
-  const androidMockApi = env.isLayoutAndSandbox
+  const androidMockApi = env && env.isLayoutAndSandbox
     ? `self.callCreateBody = function (instance, domStr) {
   if (!domStr) return;
   var payload = {
