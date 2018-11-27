@@ -29,15 +29,18 @@ function connect(channelId) {
   
   RuntimeSocket.on('*', function (message) {
     if (!message) return;
-    var instanceId;
-    if (message && message.params) {
-      instanceId = message.params && message.params.args && message.params.args[0];
-    }
-    else {
-      instanceId = activeWorkerId
-    }
-    if (workers[instanceId]) {
-      workers[instanceId].postMessage(message);
+    var domain = message.method.split('.')[0];
+    if (domain === 'WxDebug') {
+      var instanceId;
+      if (message && message.params) {
+        instanceId = message.params && message.params.args && message.params.args[0];
+      }
+      else {
+        instanceId = activeWorkerId
+      }
+      if (workers[instanceId]) {
+        workers[instanceId].postMessage(message);
+      }
     }
   });
 

@@ -29,73 +29,120 @@ websocket = new WebsocketClient('ws://' + location.host + '/debugProxy/debugger/
 
 websocket.on('socketOpened', function () {
 
-  var toProphetPage = function () {
-    $switchBtn.innerHTML = 'Debugger >>';
-    $switchBtn.setAttribute('href', '#debugger')
-    $prophetPage.style.visibility = 'visible';
-    isProphetPageShowing = true;
-    $debuggerMenu.style.display = 'none';
-    $prophetMenu.style.display = 'block';
-    $inspectorPage.style.display = 'none';
-    isProphetPageShowing = true;
+  // var toProphetPage = function () {
+  //   $switchBtn.innerHTML = 'Debugger >>';
+  //   $switchBtn.setAttribute('href', '#debugger')
+  //   $prophetPage.style.visibility = 'visible';
+  //   isProphetPageShowing = true;
+  //   $debuggerMenu.style.display = 'none';
+  //   $prophetMenu.style.display = 'block';
+  //   $inspectorPage.style.display = 'none';
+  //   isProphetPageShowing = true;
 
-    websocket.send({
-      method: 'Page.stopScreencast'
-    });
-    websocket.send({
-      method: 'WxDebug.disable'
-    })
-    websocket.send({
-      method: 'WxDebug.enableTracing',
-      params: {
-        status: true
-      }
-    });
-    if ($remoteDebug.checked) {
-      $remoteDebug.checked = false;
+  //   websocket.send({
+  //     method: 'Page.stopScreencast'
+  //   });
+  //   websocket.send({
+  //     method: 'WxDebug.disable'
+  //   })
+  //   websocket.send({
+  //     method: 'WxDebug.enableTracing',
+  //     params: {
+  //       status: true
+  //     }
+  //   });
+  //   if ($remoteDebug.checked) {
+  //     $remoteDebug.checked = false;
+  //     websocket.send({
+  //       method: 'WxDebug.reload'
+  //     })
+  //   }
+  // }
+
+  // var toDebuggerPage = function () {
+  //   // $switchBtn.innerHTML = 'Prophet >>';
+  //   $switchBtn.setAttribute('href', '#prophet')
+  //   $prophetPage.style.visibility = 'hidden';
+  //   isProphetPageShowing = false;
+  //   $prophetMenu.style.display = 'none';
+  //   $debuggerMenu.style.display = 'block';
+  //   $inspectorPage.style.display = 'block';
+  //   isProphetPageShowing = false;
+  //   websocket.send({
+  //     method: 'WxDebug.enableTracing',
+  //     params: {
+  //       status: false
+  //     }
+  //   });
+  //   if (screencastParams) {
+  //     websocket.send({
+  //       method: 'Page.startScreencast',
+  //       params: screencastParams
+  //     });
+  //   }
+  // }
+
+  // if (hash === '#debugger') {
+  //   toDebuggerPage();
+  // } else if (hash === '#prophet') {
+  //   toProphetPage();
+  // }
+
+  // window.addEventListener('hashchange', function (e) {
+  //   hash = new URL(e.newURL).hash;
+  //   if (hash === '#debugger') {
+  //     toDebuggerPage();
+  //   } else if (hash === '#prophet') {
+  //     toProphetPage();
+  //   }
+  // }, false);
+  init()
+  $('#remote_debug').onchange = function () {
+    var checked = this.checked;
+    if (websocket.isSocketReady) {
+      sessionStorage.setItem('remoteDebug', checked);
       websocket.send({
-        method: 'WxDebug.reload'
+        method: 'WxDebug.' + (checked ? 'enable' : 'disable')
       })
     }
   }
-
-  var toDebuggerPage = function () {
-    $switchBtn.innerHTML = 'Prophet >>';
-    $switchBtn.setAttribute('href', '#prophet')
-    $prophetPage.style.visibility = 'hidden';
-    isProphetPageShowing = false;
-    $prophetMenu.style.display = 'none';
-    $debuggerMenu.style.display = 'block';
-    $inspectorPage.style.display = 'block';
-    isProphetPageShowing = false;
-    websocket.send({
-      method: 'WxDebug.enableTracing',
-      params: {
-        status: false
-      }
-    });
-    if (screencastParams) {
+  $('#network').onchange = function () {
+    var checked = this.checked;
+    if (websocket.isSocketReady) {
+      sessionStorage.setItem('network', checked);
+      networkTimer && clearTimeout(networkTimer)
+      networkTimer = setTimeout(function () {
+        websocket.send({
+          method: 'WxDebug.network',
+          params: {
+            enable: checked
+          }
+        })
+      }, 500)
+    }
+  }
+  $('#element_mode').onchange = function () {
+    if (websocket.isSocketReady) {
+      sessionStorage.setItem('elmentMode', this.value);
       websocket.send({
-        method: 'Page.startScreencast',
-        params: screencastParams
-      });
+        method: 'WxDebug.setElementMode',
+        params: {
+          data: this.value
+        }
+      })
     }
   }
-
-  if (hash === '#debugger') {
-    toDebuggerPage();
-  } else if (hash === '#prophet') {
-    toProphetPage();
-  }
-
-  window.addEventListener('hashchange', function (e) {
-    hash = new URL(e.newURL).hash;
-    if (hash === '#debugger') {
-      toDebuggerPage();
-    } else if (hash === '#prophet') {
-      toProphetPage();
+  $('#log_level').onchange = function () {
+    if (websocket.isSocketReady) {
+      sessionStorage.setItem('logLevel', this.value);
+      websocket.send({
+        method: 'WxDebug.setLogLevel',
+        params: {
+          data: this.value
+        }
+      })
     }
-  }, false);
+  }
   timeout = setTimeout(function () {
     history.back()
   }, 5000)
@@ -123,60 +170,7 @@ websocket.on('WxDebug.pushDebuggerInfo', function (message) {
     $('#network').checked = typeof (device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
     $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
     $('#log_level').value = sessionStorage.getItem('logLevel') || 'debug'
-    init()
-    $('#remote_debug').onchange = function () {
-      var checked = this.checked;
-      if (websocket.isSocketReady) {
-        sessionStorage.setItem('remoteDebug', checked);
-        remoteTimer && clearTimeout(remoteTimer)
 
-        remoteTimer = setTimeout(function () {
-          websocket.send({
-            method: 'WxDebug.' + (checked ? 'enable' : 'disable')
-          })
-          websocket.send({
-            method: 'WxDebug.reloadInspector'
-          })
-        }, 500)
-      }
-    }
-    $('#network').onchange = function () {
-      var checked = this.checked;
-      if (websocket.isSocketReady) {
-        sessionStorage.setItem('network', checked);
-        networkTimer && clearTimeout(networkTimer)
-        networkTimer = setTimeout(function () {
-          websocket.send({
-            method: 'WxDebug.network',
-            params: {
-              enable: checked
-            }
-          })
-        }, 500)
-      }
-    }
-    $('#element_mode').onchange = function () {
-      if (websocket.isSocketReady) {
-        sessionStorage.setItem('elmentMode', this.value);
-        websocket.send({
-          method: 'WxDebug.setElementMode',
-          params: {
-            data: this.value
-          }
-        })
-      }
-    }
-    $('#log_level').onchange = function () {
-      if (websocket.isSocketReady) {
-        sessionStorage.setItem('logLevel', this.value);
-        websocket.send({
-          method: 'WxDebug.setLogLevel',
-          params: {
-            data: this.value
-          }
-        })
-      }
-    }
     var bundleQrcodeCtn = $('#qrcode_bundle')
     bundleQrcodeCtn.innerHTML = ''
     var bundles = message.params.bundles
