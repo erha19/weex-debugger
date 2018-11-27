@@ -64,9 +64,7 @@ debuggerRouter
       } else {
         env['jsframework'] = config.env[message.channelId]['jsframework']
       }
-      config.env[message.channelId][
-        'workerjs'
-      ] = payload.params.workerjs = new MemoryFile(
+      config.env[message.channelId]['workerjs'] = payload.params.workerjs = new MemoryFile(
         `[Runtime]/${path.basename(bundleUrl)}`,
         generateWorkerEntry(env),
       ).getUrl()
@@ -187,9 +185,7 @@ debuggerRouter
 
       env['isLayoutAndSandbox'] =
         config.env[message.channelId]['isLayoutAndSandbox']
-      config.env[message.channelId][
-        'workerjs'
-      ] = payload.params.workerjs = new MemoryFile(
+      config.env[message.channelId]['workerjs'] = payload.params.workerjs = new MemoryFile(
         `[Runtime]/${path.basename(bundleUrl || '')}`,
         generateSandboxWorkerEntry(env),
       ).getUrl()
@@ -248,9 +244,7 @@ debuggerRouter
         payload.params.sourceUrl =
           config.env[message.channelId]['polify']['sourcejs']
       } else {
-        config.env[message.channelId][
-          'sourcejs'
-        ] = payload.params.sourceUrl = new MemoryFile(bundleUrl, code).getUrl()
+        config.env[message.channelId]['sourcejs'] = payload.params.sourceUrl = new MemoryFile(bundleUrl, code).getUrl()
       }
     } else if (method === 'WxDebug.importScript') {
       const code = payload.params.source

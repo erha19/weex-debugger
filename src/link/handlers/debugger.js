@@ -87,9 +87,7 @@ debuggerRouter
         config.env[payload.params.channelId]['polify']['jsframework'] =
           payload.params['jsframework']
         if (payload.params['jsservice']) {
-          config.env[payload.params.channelId]['polify'][
-            'jsservice'
-          ] = payload.params['jsservice'].split(',')
+          config.env[payload.params.channelId]['polify']['jsservice'] = payload.params['jsservice'].split(',')
         }
 
         config.env[payload.params.channelId]['polify']['dependencejs'] =
