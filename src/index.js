@@ -9,6 +9,7 @@ const config = require("./config");
 const debugServer = require("./server");
 const mlink = require("./link");
 const Router = mlink.Router;
+const kill = require('kill-port')
 
 const { logger, hosts, util } = require("./util");
 
@@ -110,6 +111,10 @@ exports.launch = function(ip, port) {
       } else {
         logger.info(`Starting inspector on port ${open}`);
       }
+      process.on('exit', function() {
+        kill(open)
+        kill(port)
+      });
       config.REMOTE_DEBUG_PORT = open;
       headless.launchHeadless(`${config.ip}:${config.port}`, open);
     });
