@@ -1,6 +1,14 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.2.6
+#### Changed
+  - Remove useless babel config.
+
+### 1.2.5
+#### Changed
+  - Fix debug while first connected with android device.
+
 ### 1.2.4
 #### Changed
   - Protected envrionment variable.
