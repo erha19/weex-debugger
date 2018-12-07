@@ -72,20 +72,6 @@
   "bin": {
     "weex-debugger": "bin/weex-devtool.js"
   },
-  "babel": {
-    "presets": [
-      "es2015"
-    ],
-    "plugins": [
-      [
-        "transform-runtime",
-        {
-          "polyfill": false,
-          "regenerator": true
-        }
-      ]
-    ]
-  },
   "changelog": {
     "messages": [
       "[Feature] Replace opn with chrome-opn to prevent duplicate tabs",
