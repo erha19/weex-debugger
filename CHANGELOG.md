@@ -1,6 +1,10 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.2.7 - 1.2.8
+#### Changed
+  - Support for WeexSDK v0.20.1.
+
 ### 1.2.6
 #### Changed
   - Remove useless babel config.

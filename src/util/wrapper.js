@@ -327,6 +327,18 @@ self.callAddElement = function (instance, ref, dom, index, callback) {
   __postData__(payload);
 };
 
+self.__updateComponentData = function (instance, componentId, data) {
+  var payload = {
+    method: 'WxDebug.callUpdateComponentData',
+    params: {
+      instance: instance,
+      componentId: componentId + '',
+      data: data
+    }
+  };
+  __postData__(payload);
+};
+
 self.nativeLog = function (args) {
   self.console.log(args)
 };`
@@ -452,7 +464,8 @@ self.callRemoveEvent = function (instance, ref, event) {
     }
   };
   __postData__(payload);
-}`
+}
+`
     : ''
   let environment = `${eventConstructor}
 
