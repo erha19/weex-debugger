@@ -169,7 +169,7 @@ websocket.on('WxDebug.pushDebuggerInfo', function (message) {
     $('#remote_debug').checked = typeof (device.remoteDebug) === "undefined" ? sessionStorage.getItem('remoteDebug') === "true" : device.remoteDebug;
     $('#network').checked = typeof (device.network) === "undefined" ? sessionStorage.getItem('network') === "true" : device.network;
     $('#element_mode').value = device.elementMode || sessionStorage.getItem('elmentMode') || 'native'
-    $('#log_level').value = sessionStorage.getItem('logLevel') || 'debug'
+    $('#log_level').value = device.logLevel || sessionStorage.getItem('logLevel') || 'debug'
 
     var bundleQrcodeCtn = $('#qrcode_bundle')
     bundleQrcodeCtn.innerHTML = ''
