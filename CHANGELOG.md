@@ -1,6 +1,11 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.3.0
+#### Bugfix
+  - Fix SSRF security issues.
+  - Fix remote code execution via node-simtcl module.
+  
 ### 1.2.9
 #### Bugfix
   - Fix logLevel option.
