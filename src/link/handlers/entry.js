@@ -1,7 +1,7 @@
 const mlink = require('../index')
 const config = require('../../config')
 const Router = mlink.Router
-const { simulator, util } = require('../../util')
+const { util } = require('../../util')
 const debuggerRouter = Router.get('debugger')
 
 debuggerRouter
@@ -27,16 +27,6 @@ debuggerRouter
         },
       }
       message.reply()
-    } else if (method === 'WxDebug.simrun') {
-      simulator.connect(message.payload.params).catch(e => {
-        debuggerRouter.pushMessage('page.entry', {
-          method: 'WxDebug.prompt',
-          params: {
-            messageText: 'PLEASE_INSTALL_XCODE',
-            channelId: message.payload.params,
-          },
-        })
-      })
     } else if (method === 'WxDebug.queryServerVersion') {
       let pkg = require('../../../package.json')
       debuggerRouter.pushMessage('page.entry', {

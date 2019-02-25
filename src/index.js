@@ -43,10 +43,10 @@ function resolveConnectUrl(config) {
   );
 }
 
-exports.startServerAndLaunch = function(ip, port, manual, cb) {
-  this.startServer(ip, port).then(() => {
+exports.startServerAndLaunch = function(config, cb) {
+  this.startServer(config.ip, config.port).then(() => {
     cb && cb();
-    if (!manual) this.launch(ip, port);
+    if (!config.manual) this.launch(config.ip, config.port);
   });
 };
 
@@ -95,7 +95,7 @@ exports.startServer = function(ip, port) {
 };
 
 exports.launch = function(ip, port) {
-  const debuggerURL = "http://" + (ip || "localhost") + ":" + port + "/";
+  const debuggerURL = `http://${ip || "localhost"}:${port}/` ;
   logger.info("Launching Dev Tools...");
   if (config.ENABLE_HEADLESS) {
     // Check whether the port is occupied
@@ -152,7 +152,7 @@ exports.start = function(target, config, cb) {
       config.port
     );
     config.bundleUrls = bundleUrls;
-    this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
+    this.startServerAndLaunch(config, cb);
   } else if (target) {
     const filePath = path.resolve(target);
     let shouldReloadDebugger = false;
@@ -182,9 +182,7 @@ exports.start = function(target, config, cb) {
             );
             config.BUNDLE_URLS = bundleUrls;
             this.startServerAndLaunch(
-              config.ip,
-              config.port,
-              config.manual,
+              config,
               cb
             );
           } else {
@@ -194,6 +192,6 @@ exports.start = function(target, config, cb) {
       }
     );
   } else {
-    this.startServerAndLaunch(config.ip, config.port, config.manual, cb);
+    this.startServerAndLaunch(config, cb);
   }
 };

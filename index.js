@@ -1,6 +1,7 @@
 const devtool = require('./lib/index');
 const config = require('./lib/config');
 const IP = require('ip');
+const uuid = require('uuid');
 
 /**
  * Start server and lanunch chrome.
@@ -20,6 +21,7 @@ const startServerAndLaunchDevtool = (entry, options, cb) => {
     config.CHANNELID = options.CHANNELID || options.channelId;
     config.REMOTE_DEBUG_PORT = options.REMOTE_DEBUG_PORT || options.remoteDebugPort || 9222;
     config.ENABLE_HEADLESS = typeof options.ENABLE_HEADLESS === 'boolean' ? options.ENABLE_HEADLESS : typeof options.enableHeadless === 'boolean' ? options.enableHeadless : true;
+    config.TOKEN = options.TOKEN || uuid();
   }
   devtool.start(entry, config, cb);
 };

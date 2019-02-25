@@ -16,7 +16,6 @@ exports.start = (port, cb) => {
   app.ws.use(WsRouter.routes()).use(WsRouter.allowedMethods());
   app.use(HttpRouter.routes());
   app.use(serve(rootPath));
-
   app.on("error", (err, ctx) => {
     logger.error(err);
   });
