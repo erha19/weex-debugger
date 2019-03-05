@@ -14,3 +14,7 @@ debuggerRouter
     message.to("proxy.inspector");
   })
   .at("runtime.proxy");
+
+  setInterval(() => {
+    debuggerRouter.pushMessage('runtime.proxy', 'ping')
+  }, 30000)

@@ -334,3 +334,7 @@ debuggerRouter
   .when(
     '!payload.method||(payload.method.split(".")[0]!=="WxDebug")',
   )
+
+  setInterval(() => {
+    debuggerRouter.pushMessage('proxy.native', 'ping')
+  }, 30000)

@@ -60,3 +60,7 @@ debuggerRouter
     }
   })
   .at('proxy.inspector')
+
+  setInterval(() => {
+    debuggerRouter.pushMessage('proxy.inspector', 'ping')
+  }, 30000)

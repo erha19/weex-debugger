@@ -49,12 +49,20 @@ class WebsocketTerminal extends EventEmitter {
     websocket.on("error", err => {
       logger.error(err);
     });
+    websocket.on("pong", () => {
+      logger.verbose('ping-pong');
+    });
   }
 
   read(message) {
     if (this.websocket.readyState === 1) {
       this.emit("read", message);
-      this.websocket.send(JSON.stringify(message));
+      if (message === 'ping') {
+        this.websocket.ping()
+      }
+      else {
+        this.websocket.send(JSON.stringify(message));
+      }
     }
   }
 }

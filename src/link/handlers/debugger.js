@@ -114,3 +114,7 @@ debuggerRouter
     message.to('proxy.native')
   })
   .at('page.debugger')
+
+  setInterval(() => {
+    debuggerRouter.pushMessage('page.debugger', 'ping')
+  }, 30000)
