@@ -1,6 +1,14 @@
 ## Changelog
 All notable changes to this project will be documented in this file.
 
+### 1.3.2
+#### Feature
+  - Support navigator fake.
+
+### 1.3.1
+#### Changed
+  - Add ping-pong heartbeat.
+
 ### 1.3.0
 #### Bugfix
   - Fix SSRF security issues.
