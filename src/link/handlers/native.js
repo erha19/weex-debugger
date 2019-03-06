@@ -30,6 +30,8 @@ debuggerRouter
       if (device && device.logLevel) {
         payload.params.env.WXEnvironment.logLevel = device.logLevel
       }
+      config.env[message.channelId]['environment'] = payload.params.env
+      config.env[message.channelId]['device'] = device
       config.env[message.channelId]['isLayoutAndSandbox'] =
         payload.params.isLayoutAndSandbox
     } else if (
@@ -125,6 +127,8 @@ debuggerRouter
       const options = payload.params.args[1]
       const dependenceCode = payload.params.args[3]
       let env = {
+        environment: config.env[message.channelId]['environment'],
+        device: config.env[message.channelId]['device'],
         isLayoutAndSandbox: config.env[message.channelId]['isLayoutAndSandbox']
       }
       let bundleUrl = options.bundleUrl
