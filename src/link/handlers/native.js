@@ -210,7 +210,7 @@ debuggerRouter
         config.env[message.channelId]['polify']['sourcejs']
       ) {
         bundleUrl = config.env[message.channelId]['polify']['sourcejs']
-      } else if (config.env[message.channelId]['sourcejs']) {
+      } else if (config.env[message.channelId] && config.env[message.channelId]['sourcejs']) {
         bundleUrl = config.env[message.channelId]['sourcejs']
       }
       debuggerRouter.pushMessageByChannelId(

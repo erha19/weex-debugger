@@ -6,6 +6,7 @@ var cacheWeexEnv;
 var cacheJsbundleImportMessage;
 var cacheRegisterLoop = [];
 var cacheSyncList = [];
+var cacheLogLevel
 var activeWorkerId;
 var EntrySocket = new WebsocketClient('ws://' + location.host + '/page/entry');
 
@@ -32,8 +33,8 @@ function connect(channelId) {
     var domain = message.method.split('.')[0];
     if (domain === 'WxDebug') {
       var instanceId;
-      if (message && message.params) {
-        instanceId = message.params && message.params.args && message.params.args[0];
+      if (message && message.params && message.params.args) {
+        instanceId = message.params.args[0];
       }
       else {
         instanceId = activeWorkerId
@@ -93,6 +94,10 @@ function connect(channelId) {
     }
   });
 
+  RuntimeSocket.on('WxDebug.setLogLevel', function(message) {
+    cacheLogLevel = message.params.logLevel
+  })
+
   RuntimeSocket.on('WxDebug.initJSRuntime', function (message) {
     var logLevel = localStorage.getItem('logLevel');
     if (logLevel) {
@@ -101,6 +106,7 @@ function connect(channelId) {
     cacheWeexEnv = message.params.env;
     cacheRegisterLoop = [];
   });
+  
 }
 
 function destroyJSRuntime(message) {
@@ -135,6 +141,9 @@ function initJSRuntime(message) {
   })
   if (cacheJsbundleImportMessage) {
     workers[instanceId].postMessage(message);
+  }
+  if (cacheLogLevel) {
+    message.params.env.WXEnvironment.logLevel = cacheLogLevel
   }
   workers[instanceId].postMessage(message);
 }
