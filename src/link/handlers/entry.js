@@ -40,7 +40,3 @@ debuggerRouter
 
   })
   .at('page.entry')
-
-setInterval(() => {
-  debuggerRouter.pushMessage('page.entry', 'ping')
-}, 30000)

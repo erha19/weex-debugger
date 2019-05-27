@@ -55,6 +55,9 @@ debuggerRouter
         })
       } else if (method === 'WxDebug.enable') {
         device && (device.remoteDebug = true)
+        debuggerRouter.pushMessage('page.debugger', message.terminalId, {
+          method: 'WxDebug.reloadRuntime',
+        })
       } else if (method === 'WxDebug.disable') {
         device && (device.remoteDebug = false)
         debuggerRouter.pushMessage('page.debugger', message.terminalId, {
@@ -102,7 +105,3 @@ debuggerRouter
     message.to('proxy.native')
   })
   .at('page.debugger')
-
-  setInterval(() => {
-    debuggerRouter.pushMessage('page.debugger', 'ping')
-  }, 30000)

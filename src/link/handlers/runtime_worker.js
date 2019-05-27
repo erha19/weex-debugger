@@ -75,7 +75,3 @@ debuggerRouter.on(Router.Event.TERMINAL_LEAVED, 'runtime.worker', function(
     RuntimeManager.remove(signal.channelId)
   }
 })
-
-setInterval(() => {
-  debuggerRouter.pushMessage('runtime.worker', 'ping')
-}, 30000)
