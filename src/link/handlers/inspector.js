@@ -21,7 +21,6 @@ const chromeDevtoolDiabledProtocol = [
 
 debuggerRouter
   .registerHandler(function(message) {
-    console.log(message.payload.method)
     const device = DeviceManager.getDevice(message.channelId)
     if (device) {
       if (redirectMessage.test(message.payload.method)) {
